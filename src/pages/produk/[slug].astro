@@ -425,27 +425,64 @@ const productSchemaJson = JSON.stringify(productSchema).replace(/</g, '\\u003c')
           </div>
           <p class="text-[13px] font-medium text-[#757575]">Selesaikan pesanan Anda, bayar di tempat (COD)</p>
           
-          <!-- Countdown Timer -->
-          <div class="mt-5 w-full flex items-center justify-between rounded-lg bg-[#111111] px-4 py-3 shadow-md border border-slate-800">
-            <div class="flex items-center gap-2">
-              <Icon name="lucide:timer" class="h-4 w-4 text-[#EE4D2D]" aria-hidden="true" />
-              <span class="text-[11px] sm:text-xs font-bold uppercase tracking-widest text-[#A1A1AA] mt-px">Promo Berakhir:</span>
+          <!-- Shopee-Style Flash Sale Banner -->
+          <div class="mt-6 overflow-hidden rounded-lg shadow-sm border border-[#EE4D2D]/20">
+            <!-- Header section (Gradient Orange/Red) -->
+            <div class="bg-gradient-to-r from-[#FF6600] to-[#EE4D2D] px-3.5 py-2.5 flex items-center justify-between">
+              <div class="flex items-center gap-1.5">
+                <Icon name="lucide:zap" class="h-[18px] w-[18px] text-white fill-white" aria-hidden="true" />
+                <span class="text-[13px] font-extrabold italic text-white tracking-wide">FLASH SALE</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <span class="text-[9px] text-white/90 font-medium mr-0.5 uppercase tracking-wider">Berakhir:</span>
+                <div class="flex items-center gap-0.5 text-white font-mono font-bold text-xs">
+                  <div class="bg-[#111111] rounded-[3px] px-1.5 py-0.5 min-w-[20px] flex justify-center">
+                    <span id="cd-hours">02</span>
+                  </div>
+                  <span class="animate-pulse text-[#111111] font-bold">:</span>
+                  <div class="bg-[#111111] rounded-[3px] px-1.5 py-0.5 min-w-[20px] flex justify-center">
+                    <span id="cd-minutes">14</span>
+                  </div>
+                  <span class="animate-pulse text-[#111111] font-bold">:</span>
+                  <div class="bg-[#111111] rounded-[3px] px-1.5 py-0.5 min-w-[20px] flex justify-center">
+                    <span id="cd-seconds">35</span>
+                  </div>
+                </div>
+              </div>
             </div>
-
-            <div class="flex items-center gap-0.5 text-white font-mono font-bold text-[15px] tracking-wider">
-              <div class="flex items-center justify-center min-w-[24px]">
-                <span id="cd-hours">02</span>
+            
+            <!-- Stock Progress Bar (Shopee style) -->
+            <div class="bg-[#FFF5F5] px-3.5 py-3 border-t border-[#EE4D2D]/10">
+              <div class="flex items-center justify-between mb-1.5">
+                <div class="flex items-center gap-1.5">
+                  <span class="relative flex h-2 w-2">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#EE4D2D] opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-[#EE4D2D]"></span>
+                  </span>
+                  <span class="text-[11px] font-bold text-[#EE4D2D] uppercase tracking-wide">Hampir Habis!</span>
+                </div>
+                <span class="text-[11px] font-bold text-[#555555]">Tersisa <span id="random-stock" class="text-[#EE4D2D] font-extrabold text-[13px]">12</span> pcs</span>
               </div>
-              <span class="animate-pulse text-[#EE4D2D] opacity-80 pb-0.5">:</span>
-              <div class="flex items-center justify-center min-w-[24px]">
-                <span id="cd-minutes">14</span>
-              </div>
-              <span class="animate-pulse text-[#EE4D2D] opacity-80 pb-0.5">:</span>
-              <div class="flex items-center justify-center min-w-[24px]">
-                <span id="cd-seconds">35</span>
+              <!-- Progress Track -->
+              <div class="h-1.5 w-full bg-[#FEE2E2] rounded-full overflow-hidden">
+                <div id="stock-progress" class="h-full bg-gradient-to-r from-[#FF6600] to-[#EE4D2D] rounded-full transition-all duration-1000" style="width: 85%"></div>
               </div>
             </div>
           </div>
+
+          <script is:inline>
+            document.addEventListener('DOMContentLoaded', () => {
+              const stockEl = document.getElementById('random-stock');
+              const progressEl = document.getElementById('stock-progress');
+              if (stockEl && progressEl) {
+                // Random stock between 8 and 19
+                const stock = Math.floor(Math.random() * 12) + 8; 
+                stockEl.textContent = stock;
+                // If max stock is 100, sold width is (100 - stock)%
+                progressEl.style.width = (100 - stock) + "%";
+              }
+            });
+          </script>
         </div>
         
         <GeoIpResolvedForm mode={formContext.mode} province={formContext.province} productSlug={product.slug} embedded={true} />
