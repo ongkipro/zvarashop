@@ -52,10 +52,10 @@ export function getPublicProductValidationError(
         Number.isSafeInteger(variant.price) &&
         Number(variant.price) > 0 &&
         Number.isSafeInteger(variant.stock) &&
-        Number(variant.stock) > 0,
+        Number(variant.stock) >= 0,
     )
   ) {
-    return "Produk aktif wajib memiliki minimal 1 varian valid dan tersedia.";
+    return "Produk aktif wajib memiliki minimal 1 varian dengan harga valid.";
   }
   return null;
 }

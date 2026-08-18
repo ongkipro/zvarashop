@@ -62,10 +62,74 @@ export default function ProductImageSlider({
   if (!activeImage) return null;
 
   return (
-    <div className="relative flex w-full select-none flex-row gap-2.5 sm:gap-3">
-      {/* Thumbnails Column (Left) - Synchronized Vertical Scroll */}
+    <div className="relative flex w-full select-none flex-col gap-2">
+      {/* Main product hero image (Top) - Touch Swipe Left/Right Support (No Pop-up) */}
+      <div
+        className="group relative flex w-full aspect-square items-center justify-center overflow-hidden rounded-lg bg-slate-50 ring-1 ring-slate-100 touch-pan-y"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
+        <img
+          src={activeImage}
+          alt={`${productName} foto ${activeIndex + 1}`}
+          width={480}
+          height={480}
+          className="h-full w-full object-cover transition-transform duration-500"
+          loading="eager"
+          decoding="async"
+          fetchPriority="high"
+        />
+
+        {/* Badge Overlay Top */}
+        <div className="absolute left-0 top-0 z-10 flex flex-col items-start gap-1 pointer-events-none">
+          {badgeText && (
+            <span className="rounded-br-md bg-[#EE4D2D]/90 backdrop-blur-xs px-2 py-1 text-[11px] font-bold text-white shadow-sm">
+              {badgeText}
+            </span>
+          )}
+        </div>
+        {discountPercentage > 0 && (
+          <div className="absolute right-0 top-0 z-10 flex flex-col items-center bg-[#FEEA2E]/90 px-2 py-1.5 backdrop-blur-xs rounded-bl-md shadow-sm pointer-events-none">
+            <span className="text-[14px] font-black leading-none text-[#EE4D2D]">{discountPercentage}%</span>
+            <span className="mt-0.5 rounded-sm bg-[#EE4D2D] px-1 py-[2px] text-[10px] font-bold leading-none text-white uppercase tracking-wider">OFF</span>
+          </div>
+        )}
+
+        {/* Counter Badge Bottom Right */}
+        <div className="absolute bottom-3 right-3 z-10 pointer-events-none rounded-full bg-slate-900/40 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
+          {activeIndex + 1}/{gallery.length}
+        </div>
+
+        {/* Navigation Arrows */}
+        {gallery.length > 1 && (
+          <>
+            <button
+              type="button"
+              onClick={handlePrev}
+              aria-label="Foto Sebelumnya"
+              className="absolute left-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/80 text-gray-800 shadow-sm transition hover:bg-white focus-visible:outline-none active:scale-95 z-20"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={handleNext}
+              aria-label="Foto Berikutnya"
+              className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/80 text-gray-800 shadow-sm transition hover:bg-white focus-visible:outline-none active:scale-95 z-20"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* Thumbnails Row (Bottom) */}
       {gallery.length > 1 && (
-        <div className="no-scrollbar flex w-14 shrink-0 flex-col gap-2 overflow-y-auto max-h-[420px] sm:w-16 sm:max-h-[500px]">
+        <div className="no-scrollbar flex w-full flex-row gap-2 overflow-x-auto pb-1">
           {gallery.map((imgUrl, idx) => {
             const isActive = activeIndex === idx;
             return (
@@ -76,93 +140,26 @@ export default function ProductImageSlider({
                 aria-label={`Lihat foto ${idx + 1} dari ${gallery.length}`}
                 aria-pressed={isActive}
                 onClick={() => setActiveIndex(idx)}
-                className={`group relative aspect-[3/4] w-full shrink-0 overflow-hidden rounded-none border transition-all duration-200 focus-visible:outline-none ${
+                className={`group relative aspect-square w-16 shrink-0 overflow-hidden rounded-md border-2 transition-all duration-200 focus-visible:outline-none ${
                   isActive
-                    ? 'border-[#C5A880] ring-1 ring-[#C5A880] opacity-100 shadow-sm'
-                    : 'border-[#E5E5E5] opacity-60 hover:opacity-100'
+                    ? 'border-[#EE4D2D] opacity-100 ring-2 ring-[#EE4D2D] ring-offset-1'
+                    : 'border-transparent opacity-70 hover:opacity-100 hover:border-[#EE4D2D]/50'
                 }`}
               >
                 <img
                   src={imgUrl}
                   alt={`${productName} thumbnail ${idx + 1}`}
                   width={64}
-                  height={85}
-                  sizes="(max-width: 480px) 64px, 80px"
-                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                  loading={idx < 3 ? 'eager' : 'lazy'}
+                  height={64}
+                  className="h-full w-full object-cover"
+                  loading={idx < 5 ? 'eager' : 'lazy'}
                   decoding="async"
                 />
-                {isActive && (
-                  <span className="absolute inset-x-0 bottom-0 h-0.5 bg-[#C5A880]" />
-                )}
               </button>
             );
           })}
         </div>
       )}
-
-      {/* Main product hero image (Right) - Touch Swipe Left/Right Support (No Pop-up) */}
-      <div
-        className="group relative flex flex-1 aspect-[3/4] items-center justify-center overflow-hidden rounded-none border border-[#E5E5E5] bg-[#F8F7F4] touch-pan-y"
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-      >
-        <img
-          src={activeImage}
-          alt={`${productName} foto ${activeIndex + 1}`}
-          width={480}
-          height={640}
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
-          loading="eager"
-          decoding="async"
-          fetchPriority="high"
-        />
-
-        {/* Badge Overlay Top */}
-        <div className="absolute left-3 top-3 z-10 flex flex-wrap items-center gap-1.5 pointer-events-none">
-          {badgeText && (
-            <span className="rounded-none bg-[#111111] px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#F8F7F4] shadow-xs">
-              {badgeText}
-            </span>
-          )}
-          {discountPercentage > 0 && (
-            <span className="rounded-none bg-[#C5A880] px-2 py-1 text-[10px] font-extrabold uppercase tracking-wider text-[#111111] shadow-xs">
-              -{discountPercentage}%
-            </span>
-          )}
-        </div>
-
-        {/* Counter Badge Bottom Right */}
-        <div className="absolute bottom-3 right-3 z-10 pointer-events-none rounded-none border border-[#E5E5E5] bg-white/95 px-2 py-1 text-[10px] font-bold text-[#111111] shadow-xs backdrop-blur-xs">
-          {activeIndex + 1} / {gallery.length}
-        </div>
-
-        {/* Navigation Arrows */}
-        {gallery.length > 1 && (
-          <>
-            <button
-              type="button"
-              onClick={handlePrev}
-              aria-label="Foto Sebelumnya"
-              className="absolute left-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-none border border-[#E5E5E5] bg-white/90 text-[#111111] shadow-xs transition hover:bg-[#111111] hover:text-[#F8F7F4] focus-visible:outline-none active:scale-95 z-20"
-            >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <button
-              type="button"
-              onClick={handleNext}
-              aria-label="Foto Berikutnya"
-              className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-none border border-[#E5E5E5] bg-white/90 text-[#111111] shadow-xs transition hover:bg-[#111111] hover:text-[#F8F7F4] focus-visible:outline-none active:scale-95 z-20"
-            >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          </>
-        )}
-      </div>
     </div>
   );
 }

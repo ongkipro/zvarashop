@@ -18,7 +18,7 @@
 
   // Globally unique within the Cloudflare account. Placeholder values below are
   // syntactically valid so tooling runs on a fresh clone — they are NOT a target.
-  "name": "adsbookcms-your-store",
+  "name": "zvarashop",
   "main": "./src/worker.ts",
 
 
@@ -56,21 +56,21 @@
   "kv_namespaces": [
     {
       "binding": "SESSION",
-      "id": "00000000000000000000000000000000"
+      "id": "6a63603c31ac4e328a51f323625cbfcf"
     }
   ],
   "d1_databases": [
     {
       "binding": "OMS_DB",
-      "database_name": "adsbookcms-your-store-d1",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_name": "zvarashop-d1",
+      "database_id": "79e02ca0-1de6-4f6f-805c-495a01be88f0",
       "migrations_dir": "src/db/migrations"
     }
   ],
   "r2_buckets": [
     {
       "binding": "ASSET_BUCKET",
-      "bucket_name": "adsbookcms-your-store-assets"
+      "bucket_name": "zvarashop-assets"
     }
   ],
   "ai": {
@@ -87,11 +87,11 @@
 
   "routes": [
     {
-      "pattern": "example.com",
+      "pattern": "zvara.shop",
       "custom_domain": true
     },
     {
-      "pattern": "www.example.com",
+      "pattern": "www.zvara.shop",
       "custom_domain": true
     }
   ],
@@ -100,8 +100,8 @@
   // change here only takes effect after `npm run build`. Redeploying an already
   // built bundle with new vars changes nothing. See ARCHITECTURE.md §5.
   "vars": {
-    "PUBLIC_SITE_NAME": "Your Store",
-    "PUBLIC_SITE_URL": "https://example.com",
+    "PUBLIC_SITE_NAME": "Zvara Shop",
+    "PUBLIC_SITE_URL": "https://zvara.shop",
     // Deliberately empty, like the tagline below. A placeholder here becomes
     // the meta description Google prints under the store, and the second half
     // of the home page <title>.
@@ -111,7 +111,7 @@
     // announce itself as "Toko Anda — Belum Dikonfigurasi".
     "PUBLIC_SITE_TAGLINE": "",
     "PUBLIC_ADMIN_NAME": "AdsBookCMS Admin",
-    "PUBLIC_EMBED_ALLOWED_ORIGINS": "https://example.com",
+    "PUBLIC_EMBED_ALLOWED_ORIGINS": "https://zvara.shop",
 
     // Root-relative or absolute. Replace the placeholder wordmark in
     // public/images/ with the store's own brand assets.

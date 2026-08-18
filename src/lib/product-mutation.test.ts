@@ -150,7 +150,7 @@ test("active product validation rejects a missing image", () => {
   );
 });
 
-test("active product validation rejects a catalog with no in-stock variant", () => {
+test("active product validation rejects a catalog with no valid price variant", () => {
   assert.deepEqual(
     parseProductMutationPayload(
       validMutationPayload({
@@ -158,9 +158,9 @@ test("active product validation rejects a catalog with no in-stock variant", () 
           {
             sku: "MERCHANT-1",
             title: "1 Liter",
-            price: 125000,
+            price: 0,
             weight_grams: 1000,
-            stock: 0,
+            stock: 10,
           },
         ],
       }),
@@ -168,7 +168,7 @@ test("active product validation rejects a catalog with no in-stock variant", () 
     ),
     {
       error:
-        "Produk aktif wajib memiliki minimal 1 varian valid dan tersedia.",
+        "Harga varian MERCHANT-1 harus integer positif.",
     },
   );
 });
