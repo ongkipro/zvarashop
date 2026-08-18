@@ -279,14 +279,14 @@
 .form-field input,
 .form-field textarea {
   width: 100%;
-  min-height: 2.9rem;
-  padding: 0.96rem 0.75rem 0.2rem;
+  min-height: 3.3rem;
+  padding: 1.25rem 0.85rem 0.3rem;
   border: 1px solid #E5E5E5;
   border-radius: 0.5rem;
   background: #F8FAFC;
   color: #222222;
   font: inherit;
-  font-size: 1rem;
+  font-size: 1.05rem;
   font-weight: 500;
   line-height: 1.35;
   box-shadow: none;
@@ -296,9 +296,9 @@
     box-shadow 0.15s ease;
 }
 .form-field textarea {
-  min-height: 4.4rem;
-  padding-top: 1.25rem;
-  padding-bottom: 0.38rem;
+  min-height: 4.8rem;
+  padding-top: 1.45rem;
+  padding-bottom: 0.4rem;
   resize: vertical;
 }
 .form-field input::placeholder,
@@ -309,11 +309,11 @@
 .form-field > span {
   position: absolute;
   z-index: 1;
-  left: 0.75rem;
-  top: 1rem;
+  left: 0.85rem;
+  top: 1.15rem;
   margin: 0;
   color: #555555;
-  font-size: 0.78rem;
+  font-size: 0.82rem;
   font-weight: 500;
   line-height: 1;
   transform-origin: left top;
@@ -325,7 +325,7 @@
 }
 .form-field textarea ~ label,
 .form-field textarea ~ span {
-  top: 0.85rem;
+  top: 1.05rem;
 }
 .form-field input:focus ~ label,
 .form-field input:not(:placeholder-shown) ~ label,
@@ -335,9 +335,9 @@
 .form-field textarea:not(:placeholder-shown) ~ label,
 .form-field textarea:focus ~ span,
 .form-field textarea:not(:placeholder-shown) ~ span {
-  top: 0.3rem;
+  top: 0.35rem;
   color: #222222;
-  font-size: 0.62rem;
+  font-size: 0.65rem;
   font-weight: 700;
 }
 .form-field input:focus,
@@ -400,17 +400,17 @@
 .field-grid textarea.field-valid,
 .form-field input.field-valid,
 .form-field textarea.field-valid {
-  border-color: #FF9E80;
-  background: #F8FAFC !important;
+  border-color: #CBD5E1;
+  background: #F1F5F9 !important;
   box-shadow: none !important;
 }
 .field-grid input.field-valid:focus,
 .field-grid textarea.field-valid:focus,
 .form-field input.field-valid:focus,
 .form-field textarea.field-valid:focus {
-  border-color: #FF9E80 !important;
+  border-color: #94A3B8 !important;
   background: #ffffff !important;
-  box-shadow: 0 0 0 3px rgba(238, 77, 45, 0.15) !important;
+  box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.15) !important;
 }
 @keyframes fieldFeedbackIn {
   from {
