@@ -414,14 +414,38 @@ const productSchemaJson = JSON.stringify(productSchema).replace(/</g, '\\u003c')
     </section>
 
     <!-- Direct Order Form Container -->
-    <section id="form-pemesanan" class="mt-4 scroll-mt-6 overflow-hidden bg-white px-4 py-6 sm:rounded-xl sm:border border-y border-slate-200">
-      <div class="mb-5 text-center">
-        <h2 class="text-[16px] font-bold uppercase tracking-wide text-[#222222]">
-          Formulir Pemesanan
-        </h2>
-        <p class="mt-1 text-[13px] text-[#757575]">Mohon lengkapi data pengiriman Anda</p>
+    <section id="form-pemesanan" class="mt-4 scroll-mt-6 overflow-hidden bg-white sm:rounded-xl sm:border border-y border-slate-200 shadow-[0_8px_30px_rgb(0,0,0,0.06)] relative">
+      <!-- Top Accent Bar -->
+      <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#EE4D2D] to-[#FEEA2E]"></div>
+      
+      <div class="px-4 pt-7 pb-6">
+        <div class="mb-5 text-center">
+          <h2 class="text-[18px] font-extrabold uppercase tracking-wide text-[#222222]">
+            🔥 Pesan Sekarang 🔥
+          </h2>
+          <p class="mt-1.5 text-[13px] font-medium text-[#757575]">Isi form di bawah ini, bayar aman saat barang sampai (COD)</p>
+          
+          <!-- Countdown Timer -->
+          <div class="mt-4 inline-flex flex-col items-center justify-center rounded-lg bg-[#FFF5F5] border border-[#FEE2E2] px-4 py-2.5">
+            <span class="text-[10px] font-bold uppercase tracking-widest text-[#EE4D2D] mb-1">Promo Berakhir Dalam</span>
+            <div class="flex items-center gap-1.5 text-[#EE4D2D] font-mono font-bold text-lg">
+              <div class="flex flex-col items-center min-w-[32px] bg-white rounded border border-[#FECACA] py-0.5 shadow-sm">
+                <span id="cd-hours">02</span>
+              </div>
+              <span class="animate-pulse opacity-60">:</span>
+              <div class="flex flex-col items-center min-w-[32px] bg-white rounded border border-[#FECACA] py-0.5 shadow-sm">
+                <span id="cd-minutes">14</span>
+              </div>
+              <span class="animate-pulse opacity-60">:</span>
+              <div class="flex flex-col items-center min-w-[32px] bg-white rounded border border-[#FECACA] py-0.5 shadow-sm">
+                <span id="cd-seconds">35</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <GeoIpResolvedForm mode={formContext.mode} province={formContext.province} productSlug={product.slug} embedded={true} />
       </div>
-      <GeoIpResolvedForm mode={formContext.mode} province={formContext.province} productSlug={product.slug} embedded={true} />
     </section>
 
     <!-- Sticky Mobile Purchase Bar (Auto-hides when order form is visible) -->
@@ -441,6 +465,40 @@ const productSchemaJson = JSON.stringify(productSchema).replace(/</g, '\\u003c')
   </main>
 
   <script>
+    function initCountdown() {
+      const hoursEl = document.getElementById('cd-hours');
+      const minutesEl = document.getElementById('cd-minutes');
+      const secondsEl = document.getElementById('cd-seconds');
+      if (!hoursEl || !minutesEl || !secondsEl) return;
+
+      // Reset countdown to end of current day, or a fixed 2 hours from load for urgency
+      let timeRemaining = 2 * 3600 + 14 * 60 + 35; // 2 hours, 14 mins, 35 secs
+      
+      // Store in session storage so it doesn't reset on every refresh
+      const savedTime = sessionStorage.getItem('cd-time');
+      const savedTimestamp = sessionStorage.getItem('cd-timestamp');
+      if (savedTime && savedTimestamp) {
+        const elapsed = Math.floor((Date.now() - parseInt(savedTimestamp)) / 1000);
+        const remaining = parseInt(savedTime) - elapsed;
+        if (remaining > 0) timeRemaining = remaining;
+      }
+
+      setInterval(() => {
+        if (timeRemaining <= 0) timeRemaining = 3600; // loop back to 1 hour if hit 0
+        timeRemaining--;
+        
+        sessionStorage.setItem('cd-time', timeRemaining.toString());
+        sessionStorage.setItem('cd-timestamp', Date.now().toString());
+
+        const h = Math.floor(timeRemaining / 3600);
+        const m = Math.floor((timeRemaining % 3600) / 60);
+        const s = timeRemaining % 60;
+
+        hoursEl.textContent = h.toString().padStart(2, '0');
+        minutesEl.textContent = m.toString().padStart(2, '0');
+        secondsEl.textContent = s.toString().padStart(2, '0');
+      }, 1000);
+    }
     function initStickyBarObserver() {
       const stickyBar = document.getElementById('sticky-purchase-bar');
       const orderForm = document.getElementById('form-pemesanan');
@@ -467,9 +525,13 @@ const productSchemaJson = JSON.stringify(productSchema).replace(/</g, '\\u003c')
     }
 
     if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', initStickyBarObserver);
+      document.addEventListener('DOMContentLoaded', () => {
+        initStickyBarObserver();
+        initCountdown();
+      });
     } else {
       initStickyBarObserver();
+      initCountdown();
     }
   </script>
 </BaseLayout>
