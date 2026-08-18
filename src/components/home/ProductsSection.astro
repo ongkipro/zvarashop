@@ -32,29 +32,9 @@ const formatPrice = (val: number) => `Rp${val.toLocaleString('id-ID')}`;
 ---
 
 <section id="produk" class="bg-[#F5F5F5] px-2 py-6 sm:px-4 sm:py-8">
-  <div class="mb-4 flex items-end justify-between px-1">
-    <div>
-      <h2 class="text-xl font-extrabold tracking-tight text-slate-900">{heading.title}</h2>
-      <p class="mt-1 text-sm text-slate-500">{heading.description}</p>
-    </div>
-  </div>
+  
 
-  <div class="mb-4" hidden={products.length === 0}>
-    <div class="relative w-full shadow-sm">
-      <input
-        type="text"
-        id="catalog-search"
-        placeholder="Cari produk di toko ini..."
-        aria-label="Cari produk"
-        class="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-gray-800 transition-colors placeholder:text-gray-400 focus:border-[#EE4D2D] focus:outline-none focus:ring-1 focus:ring-[#EE4D2D]"
-      />
-      <Icon
-        name="lucide:search"
-        class="absolute left-3.5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-400"
-        aria-hidden="true"
-      />
-    </div>
-  </div>
+  
 
   {
     products.length === 0 && (

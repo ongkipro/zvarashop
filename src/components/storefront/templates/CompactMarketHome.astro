@@ -1,5 +1,4 @@
 ---
-import HeroSection from '../../home/HeroSection.astro';
 import ProductsSection from '../../home/ProductsSection.astro';
 import ProofsSection from '../../home/ProofsSection.astro';
 import type { TenantHomeContent } from '../../../lib/tenant-content';
@@ -45,11 +44,11 @@ const heroSlides =
   id="konten-utama"
   class="relative min-h-screen overflow-x-hidden bg-[#F5F5F5] font-sans text-[#222222] antialiased"
 >
+  <h1 class="sr-only">{content.hero.title || Astro.locals.tenant.name}</h1>
   <div
     id="home"
     class="mx-auto flex min-h-screen w-full max-w-[480px] flex-col border-x border-[#E5E5E5] bg-[#F5F5F5]"
   >
-    {sections.hero && <HeroSection slides={heroSlides} highlights={content.heroHighlights} content={content.hero} />}
     {sections.catalog && <ProductsSection products={products} heading={content.catalog} />}
     {sections.proofs && <ProofsSection proofs={content.proofs} heading={content.proofsHeading} />}
   </div>
