@@ -415,29 +415,35 @@ const productSchemaJson = JSON.stringify(productSchema).replace(/</g, '\\u003c')
 
     <!-- Direct Order Form Container -->
     <section id="form-pemesanan" class="mt-4 scroll-mt-6 overflow-hidden bg-white sm:rounded-xl sm:border border-y border-slate-200 shadow-[0_8px_30px_rgb(0,0,0,0.06)] relative">
-      <!-- Top Accent Bar -->
-      <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#EE4D2D] to-[#FEEA2E]"></div>
-      
       <div class="px-4 pt-7 pb-6">
         <div class="mb-5 text-center">
-          <h2 class="text-[18px] font-extrabold uppercase tracking-wide text-[#222222]">
-            🔥 Pesan Sekarang 🔥
-          </h2>
-          <p class="mt-1.5 text-[13px] font-medium text-[#757575]">Isi form di bawah ini, bayar aman saat barang sampai (COD)</p>
+          <div class="inline-flex items-center justify-center gap-1.5 mb-2">
+            <Icon name="lucide:zap" class="h-[18px] w-[18px] text-[#EE4D2D] fill-[#EE4D2D]" aria-hidden="true" />
+            <h2 class="text-[16px] font-extrabold uppercase tracking-wide text-[#222222]">
+              Pesan Sekarang
+            </h2>
+          </div>
+          <p class="text-[13px] font-medium text-[#757575]">Selesaikan pesanan Anda, bayar di tempat (COD)</p>
           
           <!-- Countdown Timer -->
-          <div class="mt-4 inline-flex flex-col items-center justify-center rounded-lg bg-[#FFF5F5] border border-[#FEE2E2] px-4 py-2.5">
-            <span class="text-[10px] font-bold uppercase tracking-widest text-[#EE4D2D] mb-1">Promo Berakhir Dalam</span>
-            <div class="flex items-center gap-1.5 text-[#EE4D2D] font-mono font-bold text-lg">
-              <div class="flex flex-col items-center min-w-[32px] bg-white rounded border border-[#FECACA] py-0.5 shadow-sm">
+          <div class="mt-5 inline-flex items-center gap-3 rounded-md bg-[#111111] px-3.5 py-2.5 shadow-sm">
+            <div class="flex items-center gap-1.5">
+              <Icon name="lucide:timer" class="h-[14px] w-[14px] text-[#EE4D2D]" aria-hidden="true" />
+              <span class="text-[10px] font-bold uppercase tracking-widest text-[#A1A1AA] mt-px">Berakhir Dalam</span>
+            </div>
+            
+            <div class="h-4 w-px bg-white/20"></div>
+
+            <div class="flex items-center gap-0.5 text-white font-mono font-bold text-sm tracking-wider">
+              <div class="flex items-center justify-center min-w-[24px]">
                 <span id="cd-hours">02</span>
               </div>
-              <span class="animate-pulse opacity-60">:</span>
-              <div class="flex flex-col items-center min-w-[32px] bg-white rounded border border-[#FECACA] py-0.5 shadow-sm">
+              <span class="animate-pulse text-[#EE4D2D] opacity-80 pb-0.5">:</span>
+              <div class="flex items-center justify-center min-w-[24px]">
                 <span id="cd-minutes">14</span>
               </div>
-              <span class="animate-pulse opacity-60">:</span>
-              <div class="flex flex-col items-center min-w-[32px] bg-white rounded border border-[#FECACA] py-0.5 shadow-sm">
+              <span class="animate-pulse text-[#EE4D2D] opacity-80 pb-0.5">:</span>
+              <div class="flex items-center justify-center min-w-[24px]">
                 <span id="cd-seconds">35</span>
               </div>
             </div>
