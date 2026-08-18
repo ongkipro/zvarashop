@@ -426,15 +426,13 @@ const productSchemaJson = JSON.stringify(productSchema).replace(/</g, '\\u003c')
           <p class="text-[13px] font-medium text-[#757575]">Selesaikan pesanan Anda, bayar di tempat (COD)</p>
           
           <!-- Countdown Timer -->
-          <div class="mt-5 inline-flex items-center gap-3 rounded-md bg-[#111111] px-3.5 py-2.5 shadow-sm">
-            <div class="flex items-center gap-1.5">
-              <Icon name="lucide:timer" class="h-[14px] w-[14px] text-[#EE4D2D]" aria-hidden="true" />
-              <span class="text-[10px] font-bold uppercase tracking-widest text-[#A1A1AA] mt-px">Berakhir Dalam</span>
+          <div class="mt-5 w-full flex items-center justify-between rounded-lg bg-[#111111] px-4 py-3 shadow-md border border-slate-800">
+            <div class="flex items-center gap-2">
+              <Icon name="lucide:timer" class="h-4 w-4 text-[#EE4D2D]" aria-hidden="true" />
+              <span class="text-[11px] sm:text-xs font-bold uppercase tracking-widest text-[#A1A1AA] mt-px">Promo Berakhir:</span>
             </div>
-            
-            <div class="h-4 w-px bg-white/20"></div>
 
-            <div class="flex items-center gap-0.5 text-white font-mono font-bold text-sm tracking-wider">
+            <div class="flex items-center gap-0.5 text-white font-mono font-bold text-[15px] tracking-wider">
               <div class="flex items-center justify-center min-w-[24px]">
                 <span id="cd-hours">02</span>
               </div>
