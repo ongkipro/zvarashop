@@ -276,117 +276,72 @@ const productSchemaJson = JSON.stringify(productSchema).replace(/</g, '\\u003c')
 
     <!-- Detailed Specifications / Sales Pitch -->
     <section class="border-y border-slate-200 bg-white px-5 py-6 mb-2 sm:mb-3 sm:rounded-xl sm:border-x sm:shadow-sm sm:ring-1 sm:ring-slate-100">
-      <h2 class="pb-3 text-[16px] font-extrabold uppercase tracking-wide text-[#222222] text-center">
-        Kenapa Anda Membutuhkan Ini?
+      <h2 class="border-b border-slate-100 pb-4 text-[14px] font-bold tracking-wide text-[#222222]">
+        Detail Produk
       </h2>
-      <div class="mt-2 grid gap-6 text-[15px] leading-relaxed text-[#444444]">
-        <div class="rounded-xl bg-[#F8FAFC] p-4 border border-slate-100 text-center shadow-sm">
-          <p>{product.description}</p>
+      
+      <div class="mt-5 space-y-6 text-[14px] leading-relaxed text-[#444444]">
+        <!-- Highlighted Description -->
+        <div class="relative pl-4">
+          <div class="absolute left-0 top-0 bottom-0 w-[3px] bg-[#EE4D2D] rounded-full"></div>
+          <p class="text-[#333333] font-medium leading-relaxed">{product.description}</p>
         </div>
 
-        <div class="grid gap-3 border-b border-slate-200 pb-4">
-          <div class="flex items-start gap-3">
-            <Icon
-              name="lucide:pencil"
-              class="mt-0.5 h-[18px] w-[18px] shrink-0"
-              style={`color: ${productAccent}`}
-              aria-hidden="true"
-            />
-            <div>
-              <p class="font-semibold text-[#222222]">Kategori</p>
-              <p>{product.category}</p>
-            </div>
+        <div class="grid gap-4 rounded-xl bg-slate-50 p-4 border border-slate-100">
+          <div class="flex items-center justify-between border-b border-slate-200 pb-2">
+            <span class="text-[13px] text-slate-500">Kategori</span>
+            <span class="text-[13px] font-medium text-slate-900">{product.category}</span>
           </div>
-          <div class="flex items-start gap-3">
-            <Icon
-              name="lucide:package"
-              class="mt-0.5 h-[18px] w-[18px] shrink-0"
-              style={`color: ${productAccent}`}
-              aria-hidden="true"
-            />
-            <div>
-              <p class="font-semibold text-[#222222]">Fokus Produk</p>
-              <p>{product.tag}</p>
-            </div>
+          <div class="flex items-center justify-between border-b border-slate-200 pb-2">
+            <span class="text-[13px] text-slate-500">Fokus Produk</span>
+            <span class="text-[13px] font-medium text-slate-900">{product.tag}</span>
           </div>
-          <div class="flex items-start gap-3">
-            <Icon
-              name="lucide:sliders-horizontal"
-              class="mt-0.5 h-[18px] w-[18px] shrink-0"
-              style={`color: ${productAccent}`}
-              aria-hidden="true"
-            />
-            <div>
-              <p class="font-semibold text-[#222222]">Ketersediaan</p>
-              <p>Stok tersedia untuk seluruh varian yang ditampilkan.</p>
-            </div>
+          <div class="flex items-center justify-between">
+            <span class="text-[13px] text-slate-500">Ketersediaan</span>
+            <span class="text-[13px] font-medium text-[#10B981]">Stok Tersedia</span>
           </div>
         </div>
 
         {product.benefits && product.benefits.length > 0 && (
-          <div class="grid gap-4 border-b border-slate-200 pb-4">
-            <div class="flex items-center gap-2">
-              <Icon name="lucide:check" class="h-[17px] w-[17px]" style={`color: ${productAccent}`} aria-hidden="true" />
-              <h3 class="text-[13px] font-semibold uppercase tracking-[0.08em] text-[#222222]">Manfaat Utama</h3>
-            </div>
-            <div class="space-y-3">
+          <div>
+            <h3 class="text-[13px] font-semibold text-[#222222] mb-3">Manfaat Utama</h3>
+            <ul class="space-y-2">
               {
                 product.benefits.map((b) => (
-                  <div class="grid grid-cols-[8px_1fr] gap-3">
-                    <span
-                      class="mt-3 h-px w-2 bg-[#EE4D2D]"
-                      aria-hidden="true"
-                    />
-                    <span class="min-w-0 leading-6">{b}</span>
-                  </div>
+                  <li class="flex items-start gap-2 text-[13px]">
+                    <Icon name="lucide:check-circle-2" class="h-4 w-4 shrink-0 text-[#10B981] mt-0.5" aria-hidden="true" />
+                    <span>{b}</span>
+                  </li>
                 ))
               }
-            </div>
+            </ul>
           </div>
         )}
 
         {product.keyPoints && product.keyPoints.length > 0 && (
-          <div class="grid gap-4 border-b border-slate-200 pb-4">
-            <div class="flex items-center gap-2">
-              <Icon name="lucide:plus" class="h-[17px] w-[17px]" style={`color: ${productAccent}`} aria-hidden="true" />
-              <h3 class="text-[13px] font-semibold uppercase tracking-[0.08em] text-[#222222]">Poin Penting Produk</h3>
-            </div>
-            <div class="space-y-3">
+          <div>
+            <h3 class="text-[13px] font-semibold text-[#222222] mb-3">Poin Penting</h3>
+            <ul class="space-y-2">
               {
                 product.keyPoints.map((point) => (
-                  <div class="grid grid-cols-[8px_1fr] gap-3">
-                    <span
-                      class="mt-3 h-px w-2 bg-[#EE4D2D]"
-                      aria-hidden="true"
-                    />
-                    <span class="min-w-0 leading-6">{point}</span>
-                  </div>
+                  <li class="flex items-start gap-2 text-[13px]">
+                    <Icon name="lucide:chevron-right" class="h-4 w-4 shrink-0 text-[#EE4D2D] mt-0.5" aria-hidden="true" />
+                    <span>{point}</span>
+                  </li>
                 ))
               }
-            </div>
+            </ul>
           </div>
         )}
 
         {product.idealFor && product.idealFor.length > 0 && (
           <div>
-            <div class="mb-3 flex items-center gap-2">
-              <Icon
-                name="lucide:download"
-                class="h-[17px] w-[17px]"
-                style={`color: ${productAccent}`}
-                aria-hidden="true"
-              />
-              <h3 class="text-[13px] font-semibold uppercase tracking-[0.08em] text-[#222222]">Ideal Untuk</h3>
-            </div>
-            <div class="flex flex-wrap gap-x-3 gap-y-2">
+            <h3 class="text-[13px] font-semibold text-[#222222] mb-3">Ideal Untuk</h3>
+            <div class="flex flex-wrap gap-2">
               {
                 product.idealFor.map((item) => (
-                  <span class="inline-flex items-center gap-2 text-[12px] font-medium text-[#555555]">
-                    <span
-                      class="h-px w-2 bg-[#EE4D2D]"
-                      aria-hidden="true"
-                    />
-                    <span>{item}</span>
+                  <span class="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-[12px] font-medium text-slate-700">
+                    {item}
                   </span>
                 ))
               }
@@ -459,12 +414,12 @@ const productSchemaJson = JSON.stringify(productSchema).replace(/</g, '\\u003c')
     </section>
 
     <!-- Direct Order Form Container -->
-    <section id="form-pemesanan" class="mt-6 scroll-mt-6 overflow-hidden rounded-xl border-2 border-[#EE4D2D] bg-white shadow-[0_8px_30px_rgb(0,0,0,0.08)] p-4 sm:p-5 mx-2 sm:mx-0">
+    <section id="form-pemesanan" class="mt-4 scroll-mt-6 overflow-hidden bg-white px-4 py-6 sm:rounded-xl sm:border border-y border-slate-200">
       <div class="mb-5 text-center">
-        <h2 class="text-[18px] font-extrabold uppercase tracking-wide text-[#222222]">
-          🔥 Pesan Sekarang 🔥
+        <h2 class="text-[16px] font-bold uppercase tracking-wide text-[#222222]">
+          Formulir Pemesanan
         </h2>
-        <p class="mt-1 text-[13px] font-medium text-[#757575]">Isi form di bawah ini, bayar aman saat barang sampai (COD)</p>
+        <p class="mt-1 text-[13px] text-[#757575]">Mohon lengkapi data pengiriman Anda</p>
       </div>
       <GeoIpResolvedForm mode={formContext.mode} province={formContext.province} productSlug={product.slug} embedded={true} />
     </section>
