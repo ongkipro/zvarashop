@@ -176,3 +176,66 @@ disabled. It is an operator policy setting in `/admin/expeditions`, not a
 configuration fault. Worth knowing that SAP, previously the cheapest at 7.500 to
 Cikarang Barat, is among the disabled ones; the cheapest COD option is now J&T
 at 9.000.
+
+---
+
+## 6. Meta Ads: configuration, CAPI, storefront, thanks page (2026-08-19)
+
+**Verdict.** The implementation is complete and unusually careful. zvara's
+configuration is empty, so none of it runs.
+
+**Configuration read from D1 (masked, `--remote`).** `meta_pixel_id`,
+`meta_capi_token`, `google_tag_manager_id`, `google_ads_conversion_id` and
+`google_ads_conversion_label` are all `NULL`, `wrangler secret list` shows no
+`META_*` or `FB_*` fallback, and `capi_event_outbox` holds zero rows.
+
+**Live proof.** On `/`, `/produk/holder-hp`, `/full-form` and `/thanks`:
+`window.fbq` is `undefined`, no `fbevents.js` is loaded, and no request reaches
+`facebook.com`. `MetaPixelBase` gates on `/^\d{5,25}$/`, so an absent Pixel ID
+renders nothing at all — correct, not a fault.
+
+**What already runs without the pixel.** Click-ID capture works today: a request
+carrying `?fbclid=…&gclid=…` comes back with `adsbook_click_ids` and a
+server-set `_fbc` cookie in `fb.1.<ts>.<fbclid>` form, `Max-Age` 90 days,
+`SameSite=None; Secure`. The browser also posts `PageView` and `ViewContent` to
+`/api/meta-event` on every page; the endpoint answers `202 {skipped: true,
+reason: "Meta CAPI is not configured for this store."}`. Filling the credentials
+starts the whole funnel with no code change and no deploy.
+
+**Event coverage.** `PageView`, `ViewContent`, `AddToCart`, `InitiateCheckout`,
+`Purchase` — the browser set and the server whitelist in
+`meta-event-contract.ts` agree. `MetaPixelBase` and `MetaPageViewTracker` mount
+in `BaseLayout`, `MetaViewContentTracker` on the product page,
+`MetaLandingTracker` on all four form routes and the landing catch-all, and
+`MetaThanksTracker` on `/thanks`.
+
+**Deduplication.** Both legs share one `event_id`. For `Purchase` the id is the
+**order number**, resolved server-side, so the browser cannot mint an id the
+CAPI leg would not reproduce.
+
+**Purchase qualification on `/thanks`** — the strongest part of the design:
+`order_pk` plus `status_token` are required, `POST /api/order-status` must
+confirm the order, a non-COD order must be `is_paid`, the reported value is
+replaced by the server's `total_amount` (so shipping and the COD fee are
+included and a tampered `sessionStorage` cannot dictate revenue), and a
+per-order guard blocks a double fire. An order that cannot be resolved gets no
+Purchase at all rather than an undeduplicatable one.
+
+**Identity.** `meta-capi.ts` hashes name, city and E.164 phone with SHA-256
+through `crypto.subtle` before transmission; `fbp` and `fbc` are forwarded raw,
+which is what Meta requires. Delivery is durable: every event is written to
+`capi_event_outbox` before sending, retried on failure, and drained by the
+hourly cron (`schedule: 7 * * * *`).
+
+### Gaps worth a decision
+
+1. **Nothing is configured.** Pixel ID and CAPI token at `/admin/ads/meta`; the
+   database value wins over any secret, so no deploy is needed. Google Ads, GTM
+   and TikTok are equally empty.
+2. **No `Lead` event.** The CMS captures abandoned leads into its own workspace
+   but never reports `Lead` to Meta, so lead-optimised campaigns have no signal.
+   `META_EVENT_NAMES` would have to grow for that.
+3. **Purchase depends on same-origin `sessionStorage`.** A buyer who loses
+   `order_pk`/`status_token` — a refresh into a new context, a share of the URL —
+   produces a real order with no Purchase event. That is deliberate fail-closed
+   behaviour, but it undercounts, and the size of the undercount is unknown.
