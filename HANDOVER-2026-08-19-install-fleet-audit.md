@@ -147,3 +147,22 @@ Post-deploy smoke: `/` 200, `/produk` 200 with 32 products, `/admin/profile` 302
 to login, `/api/locations` 200. `/api/shipping-options` still returns
 `SHIPPING_PROVIDER_ERROR`, which is expected until a Mengantar key this account
 accepts is supplied — that is the one thing still blocking checkout.
+
+### Resolved 2026-08-19
+
+The operator supplied a Mengantar credential the account accepts. Verified
+against the live install, not only in tests:
+
+- `GET /api/shipping-options` returns rates for two different destinations, and
+  they differ by distance — Cikarang Barat quotes JNE 10.000 / SiCepat 9.000 /
+  SAP 7.500, Denpasar quotes JNE 30.000 / SiCepat 27.000.
+- Driven in a real browser at 390 CSS px on
+  `/full-form?product_id=holder-hp&variant_id=20075`: typing a district fires
+  `/api/locations` search then resolve, then
+  `/api/shipping-options?...&variant_unique_id=20075` returns 200, and the
+  summary renders **Biaya Pengiriman Rp9.000 (JT)**, Biaya COD Rp2.598, Total
+  Rp80.598. Zero console errors, no horizontal overflow.
+
+The empty `warehouses` table remains — the origin still comes from
+`MENGANTAR_ORIGIN_AREA_ID`, exactly as on taniniaga. It works, but an operator
+opening `/admin/settings/warehouse` would find nothing there.
