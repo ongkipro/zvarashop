@@ -513,6 +513,7 @@ lag the tree. The navigation change was **not** ported — hiding a screen is th
 install's preference, not a product decision.
 
 `~/Projects/adsbookcms` is now behind 9 with 35 uncommitted files. Four paths
-there are also touched by what has landed: `src/pages/admin/ads/meta.astro`,
-`src/pages/api/shipping-rates.ts`, `STATUS.md`, and now `src/pages/api/submit-order.ts`
-if that file is among the local edits. Commit or stash before pulling.
+there are also touched by what has landed, confirmed by intersecting the merged
+files with `git status`: `src/pages/admin/ads/meta.astro`,
+`src/pages/api/shipping-rates.ts`, `STATUS.md`, and `src/pages/api/submit-order.ts`.
+Commit or stash those four before pulling.
