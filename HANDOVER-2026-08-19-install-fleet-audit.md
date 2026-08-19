@@ -260,3 +260,19 @@ what proves the intended contract. Fixed to match.
 This also explains the fleet asymmetry recorded in §6 — permatamall has a Pixel
 ID because it was configured before this page existed; zvara and taniniaga never
 could be.
+
+### Carried back to the product (2026-08-19)
+
+Three of the four fixes are product defects and were ported to `adsbookcms` as
+`fix/install-audit-findings` → **PR #2**, based on `feat/admin-access-dashboard`,
+built in a throwaway worktree so the active checkout was never touched. Gates on
+that branch: `npm run check` 0/0/0, `npm test` **422/422** (product baseline was
+419; the three extra come from `provider-config.test.ts`), build complete.
+
+The catalog-publication commit was **not** ported. It only undid a regression
+this install had introduced locally — the product still has `stock > 0` in both
+places and still carries the original regression test, verified before skipping.
+
+`STATUS.md` and `BUILD-LOG.md` were deliberately left alone in the product; they
+were being edited concurrently. The `STATUS.md` verification baseline needs to
+move 419 → 422 when the PR lands.
