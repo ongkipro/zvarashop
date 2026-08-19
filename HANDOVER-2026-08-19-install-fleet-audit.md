@@ -452,3 +452,48 @@ managed file off is a zone dashboard action, and the docs describe no API for it
 Once it is off, `curl https://zvara.shop/robots.txt` should return only the
 application's file: one `User-agent: *`, the named crawler groups, and the
 `Disallow` list covering `/admin/`, `/api/`, `/embed/`, `/hello` and `/install`.
+
+---
+
+## 9. Hybrid form vs the COD exclusion policy (2026-08-19)
+
+The behaviour asked for is implemented, and it holds at three layers.
+
+**Where the policy lives.** `/api/admin/expeditions` — the expedition menu — is
+what writes `stores.cod_disabled_province_codes`. zvara currently stores 15
+codes: `PA,PB,PD,PT,PE,PS,MA,MU,NT,KU,SR,GO,KR,AC,BE` (the six Papua provinces,
+Maluku, Maluku Utara, NTT, Kalimantan Utara, Sulawesi Barat, Gorontalo, Kepulauan
+Riau, Aceh, Bengkulu).
+
+**Layer 1 — which form is rendered.** `resolveFormModeFromProvince` returns
+`full` for an excluded province, `middle` otherwise, and `full` when the province
+cannot be resolved at all. `GeoIpResolvedForm` then forces `full` whenever the
+resolved mode is `full`, so even `/middle-form` upgrades itself for an excluded
+visitor. The hybrid surfaces are the product page, the landing catch-all, the
+embed and `/geoipform`; `/full-form` and `/middle-form` are deliberate fixed
+routes. Geo comes from Cloudflare `cf.regionCode` first, then `cf.region`, then
+`cf-region*` headers, then ipapi, then a fallback.
+
+**Layer 2 — the browser.** Both form components receive
+`codDisabledProvinceCodes` and disable the COD option for an excluded address.
+
+**Layer 3 — the server, which is the one that counts.** `submit-order.ts` reloads
+the list from D1 and refuses a COD order for an excluded province with
+`COD_NOT_AVAILABLE_FOR_REGION` (422). It also refuses when the province cannot be
+normalised, so it fails closed.
+
+That third layer matters because layer 1 keys off the *visitor's* geo-IP while
+the delivered address is whatever they type — a buyer in Java can address an
+order to Papua from the middle form, and only the server catches it.
+
+**Gap closed.** `COD_NOT_AVAILABLE_FOR_REGION` appeared in `submit-order.ts` and
+the browser script and in no test whatsoever. The decision is now
+`isCodBlockedForProvince` in `form-mode.ts`, covered for excluded, non-excluded,
+unresolvable and non-COD inputs. Behaviour unchanged; 424/424 passing.
+
+**Live evidence.** `data-resolved-mode` on the rendered form: the product page
+answers `middle` from this connection (East Java, `JI`, not excluded) and
+`/full-form` answers `full`. The excluded branch could not be exercised live —
+`cf.regionCode` is authoritative and a request cannot be made to originate from
+Papua — so it rests on `form-mode.test.ts`, which asserts `PA`/`Papua` → `full`
+and unknown → `full`.
