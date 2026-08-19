@@ -326,3 +326,17 @@ product defects. Two of its files — `src/pages/admin/ads/meta.astro` and
 `src/pages/api/shipping-rates.ts` — are also modified in the uncommitted work
 sitting in `~/Projects/adsbookcms`, so a plain `git pull` there will refuse or
 conflict. Commit or stash those two first.
+
+### Baseline stamped, zvara redeployed (2026-08-19)
+
+`STATUS.md` in the product now records what was actually executed on a clean
+worktree of `0b34972`: `npm test` **422 / 422**, `npm run check` **354 files**
+0/0/0, build complete. The header also drops its `+ the A17 working tree`
+qualifier, because those numbers describe a committed tree. Landed as PR #3
+(`6bd68ad`).
+
+zvara redeployed as version `a7661610`. No code changed since `bea73eb2` — the
+diff over `src/`, `public/` and config between the deployed commit and HEAD is
+empty, and the commits in between are this handover only. Post-deploy: `/` 200,
+`/produk` 200, `/admin/login` 302, `/full-form` 200, a live JNE/J&T quote, and
+`capi_event_outbox` at **27 rows, all `sent`**, no failures.
