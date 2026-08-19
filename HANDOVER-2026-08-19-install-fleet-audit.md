@@ -517,3 +517,71 @@ there are also touched by what has landed, confirmed by intersecting the merged
 files with `git status`: `src/pages/admin/ads/meta.astro`,
 `src/pages/api/shipping-rates.ts`, `STATUS.md`, and `src/pages/api/submit-order.ts`.
 Commit or stash those four before pulling.
+
+---
+
+## 10. Mobile PageSpeed, public storefront (2026-08-19)
+
+Measured with Lighthouse mobile against the live site, not estimated. The
+PageSpeed Insights API was out of anonymous quota, so the same engine was run
+locally against the cached Chromium.
+
+### Home, before → after
+
+| Metric | Before | After |
+| --- | --- | --- |
+| Performance | **66** | **77** |
+| First Contentful Paint | 2.4 s | **1.6 s** |
+| Largest Contentful Paint | 8.1 s | **5.2 s** |
+| Total Blocking Time | 300 ms | **200 ms** |
+| Speed Index | 2.6 s | **2.2 s** |
+| Time to Interactive | 10.1 s | **8.6 s** |
+| Cumulative Layout Shift | 0 | 0 |
+
+Product page measures **74** (LCP 3.9 s, TBT 540 ms, CLS 0). It was not measured
+with Lighthouse beforehand, so no delta is claimed for it.
+
+### What was changed, and why
+
+1. **Render-blocking stylesheet removed.** One 31 KB `global.css` blocked
+   rendering for ~810 ms; Astro inlines only sheets under 4 KB by default.
+   `build.inlineStylesheets: 'always'`. The live home now serves zero
+   `<link rel="stylesheet">`. That insight is gone from the report.
+2. **LCP image prioritised.** The LCP element is the first product card image and
+   nothing marked it; it now carries `fetchpriority="high"`.
+3. **Uploads capped at a 1000 px edge.** `ProductForm` already re-encoded through
+   a canvas but set the canvas to the *source* dimensions, and returned any WebP
+   under 2 MB untouched however large it was. Both are fixed; 1000 px covers the
+   480 CSS px detail view on a 2× screen.
+4. **Preconnect to `connect.facebook.net`**, rendered only when a pixel is
+   configured. The two Meta scripts are ~220 KB from a cold third-party origin.
+
+### The dominant remaining cost is the images already in R2
+
+`image-delivery-insight` still reports **1,857 KiB** of waste on the home page and
+is unchanged, because item 3 only governs *future* uploads. The catalogue images
+are **1254 × 1254 rendering into a 182 px card** — roughly 47× the pixels the
+page can show. Single files reach 414 KB and 389 KB.
+
+Cloudflare Image Resizing is **not available on this zone**: a request to
+`/cdn-cgi/image/width=400,format=auto/<path>` returns 404. It is a paid feature.
+
+Three ways forward, none of them started:
+
+1. **Enable Cloudflare Image Resizing.** Then a URL prefix gives every surface its
+   own size — 400 px for cards, 1000 px for detail — with no schema change, no
+   migration, and it fixes the existing 32 images immediately. Costs money.
+2. **Reprocess the 32 existing images.** Free and one-off, since future uploads
+   are already capped. It is a production R2 write, so it needs approval. One
+   file still has to serve both card and detail, so the card keeps downloading
+   more than it shows.
+3. **Generate two derivatives per upload** — a card size and a detail size — and
+   store both. Free and correct per surface, but it needs a schema column and a
+   migration.
+
+### Smaller items still open
+
+- `document-latency-insight` 530 ms on home, 860 ms on the product page — the
+  Worker reads D1 on every request.
+- `unused-javascript` 69 KiB home, 97 KiB product.
+- `cache-insight` 200 KiB is entirely `connect.facebook.net`; not controllable.
