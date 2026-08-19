@@ -239,3 +239,24 @@ hourly cron (`schedule: 7 * * * *`).
    `order_pk`/`status_token` — a refresh into a new context, a share of the URL —
    produces a real order with no Purchase event. That is deliberate fail-closed
    behaviour, but it undercounts, and the size of the undercount is unknown.
+
+### `/admin/ads/meta` could never save (2026-08-19)
+
+The operator reported that saving the Meta configuration failed. It was not a
+credential or a paste error — the page called an endpoint contract that does not
+exist:
+
+| Page sent | Route offers |
+| --- | --- |
+| `POST /api/admin/ads` | only `GET` and `PUT` |
+| body without `action` | handler branches on `action === 'save-meta'` |
+| `POST /api/admin/ads/test-meta` | no such route; the real one is `PUT /api/admin/ads` with `action: 'test-capi'` |
+
+The second row is the dangerous one: fixing only the method would have made the
+request fall through both branches and return `success: true` with nothing
+written. `/admin/ads/google` already used `PUT` plus an explicit action, which is
+what proves the intended contract. Fixed to match.
+
+This also explains the fleet asymmetry recorded in §6 — permatamall has a Pixel
+ID because it was configured before this page existed; zvara and taniniaga never
+could be.
