@@ -1,6 +1,6 @@
 # Handover — AdsBookCMS install fleet audit
 
-> Verified against disk: 2026-08-19 @ `52d985a` on `install/zvarashop`
+> Verified against disk: 2026-08-19 @ `49b6fcc` on `install/zvarashop`
 > Scope: the three installs and the product checkout on this machine.
 > This file lives on the install branch only. It never reaches the product repository.
 
@@ -86,3 +86,57 @@ one disk with no remote anywhere.
 - No `.gitattributes` was added to `permatamall` (it is a live store's repository).
 - Secrets were not read. zvara has no `.dev.vars`; its Worker secrets exist only in Cloudflare, unrecorded.
 - Remote D1 state was not read. The warehouse-row concern in `STATUS.md` §4 stands.
+
+
+---
+
+## 5. zvara.shop cannot quote shipping (2026-08-19)
+
+**Symptom.** The full form never produces a shipping cost.
+`GET /api/shipping-options` returns 502 `SHIPPING_PROVIDER_ERROR`.
+
+**Not a code fault.** `git diff product/feat/admin-access-dashboard..install/zvarashop`
+touches no shipping file, and the same endpoint answers correctly on the other
+two installs with the same destination — permatamall quotes JNE 10.000,
+taniniaga 11.000, zvara fails.
+
+**Why the cause was invisible.** `MengantarClient` throws the provider's own
+message with the API key redacted, and the catch in `shipping-rates.ts` replaced
+it with a generic string and logged nothing. A revenue path failed with no trace
+in Workers Logs. Fixed in `19e34ae`, deployed, and the message appeared at once.
+
+**What the provider actually says.**
+
+| Credential in use | Message |
+| --- | --- |
+| `stores.mengantar_api_key` (`API-…`, 20 chars) | `Mengantar API menolak permintaan.` — HTTP 200, `success: false`, no message |
+| Worker secret `MENGANTAR_API_KEY` | `Not allowed` |
+
+Neither credential is accepted by Mengantar for this account. The stored key was
+cleared (one-row remote update, approved) so the install now resolves the same
+way taniniaga does; the remaining rejection is the Worker secret's own value.
+
+**Configuration read (masked, `--remote`, approved).**
+
+| | zvara | taniniaga |
+| --- | --- | --- |
+| `warehouses` | empty | empty |
+| `stores.mengantar_api_key` | was set, now `NULL` | `NULL` |
+| `stores.mengantar_base_url` | was set, now `NULL` | `NULL` |
+| Worker secrets present | `MENGANTAR_API_KEY`, `MENGANTAR_ORIGIN_AREA_ID`, `MENGANTAR_PICKUP_ADDRESS_ID` | same three |
+
+Both installs carry an empty `warehouses` table, so the origin comes from
+`MENGANTAR_ORIGIN_AREA_ID` in both. taniniaga works that way, which is why the
+origin is not the first suspect — but a key and an origin belonging to different
+Mengantar accounts would also produce `Not allowed`, so it is not excluded.
+
+**Open.** The operator must supply a Mengantar key that this account accepts,
+either through `/admin/profile` (the database value wins) or by replacing the
+Worker secret. Nothing further can be determined without it; no credential value
+was read or printed during this work.
+
+**Product defect fixed alongside it** (`49b6fcc`): a stored provider credential
+could be overwritten from `/admin/profile` but never removed, so a wrong key
+permanently shadowed the deployed Worker secret with no way out of the admin.
+An explicit clear now exists. `/admin/profile` already reported which source was
+active, so no change was needed there.
