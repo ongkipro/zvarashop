@@ -140,3 +140,10 @@ could be overwritten from `/admin/profile` but never removed, so a wrong key
 permanently shadowed the deployed Worker secret with no way out of the admin.
 An explicit clear now exists. `/admin/profile` already reported which source was
 active, so no change was needed there.
+
+**Deployed to zvara.shop on 2026-08-19**: `19e34ae` (shipping-quote logging) as
+version `0490c7b2`, then `49b6fcc` (credential clear) as version `d94dc010`.
+Post-deploy smoke: `/` 200, `/produk` 200 with 32 products, `/admin/profile` 302
+to login, `/api/locations` 200. `/api/shipping-options` still returns
+`SHIPPING_PROVIDER_ERROR`, which is expected until a Mengantar key this account
+accepts is supplied — that is the one thing still blocking checkout.
