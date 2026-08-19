@@ -148,22 +148,41 @@ export function ProductForm({ productId }: { productId?: string }) {
   };
 
   const MAX_IMAGE_SIZE = 2 * 1024 * 1024;
+  // The product detail image is laid out at 480 CSS px, so 1000 covers a 2x
+  // screen with room to spare. Catalogue images were arriving at 1254x1254 and
+  // rendering into a 182 px card - about 47x the pixels the page can show, and
+  // the single largest cost on the mobile storefront.
+  const MAX_IMAGE_EDGE = 1000;
 
   const convertImageToWebP = (file: File): Promise<File> => {
     return new Promise((resolve, reject) => {
-      if (file.type === "image/webp" && file.size <= MAX_IMAGE_SIZE) {
-        return resolve(file);
-      }
       const img = new Image();
       const url = URL.createObjectURL(file);
       img.onload = () => {
         URL.revokeObjectURL(url);
+        const sourceWidth = img.naturalWidth || img.width;
+        const sourceHeight = img.naturalHeight || img.height;
+        // An already-small WebP is passed through untouched; re-encoding it
+        // would only lose quality. Anything larger is scaled whatever its
+        // format - the old pass-through trusted file size alone, which is how
+        // full-resolution WebP got in.
+        if (
+          file.type === "image/webp" &&
+          file.size <= MAX_IMAGE_SIZE &&
+          Math.max(sourceWidth, sourceHeight) <= MAX_IMAGE_EDGE
+        ) {
+          return resolve(file);
+        }
+        const scale = Math.min(
+          1,
+          MAX_IMAGE_EDGE / Math.max(sourceWidth, sourceHeight || 1),
+        );
         const canvas = document.createElement("canvas");
-        canvas.width = img.naturalWidth || img.width;
-        canvas.height = img.naturalHeight || img.height;
+        canvas.width = Math.round(sourceWidth * scale);
+        canvas.height = Math.round(sourceHeight * scale);
         const ctx = canvas.getContext("2d");
         if (!ctx) return reject(new Error("Gagal mengolah canvas gambar."));
-        ctx.drawImage(img, 0, 0);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         canvas.toBlob(
           (blob) => {
             if (!blob) return reject(new Error("Gagal konversi gambar ke WebP."));
