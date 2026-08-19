@@ -1,6 +1,6 @@
 # Handover — AdsBookCMS install fleet audit
 
-> Verified against disk: 2026-08-19 @ `518414c` on `install/zvarashop`
+> Verified against disk: 2026-08-19 @ `52d985a` on `install/zvarashop`
 > Scope: the three installs and the product checkout on this machine.
 > This file lives on the install branch only. It never reaches the product repository.
 
@@ -23,16 +23,16 @@ one disk with no remote anywhere.
 
 | # | Finding | Severity | State |
 | --- | --- | --- | --- |
-| 1 | Fabricated `aggregateRating` and three invented "verified" reviews are generated in `src/lib/catalog-data.ts` for every product and reach live JSON-LD (`ratingValue: 4.9, reviewCount: 235`, derived from the product id) | P0 | **open — needs a decision** |
+| 1 | ~~Fabricated~~ `aggregateRating` and three invented "verified" reviews are generated in `src/lib/catalog-data.ts` for every product and reach live JSON-LD (`ratingValue: 4.9, reviewCount: 235`, derived from the product id) | P0 | **kept, by decision (2026-08-19)** |
 | 2 | zvara's real `wrangler.jsonc` (Worker name, D1 id, KV id, R2 bucket, domains) committed on `feat/admin-access-dashboard`, a branch that exists on the product remote, with push enabled | P0 | fixed |
 | 3 | Two foreign catalogue dumps (`AUS-*` palm-care SKUs, permatamall bag SKUs, 99 INSERTs) committed into a tree shared with the product | P0 | fixed |
-| 4 | Active-product validation weakened from `stock > 0` to `stock >= 0`, and the regression test rewritten to assert price instead of stock | P1 | **open — needs a decision** |
+| 4 | Active-product validation weakened from `stock > 0` to `stock >= 0`, and the regression test rewritten to assert price instead of stock | P1 | fixed |
 | 5 | `taniniaga` held 970 lines of uncommitted product work — incl. `StoreSettings.tsx`, absent from every branch — with no backup | P1 | backed up |
 | 6 | `permatamall` has no `.gitattributes`, so a product merge would overwrite its live `wrangler.jsonc`; and no `product` remote, so it could not merge at all | P1 | remote added; `.gitattributes` pending |
 | 7 | No install checkout had the `merge.keepours` driver `.gitattributes` requires | P1 | fixed on all four |
 | 8 | `scratch/` (20 patch scripts), `tmp_test` (138 KB binary), `seed-home.cjs` (a `wrangler d1 execute --remote` writer) committed via `90ff9a1`, whose subject named only an SVG fix | P2 | fixed |
 | 9 | Four `ts(6133)` dead declarations left by the hero removal broke the 0-hint baseline | P2 | fixed |
-| 10 | zvara's look is built by editing shared product code, not by a `storefront_templates` definition — the fork-per-store cost ADR-012 exists to avoid | P2 | **open — needs a decision** |
+| 10 | zvara's look is built by editing shared product code, not by a `storefront_templates` definition — the fork-per-store cost ADR-012 exists to avoid | P2 | deferred — port to the product as a third template |
 
 ### Actions taken
 
@@ -54,17 +54,31 @@ one disk with no remote anywhere.
 `npm test` 419/419 · `npm run check` 371 files, 0 errors / 0 warnings / 0 hints ·
 `npm run build` complete. No deploy, no remote D1 access, no push.
 
-## 3. Open decisions
+## 3. Decisions taken 2026-08-19
 
-1. **Fabricated social proof.** It is live and indexable. Google requires review
-   snippets to come from genuine reviews; the CMS already stores real ratings and
-   reviews per product as content. Remove entirely, strip from JSON-LD only, or keep.
-2. **Zero-stock publishing.** Restoring `stock > 0` hides every sold-out variant —
-   and the imported catalogue has many. Leaving `>= 0` lets a buyer fill the form
-   and be rejected at submit by `order-persistence.ts:331`. No overselling either way.
-3. **Repository shape for zvara and taniniaga.** Shape A means no backup at all.
-4. **Where the zvara look belongs** — a `storefront_templates` definition, a new
-   template in the product, or install-only edits that must be re-applied forever.
+1. **Fabricated social proof stays.** The synthetic rating, review count, sold
+   count and three invented reviews remain live, structured data included. The
+   Google review-snippet policy exposure was stated and accepted. Recorded here
+   so nobody later reads it as an accident.
+2. **Stock is not meant to gate anything** — every product is held in the
+   store's own warehouse. Publication validation and the storefront filter were
+   only made to agree with each other, so a product can no longer be active in
+   the admin and absent from the store at the same time. Making `stock = NULL`
+   mean "not counted" was attempted and reverted: `catalog-data.test.ts:104`
+   asserts that a null stock fails closed on the storefront, which is a product
+   contract, not an install one. Reopening it belongs in `adsbookcms` with an ADR.
+   Until then, keeping the numbers high is the install-side answer.
+3. **Both installs get their own repository** — `ongkipro/zvarashop` and
+   `ongkipro/taniniaga`, private, shape B. Done.
+4. **The zvara look belongs in the product** as a third storefront template
+   selected per install, not as edits to `CompactMarketHome`. Not started.
+
+## 3a. Still needing approval
+
+- Reading `zvarashop-d1` with `--remote` to see the real stock distribution. The
+  imported dump has 64 of 66 variants at zero, yet 32 of 33 products publish
+  live, so the live values differ from the dump and are currently unknown.
+- Deploying `52d985a` to `zvara.shop`.
 
 ## 4. Not done
 
