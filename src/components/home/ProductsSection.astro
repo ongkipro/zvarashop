@@ -1,5 +1,4 @@
 ---
-import Icon from '../shared/Icon.astro';
 
 interface Product {
   name: string;
@@ -26,7 +25,7 @@ interface Props {
   heading: Heading;
 }
 
-const { products, heading } = Astro.props;
+const { products } = Astro.props;
 
 const formatPrice = (val: number) => `Rp${val.toLocaleString('id-ID')}`;
 ---

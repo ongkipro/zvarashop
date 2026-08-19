@@ -29,15 +29,6 @@ interface Props {
 
 const { content, products, sections } = Astro.props;
 
-const heroSlides =
-  content.heroSlides.length > 0
-    ? content.heroSlides
-    : products.slice(0, 3).map((product) => ({
-        image: product.image,
-        alt: product.name,
-        badge: product.category,
-        text: product.name,
-      }));
 ---
 
 <main
