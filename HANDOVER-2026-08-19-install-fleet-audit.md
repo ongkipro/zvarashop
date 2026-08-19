@@ -497,3 +497,22 @@ answers `middle` from this connection (East Java, `JI`, not excluded) and
 `cf.regionCode` is authoritative and a request cannot be made to originate from
 Papua — so it rests on `form-mode.test.ts`, which asserts `PA`/`Papua` → `full`
 and unknown → `full`.
+
+### Deployed and ported (2026-08-19)
+
+zvara deployed as version `fa776764`, carrying the hidden content menu and the
+extracted COD guard. Post-deploy: `/` 200, `/produk/holder-hp` 200 rendering
+`data-resolved-mode="middle"` from this connection, `/admin/login` 302,
+`/admin/content` **302 to login — still reachable, only hidden from the menu**,
+shipping quotes live, sitemap 32 product URLs, both catalogue feeds 32 items,
+`capi_event_outbox` 46 rows all `sent`.
+
+The COD guard went to the product as PR #4, merged at `31aa06a`, with
+`STATUS.md` re-stamped to **423 / 423** in the same PR so the document does not
+lag the tree. The navigation change was **not** ported — hiding a screen is this
+install's preference, not a product decision.
+
+`~/Projects/adsbookcms` is now behind 9 with 35 uncommitted files. Four paths
+there are also touched by what has landed: `src/pages/admin/ads/meta.astro`,
+`src/pages/api/shipping-rates.ts`, `STATUS.md`, and now `src/pages/api/submit-order.ts`
+if that file is among the local edits. Commit or stash before pulling.
