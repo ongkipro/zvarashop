@@ -276,3 +276,53 @@ places and still carries the original regression test, verified before skipping.
 `STATUS.md` and `BUILD-LOG.md` were deliberately left alone in the product; they
 were being edited concurrently. The `STATUS.md` verification baseline needs to
 move 419 → 422 when the PR lands.
+
+---
+
+## 7. Meta verified, isolation audited, fixes landed (2026-08-19)
+
+### Meta Ads now works end to end
+
+`meta_pixel_id` is `1549622009399777` and a 209-character CAPI token is stored.
+Verified live rather than assumed:
+
+- The pixel loads — `fbevents.js` present, `window.fbq` is a function, and the
+  configuration request is `/signals/config/1549622009399777?…&domain=zvara.shop`,
+  so the right pixel is bound to the right domain.
+- The server leg delivers. `capi_event_outbox` holds `PageView` and
+  `ViewContent` rows, every one `status = sent` with `attempts = 0` — accepted
+  by Meta on the first try, no retries.
+
+`Purchase` is the one event still unproven, because proving it means placing a
+real order on a live store. Its gating is read in §6 and the browser and server
+legs share the order number as `event_id`, so the remaining risk is low but not
+zero.
+
+### zvara stands alone
+
+| | zvara | taniniaga | permatamall |
+| --- | --- | --- | --- |
+| Worker | `zvarashop` | `taniniaga` | `cmsads-permatamall` |
+| D1 | `79e02ca0…` | `925955e5…` | `054f2261…` |
+| KV `SESSION` | `6a63603c…` | `f760e8f3…` | `073d2b37…` |
+| R2 | `zvarashop-assets` | `taniniaga-assets` | `cmsads-permatamall-assets` |
+| Domain | `zvara.shop` | `taniniaga.shop` | `permatamall.shop` |
+
+Nothing is shared — not a database, not a session namespace, not a bucket. The
+repository is `ongkipro/zvarashop`, `product` is fetch-only with its push URL
+`DISABLED`, and the only workflow here runs check/test/build with no deploy step.
+
+Remaining mentions of other stores in this tree are inherited product history,
+not live ties: migrations `0017`/`0034` describe removing a foreign sample row,
+`developer-api-keys.ts` keeps the `cmsads_live_` prefix validating (AGENTS.md §7),
+and some product tests use `permatamall.shop` as a fixture URL. The two foreign
+catalogue dumps are untracked — present on this disk only, never in the
+repository.
+
+### Fixes landed in the product
+
+PR #2 merged into `feat/admin-access-dashboard` as `0b34972`, carrying the three
+product defects. Two of its files — `src/pages/admin/ads/meta.astro` and
+`src/pages/api/shipping-rates.ts` — are also modified in the uncommitted work
+sitting in `~/Projects/adsbookcms`, so a plain `git pull` there will refuse or
+conflict. Commit or stash those two first.
