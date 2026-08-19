@@ -163,6 +163,16 @@ against the live install, not only in tests:
   summary renders **Biaya Pengiriman Rp9.000 (JT)**, Biaya COD Rp2.598, Total
   Rp80.598. Zero console errors, no horizontal overflow.
 
-The empty `warehouses` table remains — the origin still comes from
-`MENGANTAR_ORIGIN_AREA_ID`, exactly as on taniniaga. It works, but an operator
-opening `/admin/settings/warehouse` would find nothing there.
+**Update, same day.** The warehouse row now exists — `origin_area_id`
+`5fc62f66…`, `pickup_address_id` `6a857fd1…`, both well-formed provider
+ObjectIds — so the origin comes from D1 and no longer from
+`MENGANTAR_ORIGIN_AREA_ID`. Quotes still return for Cikarang Barat and Denpasar,
+and the browser flow still renders shipping, COD fee and total.
+
+Courier coverage narrowed from five to two in the same window (JNE and J&T).
+That is **not** an effect of the new origin: `shipping-quote.ts` filters every
+provider rate through `courier_rules`, and that table now has 8 of its 10 rows
+disabled. It is an operator policy setting in `/admin/expeditions`, not a
+configuration fault. Worth knowing that SAP, previously the cheapest at 7.500 to
+Cikarang Barat, is among the disabled ones; the cheapest COD option is now J&T
+at 9.000.
