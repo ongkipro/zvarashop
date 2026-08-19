@@ -153,8 +153,14 @@ export function ProductForm({ productId }: { productId?: string }) {
   // rendering into a 182 px card - about 47x the pixels the page can show, and
   // the single largest cost on the mobile storefront.
   const MAX_IMAGE_EDGE = 1000;
+  // The catalogue card is 182 CSS px, which is 478 device pixels on the phone
+  // Lighthouse emulates. This derivative is what the grid actually loads.
+  const CARD_IMAGE_EDGE = 480;
 
-  const convertImageToWebP = (file: File): Promise<File> => {
+  const convertImageToWebP = (
+    file: File,
+    maxEdge: number = MAX_IMAGE_EDGE,
+  ): Promise<File> => {
     return new Promise((resolve, reject) => {
       const img = new Image();
       const url = URL.createObjectURL(file);
@@ -169,13 +175,13 @@ export function ProductForm({ productId }: { productId?: string }) {
         if (
           file.type === "image/webp" &&
           file.size <= MAX_IMAGE_SIZE &&
-          Math.max(sourceWidth, sourceHeight) <= MAX_IMAGE_EDGE
+          Math.max(sourceWidth, sourceHeight) <= maxEdge
         ) {
           return resolve(file);
         }
         const scale = Math.min(
           1,
-          MAX_IMAGE_EDGE / Math.max(sourceWidth, sourceHeight || 1),
+          maxEdge / Math.max(sourceWidth, sourceHeight || 1),
         );
         const canvas = document.createElement("canvas");
         canvas.width = Math.round(sourceWidth * scale);
@@ -230,6 +236,21 @@ export function ProductForm({ productId }: { productId?: string }) {
         throw new Error(result.error || "Gambar gagal diunggah.");
       }
       setImageUrl(String(result.url));
+
+      // The card-sized sibling. Its absence is not an error: the asset route
+      // falls back to the full image, so a failure here costs bytes on the
+      // catalogue grid rather than a broken tile, and must not lose an upload
+      // the operator already completed.
+      try {
+        const cardFile = await convertImageToWebP(webpFile, CARD_IMAGE_EDGE);
+        const cardForm = new FormData();
+        cardForm.set("file", cardFile);
+        cardForm.set("derivative_of", String(result.fileName || ""));
+        await fetch("/api/admin/upload-r2", { method: "POST", body: cardForm });
+      } catch {
+        // deliberately ignored — see above
+      }
+
       setStatusTone("success");
       setStatus("Gambar berhasil diunggah dalam format WebP.");
     } catch (reason) {
