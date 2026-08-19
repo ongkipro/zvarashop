@@ -340,3 +340,88 @@ diff over `src/`, `public/` and config between the deployed commit and HEAD is
 empty, and the commits in between are this handover only. Post-deploy: `/` 200,
 `/produk` 200, `/admin/login` 302, `/full-form` 200, a live JNE/J&T quote, and
 `capi_event_outbox` at **27 rows, all `sent`**, no failures.
+
+---
+
+## 8. Google Ads setup, generated files, `/admin/content` (2026-08-19)
+
+### Google Ads / conversion — correct, and entirely unconfigured
+
+`google_ads_conversion_id`, `google_ads_conversion_label` and
+`google_tag_manager_id` are all `NULL`, so `GoogleAdsBase` renders nothing —
+it gates on **both** id and label being present, and the API refuses to save one
+without the other. Nothing is broken; nothing has started.
+
+What the code does once configured, verified by reading it:
+
+- **Consent Mode v2, region-scoped.** Defaults are `denied` for the EEA/UK region
+  list and `granted` elsewhere, so an Indonesian store does not destroy its own
+  signal to satisfy a rule that does not apply to it.
+- **Conversion fires only inside the server-verified Purchase gate** it shares
+  with Meta — the order must resolve through `/api/order-status`, a non-COD order
+  must be `is_paid`, and the value is the server's `total_amount`.
+- **`transaction_id` is the order number**, and the key is omitted rather than
+  sent empty when there is none, so orders dedupe instead of colliding.
+- **Enhanced conversions** send `sha256_phone_number` (E.164 **with** the leading
+  `+`), `sha256_first_name` and `sha256_last_name`, hashed in the browser. The
+  code notes explicitly that Google matches on `+`-prefixed E.164 while Meta
+  matches on digits only — same number, two different hashes, correctly not
+  shared.
+
+Gaps, none blocking:
+
+1. **Browser-only.** Meta has a durable CAPI outbox; Google has no server leg at
+   all. A blocked or abandoned `/thanks` costs a Google conversion outright,
+   while the Meta one still lands. Offline Conversion Import would close it.
+2. **Enhanced-conversion match rate left on the table.** Checkout collects
+   province, city, district and postal code, none of which are sent. Email is not
+   collected at all.
+3. **COD counts as a conversion immediately.** Correct for a COD business
+   optimising for orders, but cancelled COD is never retracted, so reported
+   conversions run above delivered revenue by the cancellation rate.
+
+### Generated files — all automatic, verified live
+
+| File | Route | Rendering | Live result |
+| --- | --- | --- | --- |
+| `sitemap.xml` | `src/pages/sitemap.xml.ts` | SSR, D1 | 40 `<url>`, **32** product URLs, every one with `lastmod` |
+| `feed/google-catalog.xml` | `.ts` | SSR, D1 | **32** `<item>` |
+| `feed/meta-catalog.xml` | `.ts` | SSR, D1 | **32** `<item>` |
+| `robots.txt` | `src/pages/robots.txt.ts` | SSR | serves, and names the sitemap |
+
+All four are `prerender = false` and read the catalogue through
+`getStorefrontProducts`, so a new or edited product appears with no rebuild and
+no deploy. 32 in all three matches the 32 products the storefront lists. The
+feeds and sitemap carry `Cache-Control: max-age=3600`, so the edge can serve a
+product up to an hour stale — automatic, not instant.
+
+### robots.txt is being written by two authorities
+
+The response contains a `# BEGIN Cloudflare Managed content` block that
+`robots.txt.ts` does not produce — zero occurrences in the source. Cloudflare is
+prepending it at the zone. The result has **two `User-agent: *` groups** and
+duplicate, contradictory groups for `GPTBot` and `ClaudeBot`: Cloudflare says
+`Disallow: /`, the application says `Allow: /` plus its real disallow list.
+
+The application's own header comment explains why this matters — per RFC 9309 a
+crawler obeys only its most specific matching group. A parser that takes the
+first matching `User-agent: *` group sees Cloudflare's, which carries **no
+disallows at all**, and never reaches the group that protects `/admin/`, `/api/`,
+`/embed/`, `/hello` and `/install`.
+
+Decide one authority. Turning off Cloudflare's managed robots.txt for the zone
+leaves the application's file — the one that actually protects the admin —
+authoritative.
+
+### `/admin/content` is load-bearing
+
+It is the only editor for storefront home content: `ContentWorkbench` →
+`/api/admin/content` → `storefront_content`. zvara has one published `home` row
+of 1027 bytes, and its hero title **"Koleksi Terbaik Zvara" renders on the live
+home today**.
+
+More important, `index.astro:66` shows a `setup-required` state when no home
+content is published, and its text directs the operator to exactly this screen.
+Deleting the route would leave a fresh install pointing at a page that does not
+exist, with no way to leave the setup state — the same shape of failure as the
+bootstrap-password change recorded in `STATUS.md` §5.
