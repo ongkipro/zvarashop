@@ -585,3 +585,38 @@ Three ways forward, none of them started:
   Worker reads D1 on every request.
 - `unused-javascript` 69 KiB home, 97 KiB product.
 - `cache-insight` 200 KiB is entirely `connect.facebook.net`; not controllable.
+
+### Image derivatives and the measured result (2026-08-19)
+
+Single Lighthouse runs are noisy, so the score is reported as a range across
+runs and the byte weight — which is deterministic — exactly.
+
+| Home | before | after CSS/LCP work | after derivatives |
+| --- | --- | --- | --- |
+| Performance | 66 (1 run) | 77 (1 run) | **80–92** (3 runs) |
+| Largest Contentful Paint | 8.1 s | 5.2 s | **2.8–4.3 s** |
+| First Contentful Paint | 2.4 s | 1.6 s | 1.3–1.6 s |
+| Total transferred | 2,336 KiB | — | **789 KiB** |
+| `image-delivery-insight` | 1,857 KiB | 1,857 KiB | **255 KiB** |
+
+The product detail page measured **71–75 across three runs** against a single
+pre-change run of 74. The spread brackets the old value and the derivative does
+not touch that page's image, so **no delta is claimed for it**. Its remaining
+cost is third-party: `unused-javascript` 97 KiB and `cache-insight` 200 KiB, the
+latter entirely `connect.facebook.net`.
+
+**Backfill.** All 32 catalogue images now have a 480 px card derivative in R2:
+7,334 KiB → 1,440 KiB, **81% smaller**. These were written as new `-sm` objects;
+no existing object was overwritten. The originals still serve the detail view.
+
+A first upload attempt through Python's urllib was refused with 403 by
+Cloudflare; curl was used instead. One image was initially missed because the
+manifest had no trailing newline and `while read` drops the last line — caught by
+verifying all 32 over HTTP rather than trusting the loop counter.
+
+**Ported to the product** as PR #5, merged at `f47706d`, with `STATUS.md`
+re-stamped to 426 tests / 356 files. The product had meanwhile moved its
+storefront components under `src/components/storefront/`, so the patches did not
+apply and the edits were re-made at the new paths — which also means this install
+branch is now behind that refactor and will have a real merge when it next pulls
+from `product`.
