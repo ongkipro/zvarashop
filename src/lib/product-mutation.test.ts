@@ -173,6 +173,29 @@ test("active product validation rejects a catalog with no valid price variant", 
   );
 });
 
+test("active product validation rejects a catalog with no in-stock variant", () => {
+  assert.deepEqual(
+    parseProductMutationPayload(
+      validMutationPayload({
+        variants: [
+          {
+            sku: "MERCHANT-1",
+            title: "1 Liter",
+            price: 125000,
+            weight_grams: 1000,
+            stock: 0,
+          },
+        ],
+      }),
+      false,
+    ),
+    {
+      error:
+        "Produk aktif wajib memiliki minimal 1 varian valid dan tersedia.",
+    },
+  );
+});
+
 test("product validation never synthesizes a missing slug or stock", () => {
   assert.deepEqual(
     parseProductMutationPayload(validMutationPayload({ slug: "" }), false),
