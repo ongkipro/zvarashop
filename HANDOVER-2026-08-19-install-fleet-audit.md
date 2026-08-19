@@ -425,3 +425,30 @@ content is published, and its text directs the operator to exactly this screen.
 Deleting the route would leave a fresh install pointing at a page that does not
 exist, with no way to leave the setup state — the same shape of failure as the
 bootstrap-password change recorded in `STATUS.md` §5.
+
+### Decisions executed (2026-08-19)
+
+**`/admin/content` hidden, not removed.** The `content` entry is gone from
+`admin-navigation.ts` for this install; the route, `/api/admin/content` and the
+role policy are untouched. Deleting the route would have stranded a fresh
+install in `setup-required` with the on-screen instruction pointing at a 404, and
+would have left `storefront_content` — which supplies zvara's live hero title —
+editable only through SQL. The navigation expectation test moved with it, which
+makes this a deliberate divergence: a future merge from `product` will touch
+`admin-navigation.ts` and `admin-navigation.test.ts`. Gates after the change:
+`npm test` 423/423, `npm run check` 0/0/0, build complete.
+
+**robots.txt authority.** Cloudflare's behaviour is documented, not inferred:
+when the origin already serves a robots.txt, Cloudflare *prepends* its managed
+file and serves both as one response. That is why zvara answers with two
+`User-agent: *` groups, the first carrying no `Disallow` at all. Turning the
+managed file off is a zone dashboard action, and the docs describe no API for it:
+
+- Security Settings → filter **Bot traffic** → turn **off** "Set your preference
+  to block training in robots.txt"
+- Overview → **Control AI Crawlers** → untick **Display Content Signals Policy**
+  to drop the Content-Signal preamble as well
+
+Once it is off, `curl https://zvara.shop/robots.txt` should return only the
+application's file: one `User-agent: *`, the named crawler groups, and the
+`Disallow` list covering `/admin/`, `/api/`, `/embed/`, `/hello` and `/install`.
