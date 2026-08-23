@@ -13,6 +13,7 @@ import {
   type AdminRole,
 } from './lib/auth';
 import { getEnvValue, getRuntimeEnv } from './lib/env';
+import { isRegisteredNativeSlug } from './lib/native-landing-pages';
 import { readStoreIdentity, resolveTenantConfig } from './lib/tenant';
 import {
   buildEmbedFrameAncestors,
@@ -44,6 +45,15 @@ function applySecurityHeaders(
   } else {
     response.headers.set('X-Frame-Options', 'DENY');
   }
+  // Sent unconditionally on purpose. RFC 6797 section 8.1 requires a user agent
+  // to ignore an STS header received over insecure transport, so this is inert
+  // on http and on local dev, and there is no protocol to branch on here.
+  //
+  // No includeSubDomains: this ships to every install, and committing every
+  // future subdomain of every store to HTTPS is not a promise this file can
+  // keep. No preload either - that one is close to irreversible. A store that
+  // wants both can turn on zone-level HSTS in Cloudflare.
+  response.headers.set('Strict-Transport-Security', 'max-age=31536000');
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
   if (isPrivate) response.headers.set('Cache-Control', 'no-store');
@@ -112,6 +122,39 @@ async function loadStoredEmbedAllowedOrigins(
  * unreachable until the wizard has run, because everything else assumes a store
  * row that is not there yet.
  */
+/**
+ * The product slug a native landing page has taken over, or null.
+ *
+ * Reads only when the caller has already established the path is a registered
+ * native slug, so this is not a per-request database hit.
+ */
+async function readNativeProductPageSlug(
+  database: D1Database | undefined,
+  slug: string,
+): Promise<string | null> {
+  if (!database?.prepare || !slug) return null;
+  try {
+    const row = await database
+      .prepare(
+        `SELECT p.slug AS product_slug
+           FROM landing_pages lp
+           INNER JOIN products p ON CAST(p.id AS TEXT) = lp.product_id
+          WHERE lp.slug = ?
+            AND lp.source = 'native'
+            AND lp.is_product_page = 1
+            AND lp.is_active = 1
+          LIMIT 1`,
+      )
+      .bind(slug)
+      .first<{ product_slug: string }>();
+    return row?.product_slug || null;
+  } catch (error) {
+    // Never take a live landing page down because the claim could not be read.
+    console.error('native-landing-claim-read-failed', error);
+    return null;
+  }
+}
+
 function isInstallerRoute(pathname: string): boolean {
   return (
     pathname === '/install' ||
@@ -207,6 +250,28 @@ export function createMiddleware(
     return applySecurityHeaders(response, true);
   }
 
+  // Canonical host first. This used to sit below the installer redirects, which
+  // are relative - so `www` reached `/install` and the wizard was served on the
+  // non-canonical host, and an installed store took two hops to get home. It is
+  // also a host-level decision that needs no store row, so answering it here
+  // spares a D1 read on every `www` request.
+  const siteUrl = getEnvValue('PUBLIC_SITE_URL', runtime);
+  if (siteUrl && url.hostname.startsWith('www.')) {
+    try {
+      const canonical = new URL(siteUrl);
+      if (url.hostname.slice(4) === canonical.hostname) {
+        const targetUrl = new URL(url);
+        targetUrl.hostname = canonical.hostname;
+        targetUrl.protocol = canonical.protocol;
+        targetUrl.port = canonical.port;
+        return applySecurityHeaders(
+          context.redirect(targetUrl.toString(), 301),
+          false,
+        );
+      }
+    } catch {}
+  }
+
   // Store identity is resolved once per request and handed to every consumer
   // through locals. Doing it here rather than per page keeps consumers
   // synchronous — 125 call sites cannot each be an opportunity to forget an
@@ -235,21 +300,32 @@ export function createMiddleware(
   if (identity.state === 'installed' && isInstallerRoute(url.pathname)) {
     return applySecurityHeaders(context.redirect('/hello'), true);
   }
-  const siteUrl = getEnvValue('PUBLIC_SITE_URL', runtime);
-  if (siteUrl && url.hostname.startsWith('www.')) {
-    try {
-      const canonical = new URL(siteUrl);
-      if (url.hostname.slice(4) === canonical.hostname) {
-        const targetUrl = new URL(url);
-        targetUrl.hostname = canonical.hostname;
-        targetUrl.protocol = canonical.protocol;
-        targetUrl.port = canonical.port;
-        return applySecurityHeaders(
-          context.redirect(targetUrl.toString(), 301),
-          false,
-        );
-      }
-    } catch {}
+
+  // A native landing page that has taken over a product page must answer on
+  // the product URL only. Its route is a real file, so it never reaches the
+  // `[slug].astro` catch-all that redirects CMS pages — this is the only place
+  // that sees it.
+  //
+  // Ordered to stay cheap: the register is compiled in, so a path that is not
+  // a registered native slug is ruled out in memory and never touches D1. The
+  // header check comes first because `/produk/<slug>` rewrites here, and
+  // redirecting a rewrite would put the two routes in the loop A21 already
+  // paid for once.
+  if (
+    identity.state === 'installed' &&
+    !context.request.headers.get('x-adsbook-product-page') &&
+    isRegisteredNativeSlug(url.pathname.replace(/^\/|\/$/g, ''))
+  ) {
+    const claimedProductSlug = await readNativeProductPageSlug(
+      identityDb,
+      url.pathname.replace(/^\/|\/$/g, ''),
+    );
+    if (claimedProductSlug) {
+      return applySecurityHeaders(
+        context.redirect(`/produk/${claimedProductSlug}`, 308),
+        false,
+      );
+    }
   }
   const isEmbedForm =
     url.pathname === '/embed/form' || url.pathname === '/embed/form/';

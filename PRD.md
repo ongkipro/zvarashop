@@ -1,5 +1,114 @@
 # PRD — AdsBookCMS (single)
 
+## A21 — A landing page may become the product page
+
+### Goals
+
+- One product can be sold through a purpose-built landing page without that page becoming a second competing URL.
+- The operator decides it from the landing-page list, and can undo it.
+
+### Non-goals
+
+- Listing native Astro landing routes in the CMS. That needs the typed manifest in `REQ-143`/`A-133` and is unbuilt; `docs/LANDING-PAGES.md` states the contract so a page written before then already fits it.
+- Letting a native Astro route claim a product page. The claim is a database fact on `landing_pages`; a file has no row.
+
+### Requirements
+
+- **REQ-159** — An operator shall be able to make one active CMS landing page serve its product's page, and to release it again.
+- **REQ-160** — Where a landing page serves the product page, `/produk/<product-slug>` shall render it and be its canonical address, and the landing page's own slug shall permanently redirect there, so exactly one URL is live.
+- **REQ-161** — At most one landing page may serve a given product's page, enforced by the database rather than by the interface.
+- **REQ-162** — If the claiming landing page becomes inactive or releases the claim, then `/produk/<product-slug>` shall return to the standard product template; a product shall never 404 because a landing page changed.
+- **REQ-163** — Every landing page, CMS or native, shall answer at `domain/<slug>` with no path prefix, except where `REQ-160` moves it to the product URL.
+
+### Technical decisions
+
+- **The product route hands off by rewrite, signalled on the request.** A rewrite does not carry the original path, so the landing route cannot tell a hand-off from a direct visit by reading `Astro.url` — doing so put the two routes in an endless redirect loop. An `x-adsbook-product-page` header carries the fact instead.
+- **A partial unique index, not application logic.** `WHERE is_product_page = 1` leaves unclaimed drafts out of the index entirely, so any number may target one product while only one may hold it.
+- **Copy stays historical, navigation stays live.** The admin list builds its link from the product slug when a page is claimed, so an operator never copies an address that merely redirects.
+
+## A20 — One date-range control across every reporting surface
+
+### Goals
+
+- An operator picks a reporting period the same way on the dashboard, the order list, and the shipping workspace.
+- A period can be an explicit start and end date, not only a named preset.
+
+### Non-goals
+
+- A new date-picker dependency. The platform's own `<input type="date">` already renders a real calendar, and on a phone it renders the OS picker, which beats any in-page grid.
+- Per-surface period semantics. One resolver already exists (`admin-date-filter.ts`); this phase extends it rather than growing a second.
+
+### Requirements
+
+- **REQ-154** — The dashboard, order list, and shipping workspace shall present one shared period control offering the same presets plus an explicit custom range.
+- **REQ-155** — A custom range shall be expressed as an inclusive start and end date in Asia/Jakarta, and shall be rejected — not silently reinterpreted — when the start is after the end, either date is unparseable, or the span exceeds that surface's documented maximum.
+- **REQ-156** — Where a surface caps how much history it can report on, the control shall state the cap and prevent selecting past it rather than truncating the answer silently.
+- **REQ-157** — A request naming a period the server cannot resolve shall be refused with a stated reason; it shall not fall back to a different period and present the result as the one that was asked for.
+- **REQ-158** — The active period shall be legible without opening the control, including which custom dates are in force.
+
+### Technical decisions
+
+- **`<input type="date">`, not a calendar library.** It is a real date picker, it is the native one on mobile, it needs no bundle, and the repository currently carries no date dependency at all. A two-month drag-select grid would be the only reason to add one, and no requirement here asks for that.
+- **One resolver, extended.** `resolveAdminDateRange` gains an optional custom range and a validating parser shared by all three APIs, because two of them currently pass an unvalidated string into a typed parameter and silently receive the 7-day default for anything unrecognised — including `custom`.
+- **The cap stays per surface.** The dashboard already limits custom ranges to 30 days and hides the 90/180-day presets; the order and shipping lists do not have that constraint. The control takes the cap as input rather than imposing one number on surfaces with different costs.
+
+## A19 — Operator notifications for revenue events
+
+### Goals
+
+- An operator learns that an order arrived, a lead was left behind, or a payment cleared without watching the dashboard.
+- Notification state is server-owned and per-install, so it survives a reload, a second device, and a different browser.
+- No third-party messaging account, credential, or per-message cost is introduced.
+
+### Non-goals
+
+- Outbound messaging channels (WhatsApp gateway, Telegram, email). They carry a per-install credential and, for WhatsApp, a per-message cost; none is required to solve "the operator did not notice".
+- Customer-facing notifications. This phase is operator-only.
+- Delivery while no admin page is open anywhere. That needs Web Push and is specified as REQ-153, deliberately deferred rather than implied.
+
+### Requirements
+
+- **REQ-146** — When a checkout creates an order, the system shall record exactly one `order` notification for that order, and a repeated or replayed write shall not produce a second one.
+- **REQ-147** — When a qualified missed-order lead is captured, the system shall record exactly one `lead` notification for that lead.
+- **REQ-148** — When an order's payment becomes paid, the system shall record exactly one `payment` notification for that order, whichever confirmation path set it.
+- **REQ-149** — Notification recording shall never fail, delay, or roll back the commerce write that triggered it; a notification store that is unavailable shall be logged and skipped, not surfaced to the buyer.
+- **REQ-150** — The system shall expose to an authenticated operator an unread count and a reverse-chronological notification list scoped to roles that own commerce work; `advertiser` shall not receive commerce notifications.
+- **REQ-151** — An operator shall be able to mark one notification read and to mark all read; read state shall be per operator, so one operator reading does not blind another.
+- **REQ-152** — Where an admin page is open and the browser has granted permission, the system shall raise a browser notification for an unread event at most once per event per browser, and the absence or denial of that permission shall degrade to the in-app list without an error state.
+- **REQ-153** *(Planned)* — Where no admin page is open, the system shall deliver the same events through Web Push using VAPID and a service worker. On iOS this requires the operator to install the admin to the home screen first, a platform restriction that shall be stated in the operator UI rather than silently failing.
+
+### Technical decisions
+
+- **D1, not KV, for the notification store.** The feature needs ordering, an unread count, and per-operator read state — all queries. KV holds the alert-transition state in `operational-alerts.ts` because that is one value per signal; this is a list.
+- **Polling, not SSE or WebSocket.** An open SSE stream pins a Worker isolate per open admin tab for as long as it stays open. The admin page is already loaded and already makes requests; a bounded poll on an open page costs less and cannot leak isolates.
+- **Recording is inline with the commerce write, wrapped fail-open.** A queue would need its own delivery guarantee to solve a problem the write itself already orders correctly. REQ-149 makes the failure mode explicit instead.
+- **Dedupe is a stored uniqueness constraint keyed by event type plus subject id**, the same discipline the CAPI outbox uses for `event_id` — retries and replays are expected, so exactly-once is enforced by the store rather than by the caller remembering.
+
+## A18 — Deterministic storefront home and structured content editor
+
+### Goals
+
+- Make the public homepage automatically index active products and published landing pages.
+- Replace JSON/AI homepage authoring with bounded banner, slider, and supporting-copy fields.
+
+### Non-goals
+
+- Runtime discovery of arbitrary `.astro` files, raw HTML/JSON authoring, Workers AI generation, or deleting existing landing URLs.
+
+### Requirements
+
+- **REQ-140** — The system shall render the public homepage with the canonical `compact-market` composition only; a stored alternate template shall not change homepage layout.
+- **REQ-141** — When a product is active and has a sellable variant, the system shall include it in the homepage catalog automatically, newest first, in a two-column grid with ten items initially visible and an accessible Load more control for remaining items.
+- **REQ-142** — When a CMS landing page is active, the system shall include its title, safe summary, and canonical public URL in the homepage landing-page index and sitemap without a separate homepage publish action.
+- **REQ-143** — Where a native Astro landing page is registered in a typed source manifest, the system shall validate its unique slug and required public metadata at build time and include it in the same homepage index and sitemap.
+- **REQ-144** — The system shall replace the `admin/content` JSON editor with named, bounded fields for homepage banner, slider, and supporting public copy; it shall not expose raw JSON, raw HTML, or AI generation controls.
+- **REQ-145** — If structured homepage content is absent or invalid, then the system shall still render the automatic product and landing-page index with a neutral, truthful fallback rather than a setup-blocking homepage.
+
+### Technical decisions
+
+- **Native landing registry:** a typed source manifest, not runtime filesystem discovery. Cloudflare Workers bundles routes and cannot enumerate source files safely at runtime.
+- **Migration:** preserve existing `storefront_content` records during migration, then expose only bounded structured fields to operators.
+
 > Last executed baseline: 2026-08-17 @ `5cb1d32` + the A13 working tree.
 
 ## 0. About this document

@@ -1,5 +1,59 @@
 # Tasks: AdsBookCMS
 
+## A21 — A landing page may become the product page
+
+- [x] **A-147** — Add the product-page claim to `landing_pages`, enforced by a partial unique index. **Done 2026-08-22** — migration `0046`, schema 47. Focused tests prove a second page targeting the same product is refused with the holding slug, that releasing frees it, and that an unknown page reports not-found instead of throwing.
+      -> REQ: REQ-159, REQ-161 · deps: [] · Done when: the migration applies to an empty local D1 and a focused test proves only one landing page can hold a product page.
+- [x] **A-148** — Serve a claimed landing page at the product URL, and redirect its own slug there. **Done 2026-08-22** — verified live in all four states: claimed renders at `/produk/<slug>` with that canonical and no redirect; the landing slug answers exactly one `308` to it; unpublishing returns the product template; releasing the claim restores both independent URLs.
+      -> REQ: REQ-160, REQ-162, REQ-163 · deps: [A-147] · Done when: a running install proves one live URL per claimed page and a product that never 404s when the claim goes away.
+- [x] **A-149** — Add the operator action and keep the copied link canonical. **Done 2026-08-22** — "Jadikan halaman produk" / "Lepas dari halaman produk" in both the card and table menus; a conflict returns `409` with the holding slug; the list carries `product_slug` so a claimed page copies `/produk/<slug>` rather than an address that only redirects.
+      -> REQ: REQ-159 · deps: [A-147] · Done when: the action round-trips through the API and the list shows the address the page actually answers on.
+- [x] **A-150** — Give the landing surface a real stylesheet and write the authoring contract. **Done 2026-08-22** — `.lp-section` was used by every operator-authored HTML block and styled nowhere, so those sections had no rhythm or type contract at all; `src/styles/landing-pages/landing.css` now owns it. `docs/LANDING-PAGES.md` is corrected to the no-prefix URL contract, documents the product-page takeover, states the slug-collision hazard, and records what the unbuilt native registry (A-133) must read.
+      -> REQ: REQ-163 · deps: [] · Done when: the shared landing stylesheet is imported by the surface that needs it and the doc matches disk.
+
+## A20 — One date-range control across every reporting surface
+
+- [x] **A-143** — Extend `admin-date-filter.ts` with a validated custom range and one shared query-parameter parser. **Done 2026-08-22** — `resolveAdminDateSelection` returns a refusal with a reason instead of a range it cannot justify, and `parseAdminDateSelection` gives all three routes one parameter contract.
+      -> REQ: REQ-155, REQ-157 · deps: [] · Done when: focused tests prove an inverted, unparseable, over-long, or future range is refused rather than coerced, and that `custom` no longer resolves to the 7-day default.
+- [x] **A-144** — Teach the order and shipping APIs to accept an explicit range and to refuse an unresolvable one. **Done 2026-08-22** — verified live against both routes: an inverted range, a future end, missing dates and an unknown preset each return a stated 422/400, while 17 Aug alone returned 10 orders, 18 Aug alone 3, both days 13, and July 0 — arithmetic consistent with the 13 the store holds.
+      -> REQ: REQ-155, REQ-157 · deps: [A-143] · Done when: focused tests prove both routes filter on a valid custom range and return a stated error for an invalid one instead of a different period's rows.
+- [x] **A-145** — Add the shared period control: presets plus an explicit range, with the surface's cap stated. **Done 2026-08-22** — verified at 1280px and 390px: preset list with the active one checked, range panel stacking below on a phone, the cap stated in the copy and enforced by the inputs' own `min`/`max`, and no horizontal overflow.
+      -> REQ: REQ-154, REQ-156, REQ-158 · deps: [A-143] · Done when: browser evidence at 390px and 1280px proves preset selection, custom-range entry, the cap being enforced in the inputs, the active period legible on the closed control, and no layout overflow.
+- [x] **A-146** — Adopt the shared control on the dashboard, order list, and shipping workspace, retiring the dashboard's own custom-range section. **Done 2026-08-22** — the dashboard shows a 31-day cap and hides the 90/180-day presets while the lists keep the 180-day default; the separate custom-range section below the dashboard filter is gone.
+      -> REQ: REQ-154, REQ-158 · deps: [A-144, A-145] · Done when: browser evidence proves all three surfaces filter by both a preset and a custom range, and the dashboard keeps its 30-day cap while the lists do not inherit it.
+
+## A19 — Operator notifications for revenue events
+
+- [x] **A-136** — Add the `notifications` table plus its per-operator read state, with a uniqueness constraint on event type + subject id. **Done 2026-08-22** — migration `0045`, schema 46. No `store_id`: one Worker is one store (ADR-001), so it would be a column with one value forever. A live local D1 insert proved the unique index rejects the duplicate.
+      -> REQ: REQ-146, REQ-147, REQ-148, REQ-151 · deps: [] · Done when: the migration applies to an empty local D1 and a focused test proves a second insert for the same event type + subject is rejected rather than duplicated.
+- [x] **A-137** — Record an `order` notification from the checkout order write. **Done 2026-08-22** — recorded inside `persistOrder` rather than in each of its three callers, so a new checkout entry point cannot forget it. An adversarial review caught this first ticked against evidence that did not exist: because recording is fail-open, the existing fixtures swallowed the write (`no such table: notifications`) and every test still passed. The fixtures now load the real migration and assert the recorded subject and copy.
+      -> REQ: REQ-146, REQ-149 · deps: [A-136] · Done when: a focused test proves one order produces one notification, a replayed submit produces none, and a failing notification store leaves the order committed and the buyer response unchanged.
+- [x] **A-138** — Record a `lead` notification from the missed-order lead capture. **Done 2026-08-22** — recorded in the route, which has one exit; the 2-hour dedupe window reuses the same row, so the unique constraint collapses a repeat capture. Its fixture had no `run()`, so the write failed open and proved nothing until the review found it; the fake now captures the insert and the test asserts type, order and copy. A converted lead links to the order detail rather than the abandoned workspace it has left.
+      -> REQ: REQ-147, REQ-149 · deps: [A-136] · Done when: a focused test proves one qualified lead produces one notification and a suppressed duplicate capture produces none.
+- [x] **A-139** — Record a `payment` notification from every path that sets an order paid. **Done 2026-08-22** — both paths covered: AutoLaris manual reconciliation and an operator setting `payment_status` on order detail. The unique constraint keeps them from double-notifying, and the idempotency test now asserts a double confirmation still leaves exactly one notification. Its fixture also had to load the real migration before the assertion meant anything.
+      -> REQ: REQ-148, REQ-149 · deps: [A-136] · Done when: a focused test proves manual reconciliation and provider confirmation each produce exactly one notification for the same order, not two.
+- [x] **A-140** — Add the authenticated unread-count and list endpoints, role-scoped, with mark-read and mark-all-read. **Done 2026-08-22** — `/api/admin/notifications`, registered in the deny-by-default route policy for owner/admin/customer_service only.
+      -> REQ: REQ-150, REQ-151 · deps: [A-136] · Done when: focused tests prove `advertiser` is denied, two operators keep independent read state, and the list returns newest first.
+- [x] **A-141** — Add the admin notification bell, unread badge, and panel. **Done 2026-08-22** — verified in a real browser at 390px and 1280px: badge showed 2, panel listed newest-first with per-type icons and relative time, mark-all-read cleared the badge, the cleared state survived a reload, and the console was empty.
+      -> REQ: REQ-150, REQ-151 · deps: [A-140] · Done when: browser evidence at 390px and 1280px proves the badge, the panel, mark-read, and no layout overflow.
+- [ ] **A-142** — Raise a browser notification for an unread event while an admin page is open, at most once per event per browser. **Partial 2026-08-22** — implemented with a bounded `localStorage` set of already-announced ids and a permission request on first panel open; the absent/denied path degrades to the in-app list. **Not proven**: the automation profile never grants Notification permission, so no OS-level toast was observed. Needs a manual check in a normal browser before this is ticked.
+      -> REQ: REQ-152 · deps: [A-141] · Done when: browser evidence proves one notification per event, no repeat across a reload, and a clean degrade to the in-app list when permission is absent or denied.
+
+## A18 — Deterministic storefront home and structured content editor
+
+- [ ] **A-130** — Establish the canonical compact homepage composition and remove alternate-template selection from the public home path.
+      -> REQ: REQ-140 · deps: [] · Done when: a local route test proves every stored template choice renders the compact homepage without changing product or landing URLs.
+- [ ] **A-131** — Render active product cards as a two-column homepage catalog with ten initial cards and accessible Load more behavior.
+      -> REQ: REQ-141 · deps: [A-130] · Done when: browser evidence at 390px and 1280px proves ten initial cards, two-column layout, no horizontal overflow, and correct remaining-card reveal.
+- [ ] **A-132** — Add the unified CMS/native landing-page homepage index and sitemap feed.
+      -> REQ: REQ-142 · deps: [A-130] · Done when: focused tests prove only active CMS pages and typed native entries are listed once with canonical URLs.
+- [x] **A-133** — Add a typed native Astro landing-page registry with build-time slug and metadata validation. **Done 2026-08-22** — `src/data/native-landing-pages.ts` is the manifest; `validateNativeLandingPages` refuses a duplicate slug, a slug that cannot match a filename, or a missing title/product/description. The register is reconciled into `landing_pages` as `source='native'` rows on every list load, so the CMS lists and links a deployed page with no sync step, and a removed entry takes its row and any claim with it. Editing and deleting are refused with `409`. Verified live: a registered page appeared in the admin list with its product resolved from `productSlug`, took over `/produk/<slug>` with the product canonical, redirected its own slug once, and vanished from the list and both sitemaps when the entry was withdrawn.
+      -> REQ: REQ-143 · deps: [] · Done when: duplicate or incomplete registry entries fail the focused test while a registered route appears in the homepage index.
+- [ ] **A-134** — Replace the operator JSON content workbench with bounded homepage banner, slider, and supporting-copy fields.
+      -> REQ: REQ-144 · deps: [A-130] · Done when: `/admin/content` contains no raw JSON/AI control, saves validated named fields, and preserves existing content safely.
+- [ ] **A-135** — Add the fallback automatic homepage state for missing or invalid structured content.
+      -> REQ: REQ-145 · deps: [A-131, A-132, A-134] · Done when: a local route/browser test proves the homepage stays useful and truthful with unavailable optional content.
+
 > Last executed baseline: 2026-08-17 @ `5cb1d32` + A13.
 
 ## Provenance — read before citing any task

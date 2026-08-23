@@ -1,6 +1,12 @@
 import { getRuntimeEnv } from "./env.ts";
 import { formatIdr } from "./format-idr.ts";
 import { solutionEntries } from "../data/content.ts";
+import {
+  activeNativeLandingPages,
+  isNativeLandingId,
+  nativeLandingIdFor,
+  type NativeLandingPage,
+} from "./native-landing-pages.ts";
 
 type D1Statement = ReturnType<D1Database["prepare"]>;
 export type LandingSectionType = "html" | "form";
@@ -29,7 +35,12 @@ export type LandingPage = {
   title: string;
   product_id: string;
   product_title?: string | null;
+  product_slug?: string | null;
   is_active: number;
+  /** 1 when this page has taken over `/produk/<product-slug>` (A21). */
+  is_product_page: number;
+  /** `native` rows mirror a route file and are not editable in the CMS. */
+  source?: "cms" | "native";
   meta_title: string | null;
   meta_description: string | null;
   created_at: string;
@@ -44,6 +55,8 @@ const staticLandingPages: LandingPage[] = solutionEntries.map((entry) => ({
   product_id: "",
   product_title: null,
   is_active: entry.isAvailable === false ? 0 : 1,
+  // A hand-authored static page has no product to take over.
+  is_product_page: 0,
   meta_title: entry.title,
   meta_description: entry.excerpt,
   created_at: "",
@@ -133,7 +146,7 @@ type LocalsWithDatabase = {
 };
 
 const PAGE_COLUMNS = `
-  id, slug, title, product_id, is_active,
+  id, slug, title, product_id, is_active, is_product_page, source,
   meta_title, meta_description, created_at, updated_at
 `;
 
@@ -239,6 +252,10 @@ export async function listLandingPages(
   locals: App.Locals,
 ): Promise<LandingPage[]> {
   const database = getDatabase(locals);
+  // The register is the file manifest; this makes the table agree with it
+  // before anything reads the list, so a page deployed since the last load
+  // shows up without a separate sync step.
+  await reconcileNativeLandingPages(database);
   const [pageResult, sectionResult] = await database.batch<LandingPageRow | LandingSectionRow>([
     database.prepare(
       `SELECT ${PAGE_COLUMNS}
@@ -252,15 +269,20 @@ export async function listLandingPages(
     ),
   ]);
   const productMap = new Map<string, string>();
-
+  // The slug is what a claimed page's real URL is built from, so the admin can
+  // show and copy `/produk/<slug>` rather than an address that only redirects.
+  const productSlugMap = new Map<string, string>();
 
   try {
     const productResult = await database
-      .prepare(`SELECT id, title FROM products`)
-      .all<{ id: number | string; title: string }>();
+      .prepare(`SELECT id, title, slug FROM products`)
+      .all<{ id: number | string; title: string; slug: string }>();
     for (const prod of productResult.results ?? []) {
       if (prod?.id && prod?.title) {
         productMap.set(String(prod.id), prod.title);
+      }
+      if (prod?.id && prod?.slug) {
+        productSlugMap.set(String(prod.id), prod.slug);
       }
     }
   } catch {
@@ -276,6 +298,7 @@ export async function listLandingPages(
     ...pages.map((page) => ({
       ...page,
       product_title: productMap.get(String(page.product_id)) || null,
+      product_slug: productSlugMap.get(String(page.product_id)) || null,
     })),
     ...staticLandingPages.map((page) => ({ ...page, sections: [] })),
   ];
@@ -383,6 +406,7 @@ export async function updateLandingPage(
   id: string,
   input: UpdateLandingPageInput,
 ): Promise<LandingPage | null> {
+  if (isNativeLandingId(id)) throw new NativeLandingReadOnlyError();
   const database = getDatabase(locals);
   const existing = await getLandingPageById(locals, id);
   if (!existing) return null;
@@ -468,6 +492,9 @@ export async function deleteLandingPage(
   locals: App.Locals,
   id: string,
 ): Promise<boolean> {
+  // Deleting the row would only make it reappear on the next reconcile; the
+  // file is what has to go.
+  if (isNativeLandingId(id)) throw new NativeLandingReadOnlyError();
   const result = await getDatabase(locals)
     .prepare("DELETE FROM landing_pages WHERE id = ?")
     .bind(id)
@@ -556,4 +583,280 @@ export function validateLandingPageSlug(
     };
   }
   return { valid: true };
+}
+
+/**
+ * The landing page that has taken over a product's page, if any.
+ *
+ * Only an active page counts: unpublishing a claimed landing page must return
+ * `/produk/<slug>` to the normal product template rather than 404 the product.
+ */
+export async function getProductPageLanding(
+  locals: App.Locals,
+  productId: string,
+): Promise<LandingPage | null> {
+  const trimmed = String(productId || "").trim();
+  if (!trimmed) return null;
+  const database = getDatabase(locals);
+  const page = await database
+    .prepare(
+      `SELECT ${PAGE_COLUMNS}
+       FROM landing_pages
+       WHERE product_id = ? AND is_product_page = 1 AND is_active = 1
+       LIMIT 1`,
+    )
+    .bind(trimmed)
+    .first<LandingPageRow>();
+  if (!page) return null;
+
+  return { ...page, sections: await loadSections(database, page.id) };
+}
+
+/** A native page's content lives in a deployed file; the CMS may not rewrite it. */
+export class NativeLandingReadOnlyError extends Error {
+  constructor() {
+    super(
+      "Landing page ini dibuat dari file Astro. Ubah filenya lalu deploy ulang; CMS hanya mencatat dan menautkannya.",
+    );
+  }
+}
+
+export class LandingProductPageConflictError extends Error {
+  readonly conflictingSlug: string;
+  constructor(conflictingSlug: string) {
+    super(
+      `Produk ini sudah dipakai oleh landing page /${conflictingSlug}. Lepaskan dulu dari sana.`,
+    );
+    this.conflictingSlug = conflictingSlug;
+  }
+}
+
+/**
+ * Claims or releases a product's page for one landing page.
+ *
+ * The partial unique index is the real guard; this reads the current holder
+ * first only so the operator gets the offending slug instead of a constraint
+ * error they cannot act on.
+ */
+export async function setLandingPageAsProductPage(
+  locals: App.Locals,
+  id: string,
+  claim: boolean,
+): Promise<LandingPage | null> {
+  const database = getDatabase(locals);
+  const page = await database
+    .prepare(`SELECT ${PAGE_COLUMNS} FROM landing_pages WHERE id = ? LIMIT 1`)
+    .bind(id)
+    .first<LandingPageRow>();
+  if (!page) return null;
+
+  if (claim) {
+    const holder = await database
+      .prepare(
+        `SELECT slug FROM landing_pages
+         WHERE product_id = ? AND is_product_page = 1 AND id <> ?
+         LIMIT 1`,
+      )
+      .bind(page.product_id, id)
+      .first<{ slug: string }>();
+    if (holder) throw new LandingProductPageConflictError(holder.slug);
+  }
+
+  await database
+    .prepare(
+      `UPDATE landing_pages
+       SET is_product_page = ?, updated_at = ?
+       WHERE id = ?`,
+    )
+    .bind(claim ? 1 : 0, new Date().toISOString(), id)
+    .run();
+
+  return {
+    ...page,
+    is_product_page: claim ? 1 : 0,
+    sections: await loadSections(database, page.id),
+  };
+}
+
+/**
+ * Brings the `landing_pages` table in line with the native register.
+ *
+ * The file manifest owns whether a native page exists and what it says; this
+ * table owns only the operational state the CMS needs — chiefly whether the
+ * page has taken over a product page. So the reconcile writes identity and
+ * metadata and never touches `is_product_page`, which is the operator's
+ * decision, not the file's.
+ *
+ * Removing an entry from the register removes its row, and with it any claim
+ * it held. That is deliberate: a register entry without a file is a listing
+ * that 404s, and a claim held by a page that no longer exists would leave
+ * `/produk/<slug>` pointing at nothing. The product simply returns to its own
+ * template.
+ */
+export async function reconcileNativeLandingPages(
+  database: D1Database,
+  entries: readonly NativeLandingPage[] = activeNativeLandingPages(),
+): Promise<void> {
+  let productIdBySlug = new Map<string, string>();
+  try {
+    const productResult = await database
+      .prepare(`SELECT id, slug FROM products`)
+      .all<{ id: number | string; slug: string }>();
+    productIdBySlug = new Map(
+      (productResult.results ?? [])
+        .filter((row) => row?.id && row?.slug)
+        .map((row) => [row.slug, String(row.id)] as const),
+    );
+  } catch {
+    // Products unreadable: leave the register alone rather than rewriting
+    // every native row's product to nothing.
+    return;
+  }
+
+  const now = new Date().toISOString();
+  const statements: D1Statement[] = [];
+
+  for (const entry of entries) {
+    const productId = productIdBySlug.get(entry.productSlug);
+    // A register entry naming a product this store does not carry is skipped
+    // rather than inserted against an empty product, which would make the
+    // takeover unresolvable later.
+    if (!productId) continue;
+
+    statements.push(
+      database
+        .prepare(
+          `INSERT INTO landing_pages
+             (id, slug, title, product_id, is_active, is_product_page,
+              meta_title, meta_description, source, created_at, updated_at)
+           VALUES (?, ?, ?, ?, 1, 0, ?, ?, 'native', ?, ?)
+           ON CONFLICT(id) DO UPDATE SET
+             slug = excluded.slug,
+             title = excluded.title,
+             product_id = excluded.product_id,
+             meta_title = excluded.meta_title,
+             meta_description = excluded.meta_description,
+             updated_at = excluded.updated_at`,
+        )
+        .bind(
+          nativeLandingIdFor(entry.slug),
+          entry.slug,
+          entry.title,
+          productId,
+          entry.title,
+          entry.description,
+          now,
+          now,
+        ),
+    );
+  }
+
+  const registeredIds = entries.map((entry) => nativeLandingIdFor(entry.slug));
+  const placeholders = registeredIds.map(() => "?").join(", ");
+  statements.push(
+    database
+      .prepare(
+        registeredIds.length
+          ? `DELETE FROM landing_pages
+             WHERE source = 'native' AND id NOT IN (${placeholders})`
+          : `DELETE FROM landing_pages WHERE source = 'native'`,
+      )
+      .bind(...registeredIds),
+  );
+
+  try {
+    await database.batch(statements);
+  } catch (error) {
+    // The register is a convenience layer over files that already answer on
+    // their URLs; failing to record them must not take the admin list down.
+    console.error("native-landing-reconcile-failed", error);
+  }
+}
+
+/**
+ * The address a native landing page should declare as canonical.
+ *
+ * A native route cannot know on its own whether an operator has handed it a
+ * product page — that is a database fact — and when one has, the page answers
+ * on `/produk/<product-slug>` while its own slug redirects there. Declaring
+ * its own slug in that state would point search engines at a URL that bounces
+ * back to the page they are already on.
+ *
+ * Every native landing page should build its canonical from this rather than
+ * from its slug. Falls back to the slug if the claim cannot be read, which is
+ * the correct answer for an unclaimed page and a harmless one otherwise.
+ */
+export async function nativeLandingCanonicalPath(
+  locals: App.Locals,
+  slug: string,
+): Promise<string> {
+  const fallback = `/${slug}`;
+  try {
+    const row = await getDatabase(locals)
+      .prepare(
+        `SELECT p.slug AS product_slug
+           FROM landing_pages lp
+           INNER JOIN products p ON CAST(p.id AS TEXT) = lp.product_id
+          WHERE lp.slug = ?
+            AND lp.source = 'native'
+            AND lp.is_product_page = 1
+            AND lp.is_active = 1
+          LIMIT 1`,
+      )
+      .bind(slug)
+      .first<{ product_slug: string }>();
+    return row?.product_slug ? `/produk/${row.product_slug}` : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+export type PublicLandingPage = {
+  slug: string;
+  title: string;
+  excerpt: string;
+  /** Where the page actually answers, honouring a product-page takeover. */
+  href: string;
+};
+
+/**
+ * Active landing pages for a public listing, CMS and native alike.
+ *
+ * Deliberately does **not** reconcile the native register: that is a write, and
+ * a storefront read must not mutate the store. The admin list already keeps the
+ * register in step, so a page deployed but never opened in the CMS is the only
+ * gap, and it closes the moment an operator loads the landing-page list.
+ *
+ * `href` follows the takeover rather than the slug, so a claimed page links to
+ * the product URL it actually answers on instead of one that redirects.
+ */
+export async function listPublicLandingPages(
+  locals: App.Locals,
+): Promise<PublicLandingPage[]> {
+  const result = await getDatabase(locals)
+    .prepare(
+      `SELECT lp.slug, lp.title, lp.meta_description, lp.is_product_page,
+              p.slug AS product_slug
+         FROM landing_pages lp
+         LEFT JOIN products p ON CAST(p.id AS TEXT) = lp.product_id
+        WHERE lp.is_active = 1
+        ORDER BY lp.updated_at DESC, lp.created_at DESC`,
+    )
+    .all<{
+      slug: string;
+      title: string;
+      meta_description: string | null;
+      is_product_page: number;
+      product_slug: string | null;
+    }>();
+
+  return (result.results ?? []).map((row) => ({
+    slug: row.slug,
+    title: row.title,
+    excerpt: (row.meta_description || "").trim(),
+    href:
+      row.is_product_page && row.product_slug
+        ? `/produk/${row.product_slug}`
+        : `/${row.slug}`,
+  }));
 }

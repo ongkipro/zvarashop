@@ -9,25 +9,20 @@ const templateIdSchema = z
 
 const compositionSchema = z
   .object({
-    layout: z.enum(["compact", "wide"]),
+    layout: z.literal("compact"),
     sections: z
       .object({
         hero: z.boolean(),
         catalog: z.literal(true),
-        proofs: z.boolean(),
+        // `proofs` stays optional rather than being deleted: the schema is strict,
+        // so removing the key would make every template a store has already saved
+        // fail to parse and take its home page down.
+        proofs: z.boolean().optional(),
+        landingPages: z.boolean().optional(),
       })
       .strict(),
   })
-  .strict()
-  .superRefine((composition, context) => {
-    if (composition.layout === "wide" && composition.sections.proofs) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["sections", "proofs"],
-        message: "The wide composition does not support the proofs section.",
-      });
-    }
-  });
+  .strict();
 
 export const storefrontTemplateDefinitionSchema = z
   .object({
@@ -46,29 +41,18 @@ const compactMarket = storefrontTemplateDefinitionSchema.parse({
   name: "Compact Market",
   composition: {
     layout: "compact",
-    sections: { hero: true, catalog: true, proofs: true },
-  },
-});
-
-const wideCatalog = storefrontTemplateDefinitionSchema.parse({
-  id: "wide-catalog",
-  name: "Wide Catalog",
-  composition: {
-    layout: "wide",
-    sections: { hero: true, catalog: true, proofs: false },
+    sections: { hero: true, catalog: true, landingPages: true },
   },
 });
 
 export const BUILT_IN_STOREFRONT_TEMPLATES = Object.freeze([
   compactMarket,
-  wideCatalog,
 ] as const);
 
 const builtInById: Readonly<Record<string, StorefrontTemplateDefinition>> =
   Object.freeze({
     [compactMarket.id]: compactMarket,
-    [wideCatalog.id]: wideCatalog,
-  });
+    });
 
 function parseDefinition(value: unknown): StorefrontTemplateDefinition {
   const serialized = JSON.stringify(value);

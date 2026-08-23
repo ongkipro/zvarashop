@@ -1,3 +1,5 @@
+import { metaNameParts, toE164Digits } from "../lib/meta-identity.ts";
+import { normalizePhone } from "../lib/validation";
 import { formatIdr } from "../lib/format-idr";
 import { pushGtmEcomEvent } from "../lib/gtm";
 import { isValidWa62 } from "../lib/validation";
@@ -78,15 +80,6 @@ export function initMiddleOrderForm(
   if (!parsedConfig) return;
   const { productSlug, productId, productName, province } = parsedConfig;
   const fmt = formatIdr;
-  const normalizePhone = (raw: string) => {
-    const digits = String(raw || "").replace(/\D/g, "");
-    if (!digits) return "";
-    if (digits.startsWith("620")) return `62${digits.slice(3)}`;
-    if (digits.startsWith("0")) return `62${digits.slice(1)}`;
-    if (digits.startsWith("8")) return `62${digits}`;
-    if (digits.startsWith("62")) return digits;
-    return digits;
-  };
   const isValidName = (value: string) =>
     /^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\s'.-]{2,119}$/.test(value) &&
     /[A-Za-zÀ-ÿ]{2}/.test(value);
@@ -114,13 +107,14 @@ export function initMiddleOrderForm(
   const buildAdvancedMatching = async (
     extraUserData?: Record<string, unknown>,
   ) => {
-    const normalizedPhone = String(extraUserData?.customer_phone || "").replace(
-      /\D/g,
-      "",
+    // Normalised exactly as the server CAPI leg does. Both legs describe one
+    // person; a difference here means Meta matches neither.
+    const normalizedPhone = toE164Digits(
+      String(extraUserData?.customer_phone || ""),
     );
-    const normalizedName = String(extraUserData?.customer_name || "").trim();
-    const firstName = normalizedName.split(/\s+/)[0] || "";
-    const lastName = normalizedName.split(/\s+/).slice(1).join(" ");
+    const { firstName, lastName } = metaNameParts(
+      String(extraUserData?.customer_name || ""),
+    );
     return {
       ph: normalizedPhone ? await hashSha256Hex(normalizedPhone) : undefined,
       fn: firstName ? await hashSha256Hex(firstName) : undefined,
@@ -255,6 +249,17 @@ export function initMiddleOrderForm(
     });
     if (!abandonedCapture.shouldStart(fingerprint)) return;
 
+    // The capture used to send product_id and product_title and no variant. The
+    // endpoint reads neither of those - only variant_id - so every lead from
+    // this form landed with no order_items at all, and the operator saw "Produk
+    // belum dipilih" on a lead that was filled in on a product page. The full
+    // form always sent it; this one did not.
+    const selectedVariant = formRoot?.querySelector<HTMLInputElement>(
+      'input[name="variant"]:checked',
+    );
+    const abandonedVariantId = Number(selectedVariant?.value);
+    const abandonedPrice = Number(selectedVariant?.dataset.price || 0);
+
     window.clearTimeout(abandonedTimer);
     abandonedTimer = window.setTimeout(() => {
       if (!abandonedCapture.start(fingerprint)) return;
@@ -271,6 +276,11 @@ export function initMiddleOrderForm(
           customer_phone: customerPhone,
           product_id: productId,
           product_title: productName,
+          variant_id:
+            Number.isInteger(abandonedVariantId) && abandonedVariantId > 0
+              ? abandonedVariantId
+              : undefined,
+          total_amount: abandonedPrice > 0 ? abandonedPrice : undefined,
           address: addressInput ? addressInput.value.trim() : "",
           province,
         }),
@@ -308,9 +318,8 @@ export function initMiddleOrderForm(
   const submitButtonLabel = submitButton?.querySelector(".submit-main-label");
   const summaryLabel = formRoot?.querySelector("#summary-label");
   const summaryCompare = formRoot?.querySelector("#summary-compare");
-  const summaryDiscount = formRoot?.querySelector("#summary-discount");
+  const summaryPriceValue = formRoot?.querySelector("#summary-price-value");
   const summaryCompareRow = formRoot?.querySelector<HTMLElement>("#summary-compare-row");
-  const summaryDiscountRow = formRoot?.querySelector<HTMLElement>("#summary-discount-row");
   const summaryTotal = formRoot?.querySelector("#summary-total");
   const summaryTotalNote = formRoot?.querySelector("#summary-total-note");
 
@@ -497,10 +506,9 @@ export function initMiddleOrderForm(
     const hasDiscount = compare > price;
     const total = price;
     summaryCompareRow?.toggleAttribute("hidden", !hasDiscount);
-    summaryDiscountRow?.toggleAttribute("hidden", !hasDiscount);
     setNodeText(summaryLabel, checked.dataset.label || productName);
     setNodeText(summaryCompare, fmt(compare));
-    setNodeText(summaryDiscount, `- ${fmt(Math.max(0, compare - price))}`);
+    setNodeText(summaryPriceValue, fmt(price));
     setNodeText(
       summaryTotalNote,
       "Ongkir & admin dikonfirmasi via CS",

@@ -140,7 +140,7 @@ test("the admin shell keeps phone, tablet, and desktop navigation distinct", () 
 });
 
 test("admin navigation changes state without decorative motion", () => {
-  const styles = readFileSync("src/styles/global.css", "utf8");
+  const styles = readFileSync("src/styles/admin.css", "utf8");
   const sidebar = readFileSync("src/components/admin/AppSidebar.tsx", "utf8");
 
   assert.match(styles, /\[data-slot="sidebar"\][\s\S]*animation: none !important;[\s\S]*transition: none !important;/);
@@ -166,8 +166,20 @@ test("dashboard overview leads with truthful role-safe analytics", () => {
     "business analytics must precede secondary operational diagnostics",
   );
   assert.match(dashboard, /showPaymentsLink=\{mayManagePayments\}/);
-  assert.match(analytics, /Pembayaran berhasil/);
+  // Renamed from "Pembayaran berhasil": that card divided prepaid success by
+  // every order including COD, which is paid on delivery and can never
+  // prepay, so a COD-heavy store read as a failing gateway. The card now names
+  // its base.
+  assert.match(analytics, /Pembayaran online lunas/);
+  assert.doesNotMatch(analytics, /Pembayaran berhasil/);
   assert.doesNotMatch(analytics, /Konversi Ads/);
-  assert.match(analytics, /shiftAdminDate\(customStart, 30\)/);
+  // The dashboard charts every day in the period, so it must keep capping how
+  // much history it will answer for. The cap moved out of a hand-rolled
+  // `shiftAdminDate(customStart, 30)` and into the shared period control, but
+  // the guarantee is the same one: this surface states a maximum and hides the
+  // presets that would exceed it.
+  assert.match(analytics, /DASHBOARD_MAX_RANGE_DAYS = \d+/);
+  assert.match(analytics, /maxCustomRangeDays=\{DASHBOARD_MAX_RANGE_DAYS\}/);
+  assert.match(analytics, /hiddenPresets=\{DASHBOARD_HIDDEN_PRESETS\}/);
   assert.match(analytics, /showPaymentsLink &&/);
 });

@@ -26,9 +26,8 @@ test("scoped roles see their complete workspace without privileged settings", ()
   );
   assert.deepEqual(
     advertiserItems.map((item) => item.id),
-    // "content" is deliberately absent from this install's menu. The route and
-    // /api/admin/content stay reachable — the storefront's setup-required state
-    // still points operators at it — it is only hidden from navigation.
+    // "content" is deliberately absent: the storefront content editor is
+    // reachable at /admin/content and left out of the menu (ADR-018).
     ["dashboard", "products", "ads"],
   );
   assert.equal(

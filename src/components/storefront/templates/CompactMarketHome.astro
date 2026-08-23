@@ -1,9 +1,12 @@
 ---
-import ProductsSection from '../../home/ProductsSection.astro';
-import ProofsSection from '../../home/ProofsSection.astro';
+import HeroSection from '../home/HeroSection.astro';
+import { dailySeed, pickDaily } from '../../../lib/daily-rotation';
+import ProductsSection from '../home/ProductsSection.astro';
+import LandingPagesSection from '../home/LandingPagesSection.astro';
 import type { TenantHomeContent } from '../../../lib/tenant-content';
 
 interface ProductCard {
+  slug: string;
   name: string;
   category: string;
   description: string;
@@ -23,35 +26,47 @@ interface Props {
   sections: {
     hero: boolean;
     catalog: true;
-    proofs: boolean;
+    // `proofs` is still accepted so a template saved before this change keeps
+    // parsing; the third slot lists landing pages now.
+    proofs?: boolean;
+    landingPages?: boolean;
   };
 }
 
 const { content, products, sections } = Astro.props;
 
+// No slides of the operator's own means the hero borrows from the catalogue.
+// The pick rotates daily rather than per request: a per-request shuffle would
+// change the LCP image on every load, so no visitor could reuse bytes another
+// had already cached.
+const heroSlides =
+  content.heroSlides.length > 0
+    ? content.heroSlides
+    : pickDaily(products, 3, dailySeed(new Date())).map((product) => ({
+        image: product.image,
+        alt: product.name,
+        badge: product.category,
+        text: product.name,
+      }));
 ---
 
 <main
   id="konten-utama"
-  class="relative min-h-screen overflow-x-hidden bg-[#F5F5F5] font-sans text-[#222222] antialiased"
+  class="relative min-h-screen overflow-x-hidden bg-white font-sans text-[#111111] antialiased"
 >
-  <h1 class="sr-only">{content.hero.title || Astro.locals.tenant.name}</h1>
   <div
     id="home"
-    class="mx-auto flex min-h-screen w-full max-w-[480px] flex-col border-x border-[#E5E5E5] bg-[#F5F5F5]"
+    class="mx-auto flex min-h-screen w-full max-w-[480px] flex-col bg-white"
   >
+    {sections.hero && <HeroSection slides={heroSlides} highlights={content.heroHighlights} content={content.hero} />}
     {sections.catalog && <ProductsSection products={products} heading={content.catalog} />}
-    {sections.proofs && <ProofsSection proofs={content.proofs} heading={content.proofsHeading} />}
+    {sections.landingPages !== false && <LandingPagesSection pages={content.solutions} heading={content.solutionsHeading} />}
   </div>
 </main>
 
 <script>
   const heroTrack = document.getElementById('hero-track');
   const heroDots = document.getElementById('hero-dots');
-  const heroCount = heroTrack?.children.length ?? 0;
-  let heroIndex = 0;
-  let heroTimer: number | undefined;
-
   const setHeroSlide = (index: number) => {
     if (!heroTrack || !heroDots) return;
     heroTrack.style.transform = `translateX(-${index * 100}%)`;
@@ -61,32 +76,25 @@ const { content, products, sections } = Astro.props;
           ? 'h-11 w-7 border-b-2 border-white bg-transparent transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white'
           : 'h-11 w-4 border-b border-white/55 bg-transparent transition-colors hover:border-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white';
     });
-    heroIndex = index;
   };
 
-  const startHero = () => {
-    if (heroTimer || heroCount <= 1) return;
-    heroTimer = window.setInterval(() => {
-      setHeroSlide((heroIndex + 1) % heroCount);
-    }, 4000);
-  };
-
-  const stopHero = () => {
-    if (!heroTimer) return;
-    window.clearInterval(heroTimer);
-    heroTimer = undefined;
-  };
-
+  // The hero does not advance by itself. It used to, every 4000 ms, and that
+  // was the home page's largest measured cost: each advance paints a new
+  // full-width image, so every one is a fresh LCP candidate. Two Lighthouse
+  // runs of one unchanged build measured LCP 1.8 s and 6.3 s, the slow one
+  // resolving to an off-screen `loading="lazy"` slide.
+  //
+  // Deferring the start to `load` was tried first and did not fix it: LCP
+  // stayed at a 3.2 s median and Speed Index did not move from 6.0 s, because
+  // Speed Index integrates visual completeness over the whole trace and a page
+  // that keeps changing never reaches it. Deferring moves the cost; only
+  // stopping removes it.
+  //
+  // The dots stay, and every slide is still reachable in one tap on a 44px
+  // target. What is gone is the page rearranging itself under a reader who did
+  // not ask it to — which is also the accessible behaviour, and is why
+  // `prefers-reduced-motion` no longer has anything here to suppress.
   [...(heroDots?.children ?? [])].forEach((dot, index) => {
-    dot.addEventListener('click', () => {
-      setHeroSlide(index);
-      stopHero();
-      startHero();
-    });
+    dot.addEventListener('click', () => setHeroSlide(index));
   });
-
-  const heroContainer = document.getElementById('home');
-  heroContainer?.addEventListener('mouseenter', stopHero);
-  heroContainer?.addEventListener('mouseleave', startHero);
-  startHero();
 </script>

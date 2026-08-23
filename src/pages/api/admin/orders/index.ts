@@ -17,8 +17,9 @@ import {
 import type { AdminShippingStatus } from '../../../../lib/order-lifecycle.ts';
 import { scheduleReceiverPerformanceRefresh } from '../../../../lib/rts-scoring.ts';
 import {
+  ADMIN_CUSTOM_DATE_FILTER,
   isAdminDateFilter,
-  resolveAdminDateRange,
+  parseAdminDateSelection,
 } from '../../../../lib/admin-date-filter.ts';
 
 export const prerender = false;
@@ -138,7 +139,7 @@ export const GET: APIRoute = async ({ url, locals }) => {
   if (!PAYMENT_STATUSES.includes(paymentStatus as (typeof PAYMENT_STATUSES)[number])) {
     return jsonError('Filter status pembayaran tidak valid.', 400);
   }
-  if (!isAdminDateFilter(dateFilter)) {
+  if (dateFilter !== ADMIN_CUSTOM_DATE_FILTER && !isAdminDateFilter(dateFilter)) {
     return jsonError('Filter periode order tidak valid.', 400);
   }
 
@@ -153,6 +154,13 @@ export const GET: APIRoute = async ({ url, locals }) => {
       params.push(term, term, term, term);
     }
 
+    // Recorded separately: the summary reads every filter, but the status
+    // chips must not filter by the status they let you pick, or selecting one
+    // would zero the others and break the control.
+    // The two indices differ: one search term pushes four params for a single
+    // clause, so the clause position is not the param position.
+    const shippingStatusIndex = shippingStatus !== 'all' ? whereParts.length : -1;
+    const statusParamIndex = shippingStatus !== 'all' ? params.length : -1;
     if (shippingStatus !== 'all') {
       whereParts.push('shipping_status = ?');
       params.push(shippingStatus);
@@ -162,9 +170,15 @@ export const GET: APIRoute = async ({ url, locals }) => {
       params.push(paymentStatus);
     }
     if (dateFilter !== 'all') {
-      const { start, end } = resolveAdminDateRange(dateFilter);
+      // Refuses an unresolvable period rather than answering for a different
+      // one — passing the raw string straight in used to make anything
+      // unrecognised, `custom` included, silently become the 7-day default.
+      const { resolution } = parseAdminDateSelection(url.searchParams);
+      if (!resolution.ok) {
+        return jsonError(resolution.reason, 422, { code: 'DATE_RANGE_INVALID' });
+      }
       whereParts.push("date(created_at, '+7 hours') BETWEEN ? AND ?");
-      params.push(start, end);
+      params.push(resolution.start, resolution.end);
     }
     if (sourceFilter === 'meta') {
       whereParts.push("(ad_click_ids LIKE '%fbclid%' OR ad_click_ids LIKE '%_fbc%' OR ad_click_ids LIKE '%meta%' OR ad_click_ids LIKE '%facebook%' OR ad_click_ids LIKE '%instagram%')");
@@ -177,6 +191,10 @@ export const GET: APIRoute = async ({ url, locals }) => {
     }
 
     whereClause = ` WHERE ${whereParts.join(' AND ')}`;
+    // Same filters minus the status predicate, for the chips.
+    const chipParts = whereParts.filter((_, index) => index !== shippingStatusIndex);
+    const chipParams = params.filter((_, index) => index !== statusParamIndex);
+    const chipWhereClause = ` WHERE ${chipParts.join(' AND ')}`;
     const offset = (page - 1) * limit;
     const db = database as D1Database;
 
@@ -254,22 +272,24 @@ export const GET: APIRoute = async ({ url, locals }) => {
     const [countResult, rowResult, summaryResult, crmResult, statusCountResult] = await db.batch([
       countStmt,
       ordersStmt,
+      // Scoped to the active filters. These cards used to answer for the whole
+      // store no matter what was selected, so a one-day range showed the day's
+      // rows in the table beside an all-time total in the card — an operator
+      // reconciling a day's takings read the wrong number.
       db.prepare(`
         SELECT
           COUNT(*) AS total_orders,
           SUM(CASE WHEN payment_status = 'unpaid' THEN 1 ELSE 0 END) AS unpaid_count,
           SUM(CASE WHEN UPPER(COALESCE(rts_risk_label, '')) LIKE '%HIGH%' THEN 1 ELSE 0 END) AS high_risk_count,
           COALESCE(SUM(total_amount), 0) AS total_value
-        FROM orders
-        WHERE shipping_status <> 'abandoned'
-      `),
+        FROM orders${whereClause}
+      `).bind(...params),
       db.prepare("SELECT crm_templates FROM stores ORDER BY id LIMIT 1"),
       db.prepare(`
         SELECT shipping_status, COUNT(*) AS count
-        FROM orders
-        WHERE shipping_status <> 'abandoned'
+        FROM orders${chipWhereClause}
         GROUP BY shipping_status
-      `),
+      `).bind(...chipParams),
     ]);
 
     const totalItems = Number((countResult.results?.[0] as { total_items?: number | string } | undefined)?.total_items ?? 0);
@@ -356,7 +376,14 @@ export const GET: APIRoute = async ({ url, locals }) => {
         total_value: Number(summary.total_value ?? 0),
       },
       status_counts: {
-        all: Number(summary.total_orders ?? 0),
+        // The "Semua" chip means "what you would see if you cleared the status
+        // filter", so it follows the chip scope — not the summary, which is
+        // now filtered by the selected status and would make this read 1 while
+        // the chip beside it reads 12.
+        all: Object.values(statusCounts).reduce(
+          (total, count) => total + Number(count || 0),
+          0,
+        ),
         pending: statusCounts.pending || 0,
         processing: statusCounts.processing || 0,
         shipped: statusCounts.shipped || 0,

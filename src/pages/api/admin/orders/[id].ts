@@ -3,9 +3,11 @@ import { jsonError, jsonOk } from '../../../../lib/api';
 import { getRuntimeEnv } from '../../../../lib/env';
 import { selectQuotedRate } from '../../../../lib/courier-rules';
 import { normalizePhoneNumber } from '../../../../lib/order-schema';
+import { isValidWa62 } from '../../../../lib/validation';
 import { getMengantarDispatchEligibility } from '../../../../lib/payment-dispatch-policy';
 import { calculateCodCustomerTotal, calculateCodFeeBreakdown } from '../../../../lib/payment-fee-policy';
 import { dispatchOrderToMengantar } from '../../../../lib/mengantar-dispatch';
+import { buildPaymentNotification, recordNotification } from '../../../../lib/notifications';
 import { getReceiverPerformance, scheduleReceiverPerformanceRefresh } from '../../../../lib/rts-scoring';
 import type { ReceiverPerformance } from '../../../../lib/receiver-performance';
 import {
@@ -448,8 +450,10 @@ export const PATCH: APIRoute = async ({ params, request, locals }) => {
     if (nextCustomerName !== undefined && nextCustomerName.length < 2) {
       return jsonError('Nama minimal 2 karakter.', 422);
     }
-    if (nextCustomerPhone !== undefined && !/^(08|628)\d{8,11}$/.test(nextCustomerPhone)) {
-      return jsonError('Nomor HP harus berisi 10-13 digit (contoh: 081234567890).', 422);
+    // Value is already normalized to 62-form above; the one canonical check
+    // covers operator prefix and the real 0-form 8-13 / 62-form 9-14 length.
+    if (nextCustomerPhone !== undefined && !isValidWa62(nextCustomerPhone)) {
+      return jsonError('Nomor HP tidak valid (contoh: 081234567890).', 422);
     }
     if (nextAddress !== undefined && nextAddress.length < 10) {
       return jsonError('Alamat lengkap minimal 10 karakter.', 422);
@@ -495,6 +499,22 @@ export const PATCH: APIRoute = async ({ params, request, locals }) => {
     let resolvedWarehouseId = current.warehouse_id;
     let resolvedShippingCost = current.shipping_cost;
     let resolvedTotalAmount = current.total_amount;
+
+    // A kecamatan/kota/provinsi text correction that does not also carry a
+    // freshly resolved destination_area_id would otherwise leave the stored
+    // id pointing at the OLD address — the shipment would route there while
+    // every label shows the corrected text. Invalidate it so dispatch is
+    // forced back through resolveEligibleShippingRates, the same way editing
+    // the district field on checkout clears the picked location instead of
+    // keeping a stale id under changed text.
+    const addressTextChanged =
+      (nextDistrict !== undefined && nextDistrict !== current.district) ||
+      (nextCity !== undefined && nextCity !== current.city) ||
+      (nextProvince !== undefined && nextProvince !== current.province);
+    if (addressTextChanged && !hasShippingSelection && nextDestinationAreaId === undefined) {
+      resolvedDestinationAreaId = null;
+      addAssignment('destination_area_id', null);
+    }
 
     if (hasShippingSelection) {
       if (current.payment_method !== 'cod') {
@@ -588,7 +608,7 @@ export const PATCH: APIRoute = async ({ params, request, locals }) => {
       }
       if (
         resolvedCustomerName.length < 2 ||
-        !/^(08|628)\d{8,11}$/.test(resolvedCustomerPhone) ||
+        !isValidWa62(resolvedCustomerPhone) ||
         resolvedAddress.length < 10 ||
         resolvedDistrict.length < 2 ||
         resolvedCity.length < 2 ||
@@ -656,6 +676,24 @@ export const PATCH: APIRoute = async ({ params, request, locals }) => {
           nextCustomerPhone,
           locals,
         );
+      }
+      // An operator marking payment received is the other path that can reach
+      // paid. The unique constraint keeps this and the AutoLaris reconciliation
+      // path from both notifying for the same order (REQ-148).
+      if (
+        PAID_STATUSES.has(resolvedPaymentStatus) &&
+        !PAID_STATUSES.has(current.payment_status)
+      ) {
+        await recordNotification(db, {
+          type: 'payment',
+          orderId: current.id,
+          orderNumber: current.order_number,
+          ...buildPaymentNotification({
+            orderNumber: current.order_number,
+            customerName: nextCustomerName ?? current.customer_name,
+            totalAmount: resolvedTotalAmount,
+          }),
+        });
       }
     }
 

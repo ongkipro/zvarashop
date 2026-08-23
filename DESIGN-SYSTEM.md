@@ -1,8 +1,16 @@
 # AdsBookCMS — Design System
 
-> Verified against disk: 2026-08-17 @ `5cb1d32` + current A10 working tree
+> Verified against disk: 2026-08-20 @ `519c255`
+>
+> **The public palette is neutral plus one overridable accent (ADR-019, as
+> amended 2026-08-23).** Colour tokens below that describe the retired gold
+> accent are historical; `design-tokens.md` at the repository root is the
+> current source for the neutrals, and the five `--sf-*` custom properties in
+> `src/styles/form-hybrid.css` are the accent — and the whole of the re-brand
+> contract. An install overrides those five declarations; it does not fork the
+> stylesheet.
 
-This document describes the presentation layer **as it ships**, extracted from the code rather than from intent. Every concrete value below carries a `file:line` reference. Anything that could not be verified against the tree was left out — see `DECISIONS.md` ADR-010.
+This document describes the presentation layer **as it ships**, extracted from the code rather than from intent. Concrete values carry a file reference, and a line number where that line number is stable. Section 1.4 dropped its line numbers after they drifted through a refactor and left the document wrong about its own subject. Anything that could not be verified against the tree was left out — see `DECISIONS.md` ADR-010.
 
 Scope note from `ARCHITECTURE.md`: the **admin shell is a canonical product surface** (every install gets the same operator UI), while **storefront presentation varies per install** via `PUBLIC_STOREFRONT_TEMPLATE`. The two therefore have separate, deliberately unrelated palettes. Do not unify them.
 
@@ -10,7 +18,7 @@ Scope note from `ARCHITECTURE.md`: the **admin shell is a canonical product surf
 
 ## 1. Colour
 
-There is **no colour token layer for the storefront.** Storefront colour is hex literals written inline as Tailwind arbitrary values (`bg-[#F8F7F4]`) and as raw CSS in component `<style>` blocks. Only the shadcn/admin layer uses CSS custom properties.
+Storefront colour is mostly hex literals written inline as Tailwind arbitrary values (`bg-[#F8F7F4]`) and as raw CSS in component `<style>` blocks. The **one** exception is the accent, which since #58 lives as five custom properties at the top of `src/styles/form-hybrid.css` — `--sf-accent`, `--sf-accent-strong`, `--sf-accent-soft`, `--sf-field-border`, `--sf-surface-alt`. ADR-019 as amended makes those the re-brand surface, so a new accent colour belongs there and never at a call site. The shadcn/admin layer uses its own, separate custom properties.
 
 ### 1.1 Storefront palette (`compact-market`)
 
@@ -18,19 +26,19 @@ The shipped storefront is a champagne-on-ebony boutique palette. Counts are lite
 
 | Hex | Role | Uses | Representative definition |
 | --- | --- | ---: | --- |
-| `#111111` | Primary ink / ebony — body text, announcement bar, primary button fill | 128 | `src/components/shared/SiteHeader.astro:6` |
-| `#C5A880` | Accent — champagne gold; hover, active, badges, focus outline | 49 | `src/components/shared/SiteHeader.astro:6` |
-| `#E5E5E5` | Hairline border — the only border colour in storefront chrome | 64 | `src/components/shared/SiteHeader.astro:16` |
-| `#F8F7F4` | Canvas — warm alabaster page background | 49 | `src/components/shared/SiteHeader.astro:16` |
-| `#555555` | Secondary text | 22 | `src/components/shared/Breadcrumb.astro:21` |
-| `#8A704F` | Muted gold — eyebrow labels, sub-brand text | 12 | `src/components/shared/SiteBrand.astro:37` |
-| `#77736C` | Placeholder / tertiary text | 7 | `src/components/home/ProductsSection.astro:52` |
-| `#D8D6D0` | Input and product-card border (heavier than `#E5E5E5`) | 6 | `src/components/home/ProductsSection.astro:52` |
-| `#EEEAE2` | Hero image well background | 2 | `src/components/home/HeroSection.astro:40` |
-| `#A3A09A` | Breadcrumb separator | 1 | `src/components/shared/Breadcrumb.astro:31` |
-| `#999999` | Footer copyright | 1 | `src/components/shared/SiteFooter.astro:34` |
+| `#111111` | Primary ink / ebony — body text, announcement bar, primary button fill | 128 | `src/components/storefront/shared/SiteHeader.astro:6` |
+| `#C5A880` | Accent — champagne gold; hover, active, badges, focus outline | 49 | `src/components/storefront/shared/SiteHeader.astro:6` |
+| `#E5E5E5` | Hairline border — the only border colour in storefront chrome | 64 | `src/components/storefront/shared/SiteHeader.astro:16` |
+| `#F8F7F4` | Canvas — warm alabaster page background | 49 | `src/components/storefront/shared/SiteHeader.astro:16` |
+| `#555555` | Secondary text | 22 | `src/components/storefront/shared/Breadcrumb.astro:21` |
+| `#8A704F` | Muted gold — eyebrow labels, sub-brand text | 12 | `src/components/storefront/shared/SiteBrand.astro:37` |
+| `#77736C` | Placeholder / tertiary text | 7 | `src/components/storefront/home/ProductsSection.astro:52` |
+| `#D8D6D0` | Input and product-card border (heavier than `#E5E5E5`) | 6 | `src/components/storefront/home/ProductsSection.astro:52` |
+| `#EEEAE2` | Hero image well background | 2 | `src/components/storefront/home/HeroSection.astro:40` |
+| `#A3A09A` | Breadcrumb separator | 1 | `src/components/storefront/shared/Breadcrumb.astro:31` |
+| `#999999` | Footer copyright | 1 | `src/components/storefront/shared/SiteFooter.astro:34` |
 
-White (`#ffffff` / `bg-white`) is the card surface against the `#F8F7F4` canvas — e.g. `src/components/shared/ProductListItem.astro:31`, `src/components/home/ProofsSection.astro:68`.
+White (`#ffffff` / `bg-white`) is the card surface against the `#F8F7F4` canvas — e.g. `src/components/storefront/shared/ProductListItem.astro:31`, `src/components/storefront/home/ProofsSection.astro:68`.
 
 The only place any of these are given a name is `src/lib/ui-variants.ts`:
 
@@ -54,17 +62,32 @@ The second template does **not** use the boutique palette at all. It is Tailwind
 
 Admin colour **is** tokenised. `.admin-shell` redefines the shadcn variables in oklch:
 
-- Token block — `src/styles/global.css:276-305`
-- Accent is a single JS constant: `export const ADMIN_ACCENT = "#2563eb"` — `src/components/admin/admin-navigation.ts:24`, injected as `--admin-accent` inline on `<body>` (`src/layouts/AdminLayout.astro:40`) and used for `--primary` (`src/styles/global.css:283`), focus ring (`:325`), and input focus (`:371-372`).
-- Shell background is a radial gradient over `#f6f7f9` — `src/styles/global.css:300-302`, matched by `bg-[#f6f7f9]` on the body class (`src/layouts/AdminLayout.astro:39`).
-- Table chrome: header `#f8fafc`, header text `#64748b` at `0.68rem / 700 / 0.055em` uppercase — `src/styles/global.css:379-389`.
+- Token block — `src/styles/admin.css`
+- Accent is a single JS constant: `export const ADMIN_ACCENT = "#2563eb"`, injected as `--admin-accent` inline on `<body>` and consumed by `src/styles/admin.css` for primary, focus, and input states.
+- Shell background and table chrome are scoped in `src/styles/admin.css`, matched by `bg-[#f6f7f9]` on the body class (`src/layouts/AdminLayout.astro`).
 - Admin login is a plain colour stage owned by the product. Its only image is the runtime store/product identity mark inside the form card; it carries no decorative or merchant-specific background imagery (LOGIN-18).
 
 ### 1.4 Base shadcn tokens
 
-`:root` oklch scale — `src/styles/global.css:195-228`. `.dark` overrides — `:230-262`. `--primary: oklch(0.546 0.245 262.881)` (`:202`) is a blue, matching `ADMIN_ACCENT`. `--radius: 0.625rem` (`:219`); `.admin-shell` raises it to `0.75rem` (`:294`).
+The `:root` oklch scale and its `.dark` overrides live in `src/styles/admin.css`,
+which is the only entry that imports shadcn. `--primary: oklch(0.546 0.245 262.881)`
+is a blue matching `ADMIN_ACCENT`; `.admin-shell` raises `--radius` from `0.625rem`
+to `0.75rem`.
 
-There is also a small legacy variable set at `src/styles/global.css:8-15` (`--bg-canvas: #fafafa`, `--text-main: #0f172a`, `--focus-ring: #2563eb`). `--focus-ring` is live (`:76`, `:106`); `--bg-canvas` sets `body` (`:18`) but every storefront template paints over it with its own background.
+The radius scale itself is **shared**, declared in `src/styles/foundation.css`.
+It reached every surface through shadcn's theme block until the three-way split;
+leaving it behind in `admin.css` silently reshaped every rounded corner on the
+storefront, because `rounded-md` fell back to Tailwind's `0.375rem`. `admin.css`
+also declares `--radius: 0.625rem` for shadcn's own `:root` block, and the two
+agree deliberately. Giving the storefront its own radius is a design decision,
+not something to arrive at by moving a file.
+
+The base variable set — `--bg-canvas: #fafafa`, `--text-main: #0f172a`,
+`--focus-ring: #2563eb` — is also in `foundation.css`. `--focus-ring` is live;
+`--bg-canvas` sets `body`, but every storefront template paints over it.
+
+Line numbers are deliberately absent here. This section cited them, they drifted
+with the split, and the document was wrong about its own subject.
 
 ---
 
@@ -74,39 +97,43 @@ There is also a small legacy variable set at `src/styles/global.css:8-15` (`--bg
 
 | Family | Weights imported | Import site | Applied where |
 | --- | --- | --- | --- |
-| Inter | 400, 600, 700 | `src/styles/global.css` | shared `body` and admin shell |
-| Cinzel | 700 | `src/styles/global.css` | brand type only, via inline `style` |
+| Inter | 400, 600, 700 | `src/styles/foundation.css` | shared `body` and admin shell |
+| Cinzel | 700 | `src/styles/foundation.css` | brand type only, via inline `style` |
 
-Font faces are owned by `global.css`, the stylesheet every layout loads. Plus Jakarta Sans is no longer imported; `EmbedLayout` intentionally inherits Inter.
+Font faces are owned by `foundation.css`, which all three surface entries import.
+They were in `BaseLayout` once, so the 26 admin routes asked for a family whose
+faces were declared nowhere they could see and rendered in `system-ui`; the
+foundation exists so that cannot recur. Plus Jakarta Sans is no longer imported;
+`EmbedLayout` intentionally inherits Inter.
 
 Cinzel is applied through three inline `style` attributes, not a class or token:
 
-- `src/components/shared/SiteBrand.astro:23` — `font-family: 'Cinzel', serif`
-- `src/components/shared/SiteBrand.astro:30` — `font-family: 'Cinzel', 'Playfair Display', Georgia, serif`
-- `src/components/home/ProofsSection.astro:74`
+- `src/components/storefront/shared/SiteBrand.astro:23` — `font-family: 'Cinzel', serif`
+- `src/components/storefront/shared/SiteBrand.astro:30` — `font-family: 'Cinzel', 'Playfair Display', Georgia, serif`
+- `src/components/storefront/home/ProofsSection.astro:74`
 - `src/pages/produk/[slug].astro:394`
 
-`AdminLayout.astro` imports no font files at all; admin inherits Inter from `global.css`.
+`AdminLayout.astro` imports no font files at all; admin inherits Inter from `foundation.css`.
 
 ### 2.2 Stack
 
 ```css
 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif
 ```
-`src/layouts/BaseLayout.astro:156` and `src/styles/global.css:20`. The admin variant adds `"Segoe UI"` and enables `font-feature-settings: "cv02","cv03","cv04","cv11"` (`src/styles/global.css:303-304`).
+`src/layouts/BaseLayout.astro` and the `body` rule in `src/styles/foundation.css`. The admin variant adds `"Segoe UI"` and enables `font-feature-settings: "cv02","cv03","cv04","cv11"` in `src/styles/admin.css`.
 
 ### 2.3 Storefront type treatment
 
 The storefront voice is **small, uppercase, wide-tracked labels over large tight headlines**.
 
-- Announcement bar: `text-[10px] font-medium tracking-widest uppercase` — `src/components/shared/SiteHeader.astro:6`
-- Wordmark: `text-[15px] font-bold uppercase tracking-[0.2em]` — `src/components/shared/SiteBrand.astro:29`
-- Section eyebrow: `text-[10px] font-semibold uppercase tracking-[0.15em]` — `src/components/home/ProductsSection.astro:38`
-- Section heading: `text-[26px] font-semibold leading-tight tracking-[-0.035em]` — `src/components/home/ProductsSection.astro:41`
-- Page `h1`: `text-[28px] font-extrabold leading-[1.18] tracking-[-0.02em]` — `src/components/shared/PageIntro.astro:26`
-- Footer links: `text-[10px] font-semibold tracking-widest uppercase` — `src/components/shared/SiteFooter.astro:23`
+- Announcement bar: `text-[10px] font-medium tracking-widest uppercase` — `src/components/storefront/shared/SiteHeader.astro:6`
+- Wordmark: `text-[15px] font-bold uppercase tracking-[0.2em]` — `src/components/storefront/shared/SiteBrand.astro:29`
+- Section eyebrow: `text-[10px] font-semibold uppercase tracking-[0.15em]` — `src/components/storefront/home/ProductsSection.astro:38`
+- Section heading: `text-[26px] font-semibold leading-tight tracking-[-0.035em]` — `src/components/storefront/home/ProductsSection.astro:41`
+- Page `h1`: `text-[28px] font-extrabold leading-[1.18] tracking-[-0.02em]` — `src/components/storefront/shared/PageIntro.astro:26`
+- Footer links: `text-[10px] font-semibold tracking-widest uppercase` — `src/components/storefront/shared/SiteFooter.astro:23`
 
-Mobile input font-size is force-set to `1rem` to stop iOS zoom — `src/styles/global.css:89-96` (all viewports ≤639px) and again for admin at ≤1023px (`src/layouts/AdminLayout.astro:66-73`).
+Mobile input font-size is force-set to `1rem` to stop iOS zoom — `src/styles/foundation.css` (all viewports ≤639px, shared because every surface has inputs) and again for admin at ≤1023px (`src/layouts/AdminLayout.astro:66-73`).
 
 ---
 
@@ -120,21 +147,21 @@ Load-bearing examples:
 
 | Surface | Reference |
 | --- | --- |
-| Product card | `src/components/shared/ProductListItem.astro:31` — `rounded-none border border-[#E5E5E5] bg-white` |
-| Product card image | `src/components/shared/ProductListItem.astro:42` |
-| Discount badge | `src/components/shared/ProductListItem.astro:47` |
-| Catalog search input | `src/components/home/ProductsSection.astro:52` — `min-h-12 … rounded-none border border-[#D8D6D0]` |
-| Home product card | `src/components/home/ProductsSection.astro:78` |
-| Primary CTA | `src/components/home/ProductsSection.astro:164` |
-| Proof card | `src/components/home/ProofsSection.astro:68` |
-| PDP gallery frame + thumbs | `src/components/storefront/ProductImageSlider.tsx:78`, `:105` |
+| Product card | `src/components/storefront/shared/ProductListItem.astro:31` — `rounded-none border border-[#E5E5E5] bg-white` |
+| Product card image | `src/components/storefront/shared/ProductListItem.astro:42` |
+| Discount badge | `src/components/storefront/shared/ProductListItem.astro:47` |
+| Catalog search input | `src/components/storefront/home/ProductsSection.astro:52` — `min-h-12 … rounded-none border border-[#D8D6D0]` |
+| Home product card | `src/components/storefront/home/ProductsSection.astro:78` |
+| Primary CTA | `src/components/storefront/home/ProductsSection.astro:164` |
+| Proof card | `src/components/storefront/home/ProofsSection.astro:68` |
+| PDP gallery frame + thumbs | `src/components/storefront/ProductImageGallery.astro` |
 | Load-more button | `src/pages/produk/index.astro:49` |
 | Payment page (19 occurrences) | `src/pages/payment.astro:17` onward |
 | Thanks page | `src/pages/thanks.astro:43`, `:131` |
 
 Borders carry the structure that radius and shadow would normally carry. Shadow is nearly absent from the storefront — `shadow-2xs` / `shadow-xs` only (`ProofsSection.astro:68`, `payment.astro:82`). The one real shadow is the compact-shell drop: `shadow-[0_0_40px_rgba(15,23,42,0.08)]` (`src/layouts/BaseLayout.astro:187`).
 
-**Exceptions that exist and are not errors:** the `wide-catalog` template is deliberately round (`rounded-full` CTAs at `WideCatalogHome.astro:51,57`, `rounded-2xl` hero image at `:70`), the admin shell is round (`0.875rem` cards, `src/styles/global.css:346`), and `form-hybrid.css` predates the square rule (§4).
+**Exceptions that exist and are not errors:** the `wide-catalog` template is deliberately round (`rounded-full` CTAs at `WideCatalogHome.astro:51,57`, `rounded-2xl` hero image at `:70`), the admin shell is round (`0.875rem` cards, `src/styles/admin.css`), and `form-hybrid.css` predates the square rule (§4).
 
 ---
 
@@ -265,7 +292,7 @@ The storefront ships two compiled templates, enumerated in `src/lib/tenant-contr
    - `compact` → `max-w-[480px] shadow-[0_0_40px_rgba(15,23,42,0.08)]`
    - `wide` → `max-w-none`
    Both sit inside `flex min-h-screen w-full justify-center` (`:182`) on a `bg-white` panel (`:185`).
-3. `src/components/shared/Breadcrumb.astro:20` — reads `Astro.locals.tenant.storefrontTemplate` **directly** rather than taking a prop: `max-w-6xl lg:px-6` for wide, `max-w-[480px]` for compact.
+3. `src/components/storefront/shared/Breadcrumb.astro:20` — reads `Astro.locals.tenant.storefrontTemplate` **directly** rather than taking a prop: `max-w-6xl lg:px-6` for wide, `max-w-[480px]` for compact.
 
 Because Breadcrumb re-derives the branch instead of inheriting it, a page that passes an explicit `contentWidth` diverges from its own breadcrumb. Two pages do exactly that: `src/pages/produk/index.astro:16` and `src/pages/produk/[slug].astro:111` both hard-code `contentWidth="compact"`.
 
@@ -289,7 +316,7 @@ role-allowed child. Viewport width alone chooses the navigation mode: phone
 bottom navigation, tablet icon rail, or full desktop sidebar
 (`src/components/admin/AdminShell.tsx`, `src/components/admin/AppSidebar.tsx`).
 
-The admin-scoped rule in `src/styles/global.css` disables animation and
+The admin-scoped rule in `src/styles/admin.css` disables animation and
 transition on the sidebar, tooltip, bottom navigation, and Sheet navigation
 surfaces. This does not disable action feedback: loaders may still spin while a
 real request is pending, and loading/error/empty states remain visible. GSAP is
@@ -316,28 +343,60 @@ same route policy grants access to their destination.
 
 Tailwind is configured CSS-first. **There is no `tailwind.config.*` file** — `components.json:7` sets `"config": ""`.
 
-Wiring:
+### 6.1 Three surfaces, one foundation
 
-- Vite plugin — `astro.config.mjs:4`, `:22` (`@tailwindcss/vite`).
-- Entry — `src/styles/global.css`, imported by all three layouts (`BaseLayout.astro:18`, `AdminLayout.astro:2`, `EmbedLayout.astro:7`).
-- Import chain at the top of `global.css`:
+The CMS admin, the public storefront and checkout are three separate style
+surfaces. They share exactly one file.
+
+| Entry | Imported by | Owns |
+| --- | --- | --- |
+| `src/styles/foundation.css` | the three entries below | Tailwind, the type ramp, base tokens, radius scale, reduced-motion, scrollbar, mobile input sizing |
+| `src/styles/admin.css` | `AdminLayout`, `/hello` | shadcn, tw-animate, `.admin-shell`, `.btn-*`, `.admin-input-flat` |
+| `src/styles/storefront.css` | `BaseLayout`, `EmbedLayout` | public-only rules |
+| `src/styles/form-hybrid.css` | the checkout routes, directly | the entire checkout layer, standalone — no Tailwind, no `@apply` |
+
+This replaced a `global.css` that carried Tailwind, shadcn and tw-animate
+together and was imported by both the admin and the storefront entries. The
+split was therefore nominal: measured on a local build, `/` inlined 176 KB of
+CSS against `/admin/login`'s 184 KB, and the public CSS contained 69 occurrences
+of `sidebar`, 16 shadcn `[data-slot=` selectors and the chart tokens. It is now
+67.6 KB for `/`, 84.7 KB for `/full-form` and 158.4 KB for `/admin/login`.
+
+**Each entry declares what it is built from.** `foundation.css` imports Tailwind
+with `source(none)`, so nothing is discovered automatically, and every surface
+lists its own `@source` roots. A utility a storefront page never writes is never
+generated into the storefront bundle.
+
+The consequence to remember: **class names written outside a template still have
+to be declared.** `src/lib/ui-variants.ts` holds the cva variants both surfaces
+render with, and leaving `../lib` out of the scan roots silently dropped `py-7`
+from the product page. Both entries scan `../lib` for that reason.
+
+### 6.2 Wiring
+
+- Vite plugin — `astro.config.mjs` (`@tailwindcss/vite`).
+- Import chain at the top of `foundation.css`:
   ```css
-  @import "tailwindcss";        /* :1 */
-  @import "tw-animate-css";     /* :2 */
-  @import "shadcn/tailwind.css";/* :3 */
+  @import "tailwindcss" source(none);
   @import "@fontsource/inter/400.css";
   @import "@fontsource/inter/600.css";
   @import "@fontsource/inter/700.css";
   @import "@fontsource/cinzel/700.css";
   @custom-variant dark (&:is(.dark *));
   ```
-- `form-hybrid.css` is deliberately absent from this shared chain. Checkout routes import it directly so admin/storefront pages do not receive the checkout bundle.
-- Token bridge — `@theme inline { … }` maps every shadcn variable to a Tailwind colour utility and derives the radius scale from `--radius` (`global.css:154-193`).
-- Values live in `:root` (`:195-228`) and `.dark` (`:230-262`), in **oklch**, per Tailwind v4 / shadcn convention.
+- `tw-animate-css` and `shadcn/tailwind.css` are imported by `admin.css` alone.
+  No public file imports a shadcn component; a census found `.btn-primary` at 6
+  admin references and 0 public, `.btn-blue` 8/0, `.btn-secondary` 11/0,
+  `.admin-input-flat` 11/0.
+- Token bridge — `@theme inline { … }` in `admin.css` maps every shadcn variable
+  to a Tailwind colour utility. The **radius** half of that bridge is in
+  `foundation.css` because all three surfaces share it (§1.4).
+- Values live in `:root` and `.dark` inside `admin.css`, in **oklch**, per
+  Tailwind v4 / shadcn convention.
 
 shadcn config (`components.json`): style `base-nova` (`:3`), `rsc: false` (`:4`), `tsx: true` (`:5`), `baseColor: neutral` (`:9`), `cssVariables: true` (`:10`), no prefix (`:11`), `iconLibrary: lucide` (`:13`), aliases `@/components`, `@/lib/utils`, `@/components/ui` (`:15-21`).
 
-**`shadcn` is a runtime `dependency`, not a devDependency** (`package.json:47`). That is required, not a mistake: `global.css:3` does `@import "shadcn/tailwind.css"`, so the package must resolve during `astro build`, not only during CLI scaffolding. `tw-animate-css` is in `dependencies` (`package.json:51`) for the same reason (`global.css:2`).
+**`shadcn` is a runtime `dependency`, not a devDependency** (`package.json:47`). That is required, not a mistake: `admin.css` does `@import "shadcn/tailwind.css"`, so the package must resolve during `astro build`, not only during CLI scaffolding. `tw-animate-css` is in `dependencies` (`package.json:51`) for the same reason.
 
 `cn()` is `twMerge(clsx(...))` — `src/lib/cn.ts:1-6`. `src/lib/utils.ts:1` is a one-line re-export so the shadcn `@/lib/utils` alias resolves; both names are live in the tree.
 
@@ -351,24 +410,31 @@ Class-variance-authority variants for storefront primitives live in `src/lib/ui-
 
 The directory contains 21 primitives used by admin React islands. The former zero-import primitives `input-group.tsx` and `popover.tsx` were removed by A-34. Treat this directory as shared admin infrastructure; extend an existing primitive before introducing another component system.
 
-### 7.2 `src/components/shared/`
+### 7.2 `src/components/storefront/shared/`
 
 The nine current shared Astro components are `Breadcrumb.astro`, `Icon.astro`, `LegalPage.astro`, `PageIntro.astro`, `ProductListItem.astro`, `RatingStars.astro`, `SiteBrand.astro`, `SiteFooter.astro`, and `SiteHeader.astro`. The six orphan components previously listed here were removed by A-34.
 
 ### 7.3 Other storefront directories
 
-- `src/components/home/` — `HeroSection.astro`, `ProductsSection.astro`, `ProofsSection.astro`. All three are consumed by `CompactMarketHome.astro:2-4` only.
-- `src/components/storefront/` — `ProductImageSlider.tsx` (the only storefront React island) and `templates/`.
-- `src/components/forms/` — `FormHybridContent.astro` (259 lines), `FormMiddleContent.astro` (218), `GeoIpResolvedForm.astro` (175).
+- `src/components/storefront/home/` — `HeroSection.astro`, `ProductsSection.astro`, `ProofsSection.astro`. All three are consumed by `CompactMarketHome.astro:2-4` only.
+- `src/components/storefront/` — `ProductImageGallery.astro` and `templates/`. **There is no React on the public surface.** The gallery was the only island; it shipped 183 KB of React runtime to drive 4 KB of component code, measured on a live install.
+- `src/components/storefront/forms/` — `FormHybridContent.astro` (259 lines), `FormMiddleContent.astro` (218), `GeoIpResolvedForm.astro` (175).
 
 ### 7.4 PDP gallery layout
 
-`ProductImageSlider.tsx` is a left vertical thumbnail rail beside the main image, not a carousel with dots:
+`ProductImageGallery.astro` is a left vertical thumbnail rail beside the main image, not a carousel with dots:
 
-- Row container `flex flex-row gap-2.5 sm:gap-3` — `:64`
-- Thumb rail `w-14 shrink-0 flex-col overflow-y-auto max-h-[420px] sm:w-16 sm:max-h-[500px]`, rendered only when `gallery.length > 1` — `:66-67`
-- Thumbs `aspect-[3/4] rounded-none`, active = `border-[#C5A880] ring-1 ring-[#C5A880]`, inactive = `border-[#E5E5E5] opacity-60` — `:78-82`
-- Main frame `flex-1 aspect-[3/4] rounded-none border border-[#E5E5E5] bg-[#F8F7F4] touch-pan-y` with touch-swipe handlers — `:105-107`
+- Row container `flex flex-row gap-2.5 sm:gap-3`
+- Thumb rail `w-14 shrink-0 flex-col overflow-y-auto max-h-[420px] sm:w-16 sm:max-h-[500px]`, rendered only when the gallery holds more than one photo
+- Thumbs `aspect-[3/4] rounded-none`, active = `border-[#C5A880] ring-1 ring-[#C5A880]`, inactive = `border-[#E5E5E5] opacity-60`
+- Main frame `flex-1 aspect-[3/4] rounded-none border border-[#E5E5E5] bg-[#F8F7F4]`, with the photos on a `snap-x snap-mandatory` track filling it through `absolute inset-0`
+
+Swiping is the browser's, not ours — the track is a scroll container, so there
+are no touch handlers. Arrows, the counter and the thumbnail highlight are the
+only things that need script, and the script returns immediately when there is
+one photo. `catalog-data.ts` currently builds exactly one image per product, so
+that early return is the normal path; the rail exists for when real galleries
+return.
 
 ### 7.5 Catalog pagination
 
@@ -397,17 +463,23 @@ Current observations, not a second backlog. Any item selected for implementation
 
 **8.6 — RESOLVED 2026-08-16.** `form-hybrid.css` is imported six times. Globally at `global.css:4` — which already puts it on every page including admin — plus redundantly at `full-form.astro:8`, `geoipform.astro:8`, `middle-form.astro:8`, `hybrid-form.astro:14`, `embed/form.astro:7`. The five page-level imports are no-ops; the global import means 22KB of checkout CSS ships with the admin dashboard.
 
-**8.7 — RESOLVED.** Plus Jakarta Sans was loaded and never used. The imports were removed; `EmbedLayout` now intentionally inherits Inter from `global.css`.
+**8.7 — RESOLVED.** Plus Jakarta Sans was loaded and never used. The imports were removed; `EmbedLayout` now intentionally inherits Inter from `foundation.css`, through `storefront.css`.
 
-**8.8 Font weights are used that were never imported.** Inter faces are 400/600/700 in `global.css`, while some utilities request 500, 800, or 900 and resolve to the nearest available face. Cinzel now ships the 700 face used by the brand; earlier synthetic-Cinzel claims are resolved.
+**8.8 — RESOLVED 2026-08-20.** Inter ships 400/600/700 and the public surface
+wrote five weights. Measured in the browser rather than reasoned about: at 32 px
+the string renders 323.02 px at both 400 and 500, and 327.33 px at 700, 800 and
+900 — so `font-medium` was `font-normal` and `font-extrabold`/`font-black` were
+`font-bold`. 72 occurrences were rewritten to what they actually render as, and
+full-page screenshots of the home and catalogue pages are pixel-identical before
+and after. The public ramp is 400 / 600 / 700 and nothing else.
 
 **8.9 Breadcrumb re-derives the width branch.** `Breadcrumb.astro:20` reads `Astro.locals.tenant.storefrontTemplate` directly instead of accepting the `contentWidth` its host layout already resolved (`BaseLayout.astro:51`). A page overriding `contentWidth` gets a breadcrumb of the other width.
 
 **8.10 — RESOLVED.** The resolved `themeColor` default is `#111111`, the storefront ebony, and it is emitted as `<meta name="theme-color">`. This entry previously reported a `#0F172A` default at a line number and under a symbol name that no longer exist; it was a defect report for a bug that had already been fixed.
 
-**8.11 `.admin-shell` is defined in the shared stylesheet.** The admin block (`global.css:276-463`) plus the admin login stage (`:465-536`) is ~260 lines that parse and ship on every storefront request. It is inert there, but it is the largest contiguous region of the file.
+**8.11 — RESOLVED 2026-08-18.** `.admin-shell` and the admin login stage are isolated in `src/styles/admin.css`, loaded only by `AdminLayout` and `/hello`; storefront requests receive `storefront.css` instead. Checkout remains route-owned in `form-hybrid.css`.
 
-**8.12 The `wide-catalog` template shares no design language with `compact-market`.** Different canvas (`#FBFBFB` vs `#F8F7F4`), different neutrals (`zinc` vs custom hex), different accent (`emerald` vs `#C5A880`), different shape rule (`rounded-full`/`rounded-2xl` vs `rounded-none`), and it renders none of the `src/components/home/` sections. `ARCHITECTURE.md` §10 G6 already tracks the compile-time template set; the two templates being unrelated designs rather than two densities of one design belongs with it.
+**8.12 The `wide-catalog` template shares no design language with `compact-market`.** Different canvas (`#FBFBFB` vs `#F8F7F4`), different neutrals (`zinc` vs custom hex), different accent (`emerald` vs `#C5A880`), different shape rule (`rounded-full`/`rounded-2xl` vs `rounded-none`), and it renders none of the `src/components/storefront/home/` sections. `ARCHITECTURE.md` §10 G6 already tracks the compile-time template set; the two templates being unrelated designs rather than two densities of one design belongs with it.
 
 ---
 

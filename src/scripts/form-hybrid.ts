@@ -1,4 +1,6 @@
+import { metaNameParts, toE164Digits } from "../lib/meta-identity.ts";
 import { formatIdr } from "../lib/format-idr";
+import { normalizePhone } from "../lib/validation";
 import { calculateCodFeeBreakdown } from "../lib/payment-fee-policy";
 import { paymentBrandAsset } from "../lib/payment-brand";
 
@@ -180,15 +182,6 @@ const parsePaymentOptions = (payload: unknown): PaymentOption[] => {
 };
 
 const fmt = formatIdr;
-const normalizePhone = (raw: string) => {
-  const digits = String(raw || "").replace(/\D/g, "");
-  if (!digits) return "";
-  if (digits.startsWith("620")) return `62${digits.slice(3)}`;
-  if (digits.startsWith("0")) return `62${digits.slice(1)}`;
-  if (digits.startsWith("8")) return `62${digits}`;
-  if (digits.startsWith("62")) return digits;
-  return digits;
-};
 const createId = (prefix: string) =>
   `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 const hashSha256Hex = async (input: string) => {
@@ -349,9 +342,8 @@ function initHybridOrderFormInstance(formRoot: HTMLElement) {
   );
   const summaryLabel = formRoot.querySelector("#summary-label");
   const summaryCompare = formRoot.querySelector("#summary-compare");
-  const summaryDiscount = formRoot.querySelector("#summary-discount");
+  const summaryPriceValue = formRoot.querySelector("#summary-price-value");
   const summaryCompareRow = formRoot.querySelector<HTMLElement>("#summary-compare-row");
-  const summaryDiscountRow = formRoot.querySelector<HTMLElement>("#summary-discount-row");
   const summaryShipping = formRoot.querySelector("#summary-shipping");
   const summaryAdminFeeRow = formRoot.querySelector<HTMLElement>("#summary-admin-fee-row");
   const summaryAdminFeeLabel = formRoot.querySelector("#summary-admin-fee-label");
@@ -390,13 +382,14 @@ function initHybridOrderFormInstance(formRoot: HTMLElement) {
   const buildAdvancedMatching = async (
     extraUserData?: Record<string, unknown>,
   ) => {
-    const normalizedPhone = String(extraUserData?.customer_phone || "").replace(
-      /\D/g,
-      "",
+    // Normalised exactly as the server CAPI leg does. Both legs describe one
+    // person; a difference here means Meta matches neither.
+    const normalizedPhone = toE164Digits(
+      String(extraUserData?.customer_phone || ""),
     );
-    const normalizedName = String(extraUserData?.customer_name || "").trim();
-    const firstName = normalizedName.split(/\s+/)[0] || "";
-    const lastName = normalizedName.split(/\s+/).slice(1).join(" ");
+    const { firstName, lastName } = metaNameParts(
+      String(extraUserData?.customer_name || ""),
+    );
     return {
       ph: normalizedPhone ? await hashSha256Hex(normalizedPhone) : undefined,
       fn: firstName ? await hashSha256Hex(firstName) : undefined,
@@ -974,13 +967,11 @@ function initHybridOrderFormInstance(formRoot: HTMLElement) {
     const checked = getSelectedVariant();
     const productPrice = getSelectedPrice();
     const comparePrice = Number(checked?.dataset.compare || productPrice);
-    const discount = Math.max(0, comparePrice - productPrice);
     const hasDiscount = comparePrice > productPrice;
     summaryCompareRow?.toggleAttribute("hidden", !hasDiscount);
-    summaryDiscountRow?.toggleAttribute("hidden", !hasDiscount);
     setNodeText(summaryLabel, checked?.dataset.label || config.productName);
     setNodeText(summaryCompare, fmt(comparePrice));
-    setNodeText(summaryDiscount, `- ${fmt(discount)}`);
+    setNodeText(summaryPriceValue, fmt(productPrice));
     const shippingLabel = state.shippingLoading
       ? "Menghitung..."
       : state.shipping

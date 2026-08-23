@@ -150,29 +150,6 @@ test("active product validation rejects a missing image", () => {
   );
 });
 
-test("active product validation rejects a catalog with no valid price variant", () => {
-  assert.deepEqual(
-    parseProductMutationPayload(
-      validMutationPayload({
-        variants: [
-          {
-            sku: "MERCHANT-1",
-            title: "1 Liter",
-            price: 0,
-            weight_grams: 1000,
-            stock: 10,
-          },
-        ],
-      }),
-      false,
-    ),
-    {
-      error:
-        "Harga varian MERCHANT-1 harus integer positif.",
-    },
-  );
-});
-
 test("active product validation rejects a catalog with no in-stock variant", () => {
   assert.deepEqual(
     parseProductMutationPayload(

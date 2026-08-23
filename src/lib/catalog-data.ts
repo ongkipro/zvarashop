@@ -112,13 +112,9 @@ export function mergeStorefrontCatalog(
     const image = product.image_url!.trim();
     const categoryLabel = product.category?.trim() || "Produk";
     const presentation = presentationsByProductId.get(productId);
-    const pseudoId = Number(productId);
-    const pseudoRating = Number((4.6 + (pseudoId % 4) * 0.1).toFixed(1));
-    const pseudoReviews = 18 + (pseudoId % 43) * 7;
-    const pseudoSold = pseudoReviews * 5 + (pseudoId % 13);
     const details = {
-      subheadline: `Dapatkan ${productName} berkualitas terbaik. Cocok untuk melengkapi kebutuhan Anda sehari-hari.`,
-      description: `**${productName}** hadir dengan kualitas material terbaik untuk memastikan kenyamanan serta keawetan pemakaian. Produk dalam kategori ${categoryLabel} ini sangat ideal bagi Anda yang mencari fungsi maksimal dengan harga terjangkau. Pesan sekarang dan nikmati pengalaman berbelanja terbaik bersama Zvara Shop.`,
+      subheadline: `Pilih varian ${productName} berdasarkan opsi dan harga yang tersedia.`,
+      description: `${productName} tercantum dalam kategori ${categoryLabel}. Detail yang ditampilkan mengikuti data katalog toko.`,
       benefits: [],
       keyPoints: [],
       idealFor: [],
@@ -178,18 +174,14 @@ export function mergeStorefrontCatalog(
         ctaText: presentation?.ctaText || "Lanjutkan Pesanan",
         ...(presentation?.ratingValue !== undefined
           ? { ratingValue: presentation.ratingValue }
-          : { ratingValue: pseudoRating }),
+          : {}),
         ...(presentation?.reviewCount !== undefined
           ? { reviewCount: presentation.reviewCount }
-          : { reviewCount: pseudoReviews }),
+          : {}),
         ...(presentation?.soldCount !== undefined
           ? { soldCount: presentation.soldCount }
-          : { soldCount: pseudoSold }),
-        reviews: presentation?.reviews?.length ? presentation.reviews : [
-          { name: "Siti K.", location: "Jakarta Selatan", avatar: "", verified: true, date: "1 minggu lalu", comment: "Barang bagus, sesuai dengan deskripsi. Pengiriman juga cepat.", rating: 5 },
-          { name: "Budi R.", location: "Bandung", avatar: "", verified: true, date: "2 minggu lalu", comment: "Kualitas mantap, harga bersahabat. Recommended seller!", rating: 5 },
-          { name: "Andi S.", location: "Surabaya", avatar: "", verified: true, date: "1 bulan lalu", comment: "Sangat berguna dan berfungsi dengan baik. Terima kasih.", rating: 4 }
-        ],
+          : {}),
+        reviews: presentation?.reviews || [],
         variants,
     });
   }

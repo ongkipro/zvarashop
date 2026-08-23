@@ -2,93 +2,35 @@
    GeoIpResolvedForm wrapper, so palette rules anchored here reach all of them. */
 [data-hybrid-form-root],
 [data-middle-form-root] {
-  color: #222222;
-}
-.flash-sale-banner {
-  position: relative;
-  overflow: hidden;
-  background: #EE4D2D !important;
-  background-image: linear-gradient(135deg, #EE4D2D 0%, #D73D22 100%) !important;
-}
-.flash-sale-banner::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(circle at top left, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0) 42%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0) 36%) !important;
-  pointer-events: none;
-}
-.flash-sale-banner {
-  border-bottom: 1px solid #EE4D2D;
-}
-.scroll-cue {
-  display: grid;
-  justify-items: center;
-  gap: 0.18rem;
-  padding: 0.9rem 0 0.1rem;
-  color: #222222;
-}
-.scroll-cue-text {
-  font-size: 0.72rem;
-  font-weight: 700;
-  line-height: 1.2;
-  color: #222222;
-  opacity: 0.82;
-}
-.scroll-cue-arrow {
-  width: 1.05rem;
-  height: 1.05rem;
-  stroke: currentColor;
-  fill: none;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  animation: scrollCueBounce 1.35s ease-in-out infinite;
-  opacity: 0.95;
-}
-@keyframes scrollCueBounce {
-  0%,
-  100% {
-    transform: translateY(0);
-    opacity: 0.55;
-  }
-  50% {
-    transform: translateY(4px);
-    opacity: 1;
-  }
+  color: #1a1a1a;
+  /* Shopify-checkout palette: white fields with a visible hairline, a light
+     blue-grey for filled panels, and a single interactive blue that carries
+     every selected / focused / primary control. */
+  --sf-accent: #C93A1B;
+  --sf-accent-strong: #A32E12;
+  --sf-accent-soft: #FDF0EC;
+  --sf-accent-ring: rgba(201, 58, 27, 0.28);
+  --sf-field: #ffffff;
+  --sf-field-border: #c9cccf;
+  --sf-surface-alt: #f6f8fb;
+  --sf-line: #e3e3e3;
 }
 .form-block {
   position: relative;
   display: grid;
   gap: 0.75rem;
-  margin-top: 1.25rem;
-  padding-top: 1rem;
+  /* Wider than before: with the hairline gone, the gap is what separates one
+     block from the next. */
+  margin-top: 2rem;
+  padding-top: 0;
   border-top: 0;
 }
-.form-block::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    rgba(229, 229, 229, 0) 0%,
-    rgba(229, 229, 229, 0.95) 14%,
-    rgba(229, 229, 229, 0.95) 86%,
-    rgba(229, 229, 229, 0) 100%
-  );
-  pointer-events: none;
-}
+/* The blocks used to be separated by a faded hairline here. Flat means the
+   separation is spacing and the block heading, nothing drawn. */
 .form-block-first {
   margin-top: 0;
   padding-top: 0;
   border-top: 0;
-}
-.form-block-first::before {
-  display: none;
 }
 .form-block-head {
   display: grid;
@@ -100,26 +42,26 @@
   align-items: center;
   gap: 0.45rem;
   margin: 0;
-  font-size: 0.95rem;
-  font-weight: 800;
+  font-size: 0.9375rem;
+  font-weight: 700;
   line-height: 1.25;
   letter-spacing: -0.01em;
-  color: #222222;
+  color: #111111;
 }
 .section-title::before {
   content: '';
   width: 0.48rem;
   height: 0.48rem;
   border-radius: 999px;
-  background: #EE4D2D;
+  background: var(--sf-accent);
   flex: 0 0 auto;
   transform: translateY(0.02rem);
 }
 .section-lead {
   max-width: 32rem;
   margin: 0;
-  font-size: 0.72rem;
-  font-weight: 500;
+  font-size: 0.75rem;
+  font-weight: 400;
   line-height: 1.45;
   color: #555555;
 }
@@ -144,43 +86,51 @@
   gap: 0.65rem;
   padding: 0.65rem 0.85rem;
   border: 1px solid #E5E5E5;
-  background: #F8FAFC;
+  border-radius: 0.7rem;
+  background: #ffffff;
   transition: 0.18s ease;
 }
 .simple-variant-copy {
   padding: 0.72rem 0.85rem;
   border: 1px solid #E5E5E5;
   border-radius: 0.7rem;
-  background: #F8FAFC;
+  background: #ffffff;
   box-shadow: none;
 }
 .variant-radio {
   width: 1.1rem;
   height: 1.1rem;
   border-radius: 999px;
-  border: 2px solid #D8D6D0;
+  /* #E5E5E5 sat at 1.05:1 on the row fill - invisible, and this ring is now the
+     primary selection signal. #767676 clears the 3:1 floor for controls. */
+  border: 2px solid #767676;
   margin-top: 0.12rem;
   flex: 0 0 auto;
 }
 .variant-main {
   flex: 1;
 }
-.variant-option:last-child .variant-copy {
-  border-bottom: 1px solid #E5E5E5;
-}
+/* The last row closed the outlined stack. Nothing is outlined now. */
 .variant-option input:checked + .variant-copy {
-  border-color: #EE4D2D;
-  background: #FFF0ED;
+  /* Ink border plus a thin grey fill: the chosen row is the only one that is
+     not white, so it reads before the border does. */
+  border-color: var(--sf-accent);
+  background: var(--sf-accent-soft);
   box-shadow: none;
 }
 .simple-variant-option input:checked + .simple-variant-copy {
-  border-color: #EE4D2D;
-  background: #FFF0ED;
+  border-color: var(--sf-accent);
+  background: var(--sf-accent-soft);
   box-shadow: none;
 }
+.variant-option input:checked + .variant-copy .variant-label {
+  /* Third signal. Fill alone is a 1.1:1 step, which is easy to miss; the filled
+     radio and a heavier label make the choice unmistakable without a line. */
+  font-weight: 700;
+}
 .variant-option input:checked + .variant-copy .variant-radio {
-  border-color: #EE4D2D;
-  background: radial-gradient(circle, #EE4D2D 0 45%, #ffffff 46% 100%);
+  border-color: var(--sf-accent);
+  background: radial-gradient(circle, var(--sf-accent) 0 45%, #ffffff 46% 100%);
 }
 .summary-row {
   display: flex;
@@ -197,45 +147,21 @@
   justify-content: space-between;
   gap: 0.65rem;
 }
-.simple-variant-badge {
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  min-height: 1.25rem;
-  padding: 0.15rem 0.5rem;
-  border-radius: 0.35rem;
-  font-size: 0.62rem;
-  font-weight: 800;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  white-space: nowrap;
-  line-height: 1.1;
-  border: 0 !important;
-  box-shadow: none !important;
-  background-image: none !important;
-}
-.simple-variant-badge-hot {
-  background: #dc2626 !important;
-  color: #fff !important;
-}
-.simple-variant-badge-save {
-  background: #fef08a !important;
-  color: #b91c1c !important;
-}
 .simple-variant-dot {
   width: 0.28rem;
   height: 0.28rem;
   border-radius: 999px;
-  background: #D8D6D0;
+  background: #E5E5E5;
   flex: 0 0 auto;
   align-self: center;
 }
 .variant-label {
   display: block;
-  font-size: 0.82rem;
-  font-weight: 800;
+  font-size: 0.8125rem;
+  /* 600 at rest so the checked rule's 700 is an actual step, not a no-op. */
+  font-weight: 600;
   line-height: 1.3;
-  color: #222222;
+  color: #111111;
 }
 .variant-price-row {
   margin-top: 0.08rem;
@@ -244,14 +170,14 @@
   gap: 0.45rem;
 }
 .variant-price {
-  font-size: 0.95rem;
-  font-weight: 800;
-  color: #222222;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #111111;
   line-height: 1.1;
 }
 .variant-compare {
-  font-size: 0.72rem;
-  color: #77736C;
+  font-size: 0.75rem;
+  color: #767676;
   text-decoration: line-through;
 }
 .simple-variant-price-row {
@@ -279,26 +205,26 @@
 .form-field input,
 .form-field textarea {
   width: 100%;
-  min-height: 3.3rem;
-  padding: 1.25rem 0.85rem 0.3rem;
-  border: 1px solid #E5E5E5;
+  min-height: 2.9rem;
+  padding: 0.96rem 0.75rem 0.2rem;
+  /* Shopify-style rounded frame: a full 1.5px border the whole way round, no
+     ring or drop shadow. The frame is the only thing that changes colour -
+     blue while typing, red on an error. */
+  border: 1.5px solid var(--sf-field-border);
   border-radius: 0.5rem;
-  background: #F8FAFC;
-  color: #222222;
+  background: var(--sf-field);
+  color: #1a1a1a;
   font: inherit;
-  font-size: 1.05rem;
-  font-weight: 500;
+  font-size: 1rem;
+  font-weight: 400;
   line-height: 1.35;
   box-shadow: none;
-  transition:
-    border-color 0.15s ease,
-    background-color 0.15s ease,
-    box-shadow 0.15s ease;
+  transition: border-color 0.15s ease;
 }
 .form-field textarea {
-  min-height: 4.8rem;
-  padding-top: 1.45rem;
-  padding-bottom: 0.4rem;
+  min-height: 4.4rem;
+  padding-top: 1.25rem;
+  padding-bottom: 0.38rem;
   resize: vertical;
 }
 .form-field input::placeholder,
@@ -309,12 +235,12 @@
 .form-field > span {
   position: absolute;
   z-index: 1;
-  left: 0.85rem;
-  top: 1.15rem;
+  left: 0.75rem;
+  top: 1rem;
   margin: 0;
   color: #555555;
-  font-size: 0.82rem;
-  font-weight: 500;
+  font-size: 0.75rem;
+  font-weight: 400;
   line-height: 1;
   transform-origin: left top;
   pointer-events: none;
@@ -325,7 +251,7 @@
 }
 .form-field textarea ~ label,
 .form-field textarea ~ span {
-  top: 1.05rem;
+  top: 0.85rem;
 }
 .form-field input:focus ~ label,
 .form-field input:not(:placeholder-shown) ~ label,
@@ -335,17 +261,17 @@
 .form-field textarea:not(:placeholder-shown) ~ label,
 .form-field textarea:focus ~ span,
 .form-field textarea:not(:placeholder-shown) ~ span {
-  top: 0.35rem;
-  color: #222222;
-  font-size: 0.65rem;
+  top: 0.3rem;
+  color: var(--sf-accent-strong);
+  font-size: 0.625rem;
   font-weight: 700;
 }
 .form-field input:focus,
 .form-field textarea:focus {
   outline: none;
-  border-color: #FF9E80;
-  background: #ffffff;
-  box-shadow: 0 0 0 3px rgba(238, 77, 45, 0.15) !important;
+  border-color: var(--sf-accent);
+  background: var(--sf-field);
+  box-shadow: none !important;
 }
 .form-field input.field-invalid ~ label,
 .form-field textarea.field-invalid ~ label {
@@ -355,15 +281,15 @@
   display: block;
   margin-top: 0.35rem;
   color: #555555;
-  font-weight: 500;
-  font-size: 0.72rem;
+  font-weight: 400;
+  font-size: 0.75rem;
 }
 .field-feedback {
   display: flex;
   align-items: flex-start;
   gap: 0.75rem;
   margin-top: 0.4rem;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 600;
   line-height: 1.45;
   color: #d92d20;
@@ -381,8 +307,8 @@
   border-radius: 999px;
   background: #fee4e2;
   color: #d92d20;
-  font-size: 0.7rem;
-  font-weight: 800;
+  font-size: 0.6875rem;
+  font-weight: 700;
   flex: 0 0 auto;
 }
 .field-feedback[hidden] {
@@ -393,24 +319,24 @@
 .form-field input.field-invalid,
 .form-field textarea.field-invalid {
   border-color: #dc2626 !important;
-  background: #fffafa !important;
-  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.08) !important;
+  background: var(--sf-field) !important;
+  box-shadow: none !important;
 }
 .field-grid input.field-valid,
 .field-grid textarea.field-valid,
 .form-field input.field-valid,
 .form-field textarea.field-valid {
-  border-color: #CBD5E1;
-  background: #F1F5F9 !important;
+  border-color: var(--sf-field-border);
+  background: var(--sf-field) !important;
   box-shadow: none !important;
 }
 .field-grid input.field-valid:focus,
 .field-grid textarea.field-valid:focus,
 .form-field input.field-valid:focus,
 .form-field textarea.field-valid:focus {
-  border-color: #94A3B8 !important;
-  background: #ffffff !important;
-  box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.15) !important;
+  border-color: var(--sf-accent) !important;
+  background: var(--sf-field) !important;
+  box-shadow: none !important;
 }
 @keyframes fieldFeedbackIn {
   from {
@@ -426,8 +352,8 @@
   display: block;
   margin-top: 0.1rem;
   color: #555555;
-  font-size: 0.72rem;
-  font-weight: 500;
+  font-size: 0.75rem;
+  font-weight: 400;
   line-height: 1.45;
 }
 .district-help[data-tone='error'] {
@@ -435,7 +361,7 @@
   font-weight: 600;
 }
 .district-help[data-tone='success'] {
-  color: #222222;
+  color: #111111;
   font-weight: 600;
 }
 .district-help:empty {
@@ -446,9 +372,9 @@
 .shipping-address-summary {
   margin-top: 0.45rem;
   padding: 0.75rem;
-  border: 1px solid #EE4D2D;
+  border: 1px solid var(--sf-accent);
   border-radius: 0.65rem;
-  background: #F8FAFC;
+  background: var(--sf-accent-soft);
 }
 .shipping-address-summary[hidden] {
   display: none;
@@ -460,16 +386,16 @@
   gap: 0.75rem;
 }
 .shipping-address-summary-head strong {
-  color: #8A704F;
-  font-size: 0.72rem;
-  font-weight: 800;
+  color: #767676;
+  font-size: 0.75rem;
+  font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 #shipping-address-line {
   margin: 0.65rem 0 0;
-  color: #222222;
-  font-size: 0.82rem;
+  color: #111111;
+  font-size: 0.8125rem;
   font-weight: 700;
   line-height: 1.45;
   overflow-wrap: anywhere;
@@ -477,8 +403,8 @@
 #district-picked-subtitle {
   margin: 0.2rem 0 0;
   color: #555555;
-  font-size: 0.74rem;
-  font-weight: 500;
+  font-size: 0.75rem;
+  font-weight: 400;
   line-height: 1.45;
   overflow-wrap: anywhere;
 }
@@ -486,9 +412,9 @@
   appearance: none;
   border: 0;
   background: transparent;
-  color: #222222;
+  color: var(--sf-accent);
   font: inherit;
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   font-weight: 700;
   cursor: pointer;
   padding: 0;
@@ -521,7 +447,7 @@
   background: #fff;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
   scrollbar-width: thin;
-  scrollbar-color: #D8D6D0 transparent;
+  scrollbar-color: #E5E5E5 transparent;
   transform-origin: top center;
 }
 .district-list:not([hidden]) {
@@ -531,7 +457,7 @@
   width: 6px;
 }
 .district-list::-webkit-scrollbar-thumb {
-  background: #D8D6D0;
+  background: #E5E5E5;
   border-radius: 999px;
 }
 .district-item {
@@ -552,7 +478,7 @@
   text-align: left !important;
   font: inherit;
   cursor: pointer;
-  color: #222222;
+  color: #111111;
   transition: all 0.12s ease;
 }
 .district-item:first-child {
@@ -573,36 +499,36 @@
   display: block;
   width: 100%;
   margin: 0;
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   line-height: 1.25;
   letter-spacing: -0.01em;
-  color: #222222;
+  color: #111111;
 }
 .district-item small {
   display: block;
   width: 100%;
   margin: 0;
-  font-size: 0.68rem;
-  font-weight: 500;
+  font-size: 0.6875rem;
+  font-weight: 400;
   line-height: 1.25;
   color: #555555;
 }
 .district-item:hover,
 .district-item:focus-visible {
-  background: #F8FAFC;
-  border-left-color: #EE4D2D;
+  background: var(--sf-accent-soft);
+  border-left-color: var(--sf-accent);
   outline: none;
 }
 .district-item:active {
   transform: scale(0.99);
-  background: #F8FAFC;
+  background: #F5F5F5;
 }
 .district-empty {
   padding: 0.65rem 0.85rem;
   color: #555555;
-  font-size: 0.78rem;
-  font-weight: 500;
+  font-size: 0.75rem;
+  font-weight: 400;
 }
 .inner-card {
   display: grid;
@@ -631,16 +557,30 @@
 .payment-block-anchor small {
   flex: 0 0 auto;
   margin: 0;
-  font-size: 0.62rem;
+  font-size: 0.625rem;
   font-weight: 700;
   line-height: 1;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #77736C;
+  color: #767676;
 }
 .payment-options {
+  /* One framed card, Shopify-style: every method is a row inside it, divided by
+     hairlines rather than floating as its own chip. */
   display: grid;
-  gap: 0.4rem;
+  gap: 0;
+  border: 1.5px solid var(--sf-field-border);
+  border-radius: 0.6rem;
+  overflow: hidden;
+  background: #ffffff;
+}
+.payment-options > .payment-option,
+.payment-options > .payment-group {
+  border-bottom: 1px solid var(--sf-line);
+}
+.payment-options > .payment-option:last-child,
+.payment-options > .payment-group:last-child {
+  border-bottom: 0;
 }
 .payment-option {
   display: block;
@@ -652,11 +592,13 @@
 .payment-option-copy {
   display: flex;
   align-items: center;
-  gap: 0.65rem;
-  padding: 0.6rem 0.75rem;
-  border: 1px solid #E5E5E5;
-  background: #F8FAFC;
-  border-radius: 0.55rem;
+  gap: 0.7rem;
+  padding: 0.8rem 0.85rem;
+  /* A transparent rail on the left turns blue on the selected row - the whole
+     row reads as chosen without a drop shadow. */
+  border: 0;
+  border-left: 3px solid transparent;
+  border-radius: 0;
   background: #ffffff;
   box-shadow: none;
   transition:
@@ -670,7 +612,7 @@
   min-width: 0;
 }
 .payment-brand-mark {
-  width: 3.75rem;
+  width: 2.85rem;
   aspect-ratio: 3 / 2;
   flex: 0 0 auto;
   display: inline-flex;
@@ -678,7 +620,7 @@
   justify-content: center;
   overflow: hidden;
   padding: 0.2rem;
-  border: 1px solid #E5E5E5;
+  border: 1px solid var(--sf-line);
   border-radius: 0.375rem;
   background: #fff;
 }
@@ -689,10 +631,10 @@
   object-fit: contain;
 }
 .payment-brand-mark--text {
-  border-color: #EE4D2D;
-  background: #111111;
-  color: #fff;
-  font-size: 0.72rem;
+  border-color: var(--sf-field-border);
+  background: var(--sf-surface-alt);
+  color: #4a4a4a;
+  font-size: 0.6875rem;
   /* was 900: the only 900 in the tree, and no Inter 900 is loaded, so it already
      resolved to the 700 face. Declaring what ships (A-32). */
   font-weight: 700;
@@ -703,63 +645,69 @@
   width: 0.95rem;
   height: 0.95rem;
   border-radius: 999px;
-  border: 2px solid #D8D6D0;
+  border: 2px solid #767676;
   flex: 0 0 auto;
 }
 .payment-option-label {
   margin: 0;
-  font-size: 0.84rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   line-height: 1.25;
-  color: #222222;
+  color: #111111;
   letter-spacing: -0.01em;
 }
 .payment-option-desc {
   margin: 0;
-  font-size: 0.7rem;
-  font-weight: 500;
+  font-size: 0.6875rem;
+  font-weight: 400;
   line-height: 1.4;
   color: #555555;
 }
 .payment-option:hover .payment-option-copy,
 .payment-option input:focus-visible + .payment-option-copy {
-  border-color: #D8D6D0;
-  background: #F8FAFC;
+  background: var(--sf-surface-alt);
   box-shadow: none;
 }
 .payment-option input:checked + .payment-option-copy {
-  border-color: #EE4D2D;
-  background: #FFF0ED;
+  background: var(--sf-accent-soft);
+  border-left-color: var(--sf-accent);
   box-shadow: none;
 }
 .payment-option input:checked + .payment-option-copy .payment-option-radio {
-  border-color: #EE4D2D;
-  background: radial-gradient(circle, #EE4D2D 0 45%, #ffffff 46% 100%);
+  border-color: var(--sf-accent);
+  background: radial-gradient(circle, var(--sf-accent) 0 45%, #ffffff 46% 100%);
 }
 .payment-option input:checked + .payment-option-copy .payment-option-label {
-  color: #222222;
+  color: #111111;
 }
 .payment-group {
-  border: 1px solid #E5E5E5;
-  border-radius: 0.55rem;
-  background: #F8FAFC;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   overflow: hidden;
-}
-.payment-group.is-selected {
-  border-color: #EE4D2D;
-  background: #F8FAFC;
 }
 .payment-group-head {
   display: flex;
   align-items: center;
-  gap: 0.65rem;
+  gap: 0.7rem;
   width: 100%;
-  padding: 0.6rem 0.75rem;
+  padding: 0.8rem 0.85rem;
   border: 0;
+  border-left: 3px solid transparent;
   background: transparent;
   font: inherit;
   text-align: left;
   cursor: pointer;
+  transition:
+    border-color 0.18s ease,
+    background-color 0.18s ease;
+}
+.payment-group.is-selected .payment-group-head {
+  background: var(--sf-accent-soft);
+  border-left-color: var(--sf-accent);
+}
+.payment-group-head:hover {
+  background: var(--sf-surface-alt);
 }
 .payment-group-main {
   flex: 1;
@@ -778,46 +726,46 @@
   transform: rotate(180deg);
 }
 .payment-group.is-selected .payment-group-head .payment-option-radio {
-  border-color: #EE4D2D;
-  background: radial-gradient(circle, #EE4D2D 0 45%, #ffffff 46% 100%);
+  border-color: var(--sf-accent);
+  background: radial-gradient(circle, var(--sf-accent) 0 45%, #ffffff 46% 100%);
 }
 .payment-group.is-selected .payment-group-head .payment-option-label {
-  color: #222222;
+  color: #111111;
 }
 .payment-group-body {
   display: grid;
   gap: 0;
-  border-top: 1px solid #E5E5E5;
-  background: #F8FAFC;
+  border-top: 1px solid var(--sf-line);
+  background: #ffffff;
 }
 .payment-group-body[hidden] {
   display: none;
 }
-.payment-group-body .payment-option {
-  border-bottom: 1px solid #E5E5E5;
-}
-.payment-group-body .payment-option:last-child {
-  border-bottom: 0;
+/* Grouped methods sit indented under the group head, divided by the same
+   hairline as the top-level rows. */
+.payment-group-body .payment-option:not(:last-child) {
+  border-bottom: 1px solid var(--sf-line);
 }
 .payment-group-body .payment-option-copy {
   border: 0;
+  border-left: 3px solid transparent;
   border-radius: 0;
   background: transparent;
-  padding: 0.5rem 0.75rem 0.5rem 1rem;
+  padding: 0.65rem 0.85rem 0.65rem 1.15rem;
   gap: 0.6rem;
 }
 .payment-group-body .payment-option:hover .payment-option-copy {
-  background: #FFF0ED;
+  background: var(--sf-surface-alt);
 }
 .payment-group-body .payment-option input:checked + .payment-option-copy {
-  border: 0;
-  background: #FFF0ED;
+  border-left-color: var(--sf-accent);
+  background: var(--sf-accent-soft);
 }
 .payment-group-body .payment-option-label {
-  font-size: 0.8rem;
+  font-size: 0.8125rem;
 }
 .payment-group-body .payment-option-desc {
-  font-size: 0.66rem;
+  font-size: 0.6875rem;
 }
 .summary-block {
   gap: 1rem;
@@ -828,85 +776,109 @@
   overflow: hidden;
   border: 1px solid #E5E5E5;
   border-radius: 0.75rem;
-  background: #fff;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  background: #ffffff;
+  box-shadow: none;
+  padding-top: 0.25rem;
 }
 .summary-card > .summary-row {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   gap: 0.75rem;
-  padding: 0.62rem 0.85rem;
+  padding: 0.55rem 0.85rem;
   color: #555555;
-  border-bottom: 1px solid #E5E5E5;
+  /* Dashed rather than solid: it divides the rows without adding another solid
+     rule beside the card frame. */
+  border-bottom: 1px dashed #E5E5E5;
 }
 .summary-card > .summary-row span {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 600;
   line-height: 1.3;
   color: #555555;
 }
 .summary-card > .summary-row strong {
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   line-height: 1.25;
-  color: #222222;
+  color: #111111;
   text-align: right;
+  /* Proportional digits make a stacked column of Rp figures ragged; tabular
+     ones line the thousands up. */
+  font-variant-numeric: tabular-nums;
 }
-.summary-product-meta {
+/* The product line collapses product + variant + both prices into one row:
+   the product name on the left, and on the right the purchased variant over
+   its price (struck compare price beside the charged one). */
+.summary-row-product {
+  align-items: flex-start;
+}
+.summary-product-name {
+  /* A strong inside a summary-row is right-aligned by the rule above; the name
+     is the row's label, so pull it back to the left. */
+  text-align: left !important;
+  text-wrap: balance;
+  max-width: 52%;
+}
+.summary-price {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
+  gap: 0.15rem;
+  flex-shrink: 0;
   text-align: right;
-  gap: 0.1rem;
 }
-.summary-product-name {
-  font-size: 0.82rem !important;
-  font-weight: 400 !important;
-  color: #555555 !important;
-  line-height: 1.25;
-}
-.summary-product-meta strong {
-  font-size: 0.82rem !important;
+.summary-variant {
+  /* The variant actually purchased. Sits above the price as the header of the
+     right column - quieter than the product name, but still ink. */
+  font-size: 0.75rem !important;
   font-weight: 600 !important;
   color: #111111 !important;
-  line-height: 1.25;
+  line-height: 1.2 !important;
 }
-.summary-row-discount {
-  background: #fff;
+.summary-price-figures {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 0.4rem;
 }
-.summary-row-discount span {
-  color: #555555;
+#summary-price-value {
+  font-size: 0.9375rem;
 }
-.summary-row-discount strong,
-.summary-discount-chip {
-  color: #b91c1c !important;
-  font-weight: 800;
-  background: #fef08a;
-  padding: 0.04rem 0.28rem;
-  border-radius: 0.2rem;
+/* Same datum as the struck-through price on the variant rows, but rendered as
+   bold ink here it reads as another amount to pay beside the one that is.
+   Strike it and mute it so its role is obvious. */
+.summary-compare-wrap {
+  font-size: 0.75rem;
   line-height: 1.1;
-  display: inline-block;
+}
+#summary-compare {
+  font-weight: 400 !important;
+  color: #767676 !important;
+  text-decoration: line-through;
 }
 .total-box {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 0.85rem;
-  padding: 0.85rem;
-  border-top: 1px solid #E5E5E5;
-  background: #F8FAFC;
+  margin-top: 0.35rem;
+  padding: 0.9rem 0.85rem;
+  /* The order-summary total, the one row that is filled - a soft blue panel so
+     the figure the buyer acts on carries the checkout's accent. */
+  background: var(--sf-accent-soft);
+  border-radius: 0.5rem;
 }
 .total-box p {
-  font-size: 0.82rem;
-  font-weight: 800;
+  font-size: 0.8125rem;
+  font-weight: 700;
   line-height: 1.15;
-  color: #222222;
+  color: #111111;
 }
 .total-box small {
   display: block;
   margin-top: 0.1rem;
-  font-size: 0.68rem;
+  font-size: 0.6875rem;
   line-height: 1.2;
   color: #555555;
   font-weight: 600;
@@ -917,25 +889,28 @@
   gap: 0.25rem;
 }
 .total-box strong {
-  font-size: 1.15rem;
-  font-weight: 800;
-  color: #222222;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--sf-accent-strong);
   line-height: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
 }
 .info-box {
   display: grid;
   gap: 0.2rem;
   padding: 0.88rem 0.95rem;
-  border: 1px solid #E5E5E5;
+  /* Flat. The note is set apart by its fill, never by an outline. */
+  border: 0;
   border-radius: 0.68rem;
-  background: #F8FAFC;
-  color: #222222;
+  background: var(--sf-surface-alt);
+  color: #1a1a1a;
 }
 .info-box span {
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   line-height: 1.55;
-  font-weight: 500;
-  color: #555555;
+  font-weight: 400;
+  color: #767676;
 }
 .submit-panel {
   display: grid;
@@ -945,16 +920,16 @@
 .submit-main {
   width: 100%;
   min-height: 2.75rem;
-  border: 1px solid #EE4D2D;
+  border: 1px solid var(--sf-accent);
   padding: 0.72rem 1rem;
-  background: #EE4D2D !important;
+  background: var(--sf-accent) !important;
   color: #ffffff !important;
-  font-size: 0.92rem;
-  font-weight: 800;
+  font-size: 0.9375rem;
+  font-weight: 700;
   border-radius: 0.65rem;
   letter-spacing: 0.01em;
   cursor: pointer;
-  box-shadow: 0 8px 16px -4px rgba(17, 17, 17, 0.25);
+  box-shadow: 0 8px 16px -4px rgba(44, 110, 203, 0.35);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -962,16 +937,16 @@
   transition: all 0.15s ease;
 }
 .submit-main:hover {
-  border-color: #EE4D2D;
-  background: #EE4D2D !important;
-  color: #111111 !important;
-  box-shadow: 0 10px 20px -4px rgba(197, 168, 128, 0.35);
+  border-color: var(--sf-accent-strong);
+  background: var(--sf-accent-strong) !important;
+  color: #ffffff !important;
+  box-shadow: 0 10px 20px -4px rgba(44, 110, 203, 0.3);
 }
 .submit-main:active {
   transform: scale(0.98);
 }
 .submit-main:focus-visible {
-  outline: 2px solid #EE4D2D;
+  outline: 2px solid var(--sf-accent);
   outline-offset: 3px;
 }
 .submit-main-label {
@@ -991,13 +966,15 @@
     opacity 0.18s ease;
 }
 .submit-main[data-state='ready'] {
-  background: #EE4D2D !important;
-  box-shadow: 0 8px 16px -4px rgba(17, 17, 17, 0.25);
+  background: var(--sf-accent) !important;
+  box-shadow: 0 8px 16px -4px rgba(44, 110, 203, 0.35);
 }
 .submit-main[data-state='ready']:hover {
-  border-color: #EE4D2D;
-  background: #EE4D2D !important;
-  color: #111111 !important;
+  /* This set the label to ink on an ink fill, which made it vanish on hover.
+     Hover deepens the fill; the label stays white. */
+  border-color: var(--sf-accent-strong);
+  background: var(--sf-accent-strong) !important;
+  color: #ffffff !important;
 }
 .submit-main[data-state='ready']:hover .submit-main-icon {
   transform: translateX(2px);
@@ -1016,7 +993,7 @@
   animation: none;
 }
 .submit-main[data-state='loading'] {
-  background: #EE4D2D !important;
+  background: var(--sf-accent) !important;
   cursor: wait;
   opacity: 0.88;
 }
@@ -1040,7 +1017,7 @@
   border-radius: 0.68rem;
   background: #fef3f2;
   color: #b42318;
-  font-size: 0.79rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   line-height: 1.45;
 }
@@ -1048,8 +1025,7 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0;
-  border-top: 1px solid #E5E5E5;
-  border-bottom: 1px solid #E5E5E5;
+  margin-top: 0.3rem;
 }
 .trust-strip span {
   display: flex;
@@ -1077,8 +1053,8 @@
 }
 .trust-strip i {
   font-style: normal;
-  font-size: 0.62rem;
-  font-weight: 800;
+  font-size: 0.625rem;
+  font-weight: 700;
   line-height: 1.25;
   text-transform: uppercase;
   letter-spacing: 0.03em;

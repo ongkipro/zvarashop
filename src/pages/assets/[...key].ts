@@ -17,8 +17,8 @@ export const GET: APIRoute = async ({ params, locals }) => {
   if (!bucket) return new Response('Asset storage unavailable', { status: 503 });
 
   let object = await bucket.get(key);
-  // A derivative that was never generated — an image uploaded before the
-  // storefront started asking for one — falls back to the full image. The card
+  // A derivative that was never generated - an image uploaded before the
+  // storefront started asking for one - falls back to the full image. The card
   // then costs more than it should, which is the old behaviour, rather than
   // rendering a broken tile.
   if (!object && DERIVATIVE_SUFFIX.test(key)) {

@@ -42,7 +42,11 @@ export const homeContentSchema = z
           })
           .strict(),
       )
-      .min(1)
+      // Optional on purpose. An operator who has not made hero art gets the
+      // catalogue instead - CompactMarketHome borrows product photos and
+      // rotates them daily. Requiring a slide here made that fallback
+      // unreachable for any store whose content was published at all.
+      .min(0)
       .max(10),
     solutions: z
       .array(
@@ -56,7 +60,10 @@ export const homeContentSchema = z
           })
           .strict(),
       )
-      .min(1)
+      // A store with no landing pages is a valid store. This used to demand one,
+      // which is why a fresh install could not hold valid home content at all and
+      // had to be walked through a setup screen first.
+      .min(0)
       .max(12),
     proofs: z
       .array(

@@ -7,8 +7,14 @@ import {
   deleteLandingPage,
   getLandingPageById,
   getLandingPageBySlug,
+  getProductPageLanding,
+  LandingProductPageConflictError,
   listLandingPages,
+  listPublicLandingPages,
   parseShortcodes,
+  NativeLandingReadOnlyError,
+  reconcileNativeLandingPages,
+  setLandingPageAsProductPage,
   updateLandingPage,
   validateLandingPageSlug,
 } from "./landing-pages.ts";
@@ -79,11 +85,30 @@ class SqliteD1Database {
   readonly #database = new DatabaseSync(":memory:");
 
   constructor() {
-    const migration = readFileSync(
-      new URL("../db/migrations/0027_landing_page_builder.sql", import.meta.url),
-      "utf8",
-    );
-    this.#database.exec(migration);
+    this.#database.exec(`
+      CREATE TABLE IF NOT EXISTS products (
+        id INTEGER PRIMARY KEY,
+        slug TEXT NOT NULL,
+        title TEXT NOT NULL
+      );
+      INSERT INTO products (id, slug, title) VALUES (20001, 'pupuk-organik', 'Pupuk Organik');
+      INSERT INTO products (id, slug, title) VALUES (20002, 'benih-jagung', 'Benih Jagung');
+    `);
+    for (const file of [
+      "0027_landing_page_builder.sql",
+      // A landing page may take over its product's page (A21); without this
+      // the fixture would not carry the column the queries now read.
+      "0046_landing_page_as_product_page.sql",
+      // Native Astro pages are recorded in the same table (A-133).
+      "0047_native_landing_pages.sql",
+    ]) {
+      this.#database.exec(
+        readFileSync(
+          new URL(`../db/migrations/${file}`, import.meta.url),
+          "utf8",
+        ).replaceAll("--> statement-breakpoint", ""),
+      );
+    }
   }
 
   prepare(sql: string) {
@@ -217,4 +242,195 @@ test("validateLandingPageSlug accepts URL-safe lowercase slugs only", () => {
     assert.equal(result.valid, false, slug);
     assert.equal(typeof result.error, "string", slug);
   }
+});
+
+test("a landing page can take over its product's page, and only one may", async () => {
+  const { locals } = createLocals();
+  const first = await createLandingPage(locals, {
+    slug: "promo-satu",
+    title: "Promo Satu",
+    product_id: "10001",
+  });
+  const second = await createLandingPage(locals, {
+    slug: "promo-dua",
+    title: "Promo Dua",
+    product_id: "10001",
+  });
+
+  // Nothing claims the product page until someone is told to.
+  assert.equal(await getProductPageLanding(locals, "10001"), null);
+
+  const claimed = await setLandingPageAsProductPage(locals, first.id, true);
+  assert.equal(claimed?.is_product_page, 1);
+  assert.equal((await getProductPageLanding(locals, "10001"))?.slug, "promo-satu");
+
+  // The second page points at the same product, so it cannot also hold it.
+  await assert.rejects(
+    () => setLandingPageAsProductPage(locals, second.id, true),
+    (error: unknown) => {
+      assert.ok(error instanceof LandingProductPageConflictError);
+      assert.equal(error.conflictingSlug, "promo-satu");
+      return true;
+    },
+  );
+
+  // Releasing the first frees the product page for the second.
+  await setLandingPageAsProductPage(locals, first.id, false);
+  assert.equal(await getProductPageLanding(locals, "10001"), null);
+  await setLandingPageAsProductPage(locals, second.id, true);
+  assert.equal((await getProductPageLanding(locals, "10001"))?.slug, "promo-dua");
+});
+
+test("an unpublished claim hands the product page back to the product template", async () => {
+  const { locals } = createLocals();
+  const page = await createLandingPage(locals, {
+    slug: "promo-nonaktif",
+    title: "Promo Nonaktif",
+    product_id: "10002",
+  });
+  await setLandingPageAsProductPage(locals, page.id, true);
+  assert.ok(await getProductPageLanding(locals, "10002"));
+
+  // Unpublishing must not 404 the product; it must simply stop taking it over.
+  await updateLandingPage(locals, page.id, { is_active: false });
+  assert.equal(await getProductPageLanding(locals, "10002"), null);
+});
+
+test("claiming an unknown landing page reports not-found rather than throwing", async () => {
+  const { locals } = createLocals();
+  assert.equal(await setLandingPageAsProductPage(locals, "missing", true), null);
+});
+
+test("a claimed page is excluded from the addresses a sitemap may advertise", async () => {
+  const { locals } = createLocals();
+  const standalone = await createLandingPage(locals, {
+    slug: "promo-berdiri-sendiri",
+    title: "Berdiri Sendiri",
+    product_id: "20001",
+  });
+  const claimed = await createLandingPage(locals, {
+    slug: "promo-jadi-produk",
+    title: "Jadi Produk",
+    product_id: "20002",
+  });
+  await setLandingPageAsProductPage(locals, claimed.id, true);
+
+  // This is the filter both sitemaps apply. A claimed page answers 308 on its
+  // own slug and the product URL is listed separately, so advertising it here
+  // would hand out exactly the duplicate pair the takeover prevents.
+  const advertised = (await listLandingPages(locals))
+    .filter((page) => page.is_active && !page.is_product_page)
+    .map((page) => page.slug);
+
+  assert.ok(advertised.includes(standalone.slug));
+  assert.ok(!advertised.includes(claimed.slug));
+
+  // Releasing it puts the slug back in circulation.
+  await setLandingPageAsProductPage(locals, claimed.id, false);
+  const afterRelease = (await listLandingPages(locals))
+    .filter((page) => page.is_active && !page.is_product_page)
+    .map((page) => page.slug);
+  assert.ok(afterRelease.includes(claimed.slug));
+});
+
+const nativeEntry = {
+  slug: "promo-native",
+  title: "Promo Native",
+  productSlug: "pupuk-organik",
+  description: "Dibuat di Astro.",
+};
+
+test("the register is mirrored into the table, and a claim survives a re-sync", async () => {
+  const { database, locals } = createLocals();
+  const d1 = database as unknown as D1Database;
+
+  await reconcileNativeLandingPages(d1, [nativeEntry]);
+  // Read by id, not through `listLandingPages`: that reconciles against the
+  // register the build actually ships, which would correctly delete a row this
+  // test injected by hand.
+  const native = await getLandingPageById(locals, "native:promo-native");
+  assert.ok(native, "a registered native page must be recorded in the table");
+  assert.equal(native?.source, "native");
+  assert.equal(native?.slug, "promo-native");
+
+  // A native page can hold a product page like any other.
+  await setLandingPageAsProductPage(locals, native!.id, true);
+  assert.equal((await getProductPageLanding(locals, "20001"))?.slug, "promo-native");
+
+  // Re-syncing writes identity and metadata but must not undo the operator's
+  // decision — the file does not own the claim.
+  await reconcileNativeLandingPages(d1, [{ ...nativeEntry, title: "Judul Baru" }]);
+  const stillClaimed = await getProductPageLanding(locals, "20001");
+  assert.equal(stillClaimed?.slug, "promo-native");
+  assert.equal(stillClaimed?.title, "Judul Baru");
+});
+
+test("removing the register entry removes the row, and with it any claim", async () => {
+  const { database, locals } = createLocals();
+  const d1 = database as unknown as D1Database;
+  await reconcileNativeLandingPages(d1, [nativeEntry]);
+  await setLandingPageAsProductPage(locals, "native:promo-native", true);
+  assert.ok(await getProductPageLanding(locals, "20001"));
+
+  // The file is gone, so the listing must go too; a claim held by a page that
+  // no longer exists would leave /produk/<slug> pointing at nothing.
+  await reconcileNativeLandingPages(d1, []);
+  assert.equal(await getProductPageLanding(locals, "20001"), null);
+  assert.equal(await getLandingPageById(locals, "native:promo-native"), null);
+});
+
+test("an entry naming a product this store does not carry is skipped, not faked", async () => {
+  const { database, locals } = createLocals();
+  await reconcileNativeLandingPages(database as unknown as D1Database, [
+    { ...nativeEntry, productSlug: "produk-yang-tidak-ada" },
+  ]);
+  assert.equal(await getLandingPageById(locals, "native:promo-native"), null);
+});
+
+test("the CMS refuses to edit or delete a page whose content is a file", async () => {
+  const { database, locals } = createLocals();
+  await reconcileNativeLandingPages(database as unknown as D1Database, [nativeEntry]);
+
+  await assert.rejects(
+    () => updateLandingPage(locals, "native:promo-native", { title: "Diubah" }),
+    NativeLandingReadOnlyError,
+  );
+  // Deleting the row would only make it reappear on the next reconcile.
+  await assert.rejects(
+    () => deleteLandingPage(locals, "native:promo-native"),
+    NativeLandingReadOnlyError,
+  );
+});
+
+test("the public listing links a claimed page to the product URL it answers on", async () => {
+  const { locals } = createLocals();
+  const standalone = await createLandingPage(locals, {
+    slug: "promo-sendiri",
+    title: "Promo Sendiri",
+    product_id: "20001",
+    meta_description: "Ringkasan promo sendiri",
+  });
+  const claimed = await createLandingPage(locals, {
+    slug: "promo-diklaim",
+    title: "Promo Diklaim",
+    product_id: "20002",
+  });
+  await setLandingPageAsProductPage(locals, claimed.id, true);
+  // An inactive page must not be listed publicly.
+  const draft = await createLandingPage(locals, {
+    slug: "promo-draft",
+    title: "Draft",
+    product_id: "20001",
+    is_active: false,
+  });
+
+  const listed = await listPublicLandingPages(locals);
+  const bySlug = new Map(listed.map((page) => [page.slug, page]));
+
+  assert.equal(bySlug.get(standalone.slug)?.href, "/promo-sendiri");
+  assert.equal(bySlug.get(standalone.slug)?.excerpt, "Ringkasan promo sendiri");
+  // A claimed page's own slug only redirects; the public list must send the
+  // visitor where the page actually answers.
+  assert.equal(bySlug.get(claimed.slug)?.href, "/produk/benih-jagung");
+  assert.equal(bySlug.has(draft.slug), false);
 });
