@@ -56,7 +56,14 @@
   "kv_namespaces": [
     {
       "binding": "SESSION",
-      "id": "6a63603c31ac4e328a51f323625cbfcf"
+      // `6a63603c31ac4e328a51f323625cbfcf` until 2026-08-23, which is a
+      // namespace that does not exist in this account — every deploy failed
+      // with KV 10041. It was introduced by 65d1e5c, a storefront *style*
+      // commit, so a config change rode in on a visual one and nothing caught
+      // it until the next deploy was attempted five days later. The id below
+      // is `cmsads-zvara-session`, the only zvara namespace the account has
+      // and therefore the one holding live admin sessions.
+      "id": "8070873504ee4bec8644a4bd7456b32a"
     }
   ],
   "d1_databases": [
