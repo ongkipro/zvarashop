@@ -6,10 +6,10 @@
   /* Shopify-checkout palette: white fields with a visible hairline, a light
      blue-grey for filled panels, and a single interactive blue that carries
      every selected / focused / primary control. */
-  --sf-accent: #C93A1B;
-  --sf-accent-strong: #A32E12;
-  --sf-accent-soft: #FDF0EC;
-  --sf-accent-ring: rgba(201, 58, 27, 0.28);
+  --sf-accent: #2c6ecb;
+  --sf-accent-strong: #1f5199;
+  --sf-accent-soft: #eef4fc;
+  --sf-accent-ring: rgba(44, 110, 203, 0.28);
   --sf-field: #ffffff;
   /* The resting well of an empty input. Light enough to read as "not filled in
      yet" beside the soft blue a completed one takes. */

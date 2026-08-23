@@ -10,9 +10,12 @@
 # store ends up with two copies of every component. Replacing states the same
 # outcome honestly.
 #
-# What the replace keeps: wrangler.jsonc and public/. What it re-applies:
-# this store's accent, through apply-store-palette.py at the end. Without that
-# step a sync reverts the store to the product's default blue.
+# What the replace keeps: wrangler.jsonc and public/.
+#
+# This store used to re-apply an orange accent after every sync, through
+# apply-store-palette.py. It no longer does: the storefront is deliberately the
+# product's own, so that a sync leaves nothing to diverge and the store stays
+# byte-identical to the CMS.
 #
 # What it does NOT keep, recorded so nobody looks for it: the Shopee-style
 # flash-sale banner and stock progress that used to live in
@@ -31,7 +34,7 @@ git archive --format=tar product/main | tar -x -C "$TMP"
 
 # Store-owned scripts survive the replace. Listed by name rather than diffed: a
 # store script a sync silently deletes is a sync that quietly reverts the store.
-STORE_SCRIPTS=(sync-from-product.sh apply-store-palette.py)
+STORE_SCRIPTS=(sync-from-product.sh)
 mkdir -p "$TMP/keep"
 for s in "${STORE_SCRIPTS[@]}"; do
   [ -f "scripts/$s" ] && cp "scripts/$s" "$TMP/keep/$s"
@@ -51,7 +54,6 @@ for f in $(find "$TMP" -maxdepth 1 -type f -printf '%f\n'); do
 done
 cp -r "$TMP/public/." public/ 2>/dev/null || true
 
-python3 scripts/apply-store-palette.py
 node scripts/generate-landing-safelist.mjs "$(python3 -c "
 import re,pathlib
 print(re.search(r'\"database_name\":\s*\"([^\"]+)\"', pathlib.Path('wrangler.jsonc').read_text()).group(1))")" || true
