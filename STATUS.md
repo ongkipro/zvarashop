@@ -21,21 +21,25 @@ The previous version of this file described a different repository — it opened
 | Product | AdsBookCMS (single) |
 | Repository role | **Product.** Deploys nothing; CI runs check, test and build only |
 | Install model | 1 installer = 1 Worker = 1 store (ADR-001) |
-| Version | `1.3.1` / `2026.08-landing` (`src/lib/version.ts`) |
-| Schema | 48 migration files, `0000`-`0047` |
+| Version | `1.3.1` / `2026.08-google-offline` (`src/lib/version.ts`) |
+| Schema | 49 migration files, `0000`-`0048` |
 | Bindings | `OMS_DB` (D1), `SESSION` (KV), `ASSET_BUCKET` (R2), `AI`, `ASSETS` — names fixed across installs |
 | `wrangler.jsonc` | template of placeholders; each install supplies its own resources |
 
 ### Known installs
 
-Verified live 2026-08-25: each host answers `200` on `/` and `401` on
-`/api/admin/health`. The three manual deploys reached their own Workers; the
-two install deploy workflows completed successfully; `zvara.shop` was manually
-deployed after integrating its independently pushed landing-page change.
+Verified live 2026-08-25 after the Google Ads hardening release: every host
+answers `200` on `/`, `401` on unauthenticated `/api/admin/health`, and has zero
+page-level horizontal overflow at 1280px. Zanobyshop, the configured ads
+install, exposes a valid `AW-18116744287` destination and conversion label; its
+two Consent Mode defaults precede `js`/`config`, and `gtag.js` loads from that
+validated destination.
 
-All six run the Meta signal release from product `79ff3a5`. The release changed
-no `wrangler.jsonc`, D1 migration, provider configuration, or secret. Every
-install retained its own Worker, domain, D1/KV/R2 bindings, and merchant assets.
+All six run product `7362037`. The release changed no `wrangler.jsonc`, D1
+migration, provider configuration, or secret. Every install retained its own
+Worker, domain, D1/KV/R2 bindings, and merchant assets. Zvara's independently
+tracked native landing route, stylesheet, manifest entry, and package policy
+were explicitly restored after its replace-style sync and verified live.
 
 The 2026-08-24 rollout (BUILD-LOG same date, PRs #84–#93) carried ten fixes to
 all six installs same-day, re-verified live after each deploy rather than
@@ -69,12 +73,12 @@ is generated per store from that store's own D1.
 
 | Install | Repository | Adopts the product by | State |
 | --- | --- | --- | --- |
-| `zanobyshop.shop` | `ongkipro/zanobyshop` | `scripts/sync-from-product.sh` — **no shared history**, the sync replaces the tree and re-applies a store palette | on `aafdd40` (product `79ff3a5`, synced/deployed 2026-08-25). Largest install; only configured Meta Pixel. GitHub Actions deploy run succeeded |
-| `carukesi.com` | `ongkipro/carukesi` | `git merge product/main` on branch `install/carukesi` | on `da4155f` (product `79ff3a5`, merged/deployed 2026-08-25). Manual Worker deploy succeeded |
-| `skincarebpom.shop` | `ongkipro/skincarebpom` | `git merge product/main` on branch `install/skincarebpom` | on `e97d5bb` (product `79ff3a5`, merged/deployed 2026-08-25). Manual Worker deploy succeeded |
-| `taniniaga.shop` | `ongkipro/taniniaga` | `git merge product/main` | on `333b626` (product `79ff3a5`, merged/deployed 2026-08-25). Manual Worker deploy succeeded |
-| `zvara.shop` | `ongkipro/zvarashop` | `scripts/sync-from-product.sh` — its history diverged from the product, so it syncs rather than merges | on `11c0340` (product `79ff3a5` plus an independently pushed landing page, integrated/deployed 2026-08-25). Manual Worker deploy succeeded |
-| `permatamall.shop` | `ongkipro/permatamall` | `scripts/sync-from-product.sh` — shares no history with the product (it is the codebase the product was extracted from) | on `67eb293` (product `79ff3a5`, synced/deployed 2026-08-25). GitHub Actions deploy run succeeded |
+| `zanobyshop.shop` | `ongkipro/zanobyshop` | `scripts/sync-from-product.sh` — **no shared history**, the sync replaces the tree and re-applies a store palette | on `9788620` (product `7362037`, synced/deployed 2026-08-25). GitHub Actions deploy succeeded; live Google tag destination/consent order verified |
+| `carukesi.com` | `ongkipro/carukesi` | `git merge product/main` on branch `install/carukesi` | on `bdaff97` (product `7362037`, merged/deployed 2026-08-25). Manual Worker deploy succeeded |
+| `skincarebpom.shop` | `ongkipro/skincarebpom` | `git merge product/main` on branch `install/skincarebpom` | on `bbd9891` (product `7362037`, merged/deployed 2026-08-25). Manual Worker deploy succeeded |
+| `taniniaga.shop` | `ongkipro/taniniaga` | `git merge product/main` | on `095f482` (product `7362037`, merged/deployed 2026-08-25). Manual Worker deploy succeeded |
+| `zvara.shop` | `ongkipro/zvarashop` | `scripts/sync-from-product.sh` — its history diverged from the product, so it syncs rather than merges | on `0178e58` (product `7362037`, merchant native landing preserved, deployed 2026-08-25). Manual Worker deploy succeeded |
+| `permatamall.shop` | `ongkipro/permatamall` | `scripts/sync-from-product.sh` — shares no history with the product (it is the codebase the product was extracted from) | on `976c787` (product `7362037`, synced/deployed 2026-08-25). GitHub Actions deploy succeeded |
 
 Holding a catalogue is each install's own job; nothing is bundled here any more
 (ADR-016). Older installs keep legacy `cmsads-*` names on their Cloudflare
@@ -120,6 +124,14 @@ As of the split on 2026-08-16, the fixes recorded below live in this repository.
 **Operator notifications** — a new order, a missed-order lead, and a cleared payment each record exactly one notification, enforced by a unique index on `(type, order_id)` rather than by the caller. Recording is fail-open and can never affect the commerce write that triggered it. The admin topbar carries an unread badge and a panel, newest first, with read state per operator so one person clearing the badge does not blind the team; `advertiser` is refused the endpoint entirely. A browser notification is raised while an admin page is open, at most once per event per browser. Delivery while no admin page is open needs Web Push and is specified (`REQ-153`) but unbuilt.
 
 **Headless API** — nine `/api/v1/*` routes authenticated by API key and independently origin-checked. Every operation has a minimum scope; origin denials occur before quota, minute denials do not spend daily quota, and D1 records the final handler status exactly once without request payloads. The order-status route requires the order number plus its public status token and returns no customer PII.
+
+Google Ads API offline delivery is now implemented but remains disabled until an
+install provides its own optional API/OAuth secrets, customer ID, UPLOAD_CLICKS
+conversion action, and explicit start timestamp. Hourly maintenance reconciles
+online paid and COD delivered orders into a D1 outbox, uploads only orders with
+stored Google click identity, and retries transient failures. No install has
+those credentials yet; no remote migration, historical backfill, or API upload
+has occurred.
 
 **Tracking** — Meta Pixel plus server-side CAPI through a durable outbox with retry and a shared, order-derived `event_id`. A valid Meta configuration now mints one 128-bit first-party `adsbook_meta_external_id`, retains it for 90 days, and SHA-256 hashes it independently on Pixel and CAPI; PageView through Purchase therefore keep one advertiser identity instead of changing `external_id` to phone only after checkout. `_fbp`/`_fbc` remain raw, phone/name/address matching remains normalized and hashed, and phone is only an upgrading-session fallback when the new cookie is absent. The native checkout deliberately remains email-free; CAPI accepts and hashes a real email from Headless callers or stored orders but never sends the synthetic address used only to satisfy an online payment provider. Google Tag and Ads conversion configuration retain region-scoped Consent Mode v2 and enhanced conversions (`gtag('set', 'user_data', ...)`, uppercase ISO country); click-id capture covers `gclid`/`gbraid`/`wbraid`/`fbclid`. **TikTok removed 2026-08-24** (BUILD-LOG same date, TRACKING_SPECS.md §8): no Pixel or Events API existed, so its stale click-id and traffic-source surfaces were deleted. Hosted and embedded checkout surfaces emit Purchase only after the order can be resolved and verified. Product ID remains the canonical advertising identity across API `content_id`, Meta `content_ids`, Google ecommerce `item_id`, and both catalog feeds.
 

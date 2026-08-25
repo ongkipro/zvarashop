@@ -4353,3 +4353,60 @@ Evidence: focused resolver and enhanced-conversion regressions passed 17/17;
 `npm run check` reported 390 files with zero diagnostics. This is local
 configuration evidence only. No Google Ads account setting, consent policy,
 real conversion, feed, API upload, deployment, or campaign mutation occurred.
+
+## 2026-08-25 — Google Ads hardening released to all six installs
+
+Product `7362037` carried the atomic direct-Google destination validator,
+conversion ownership documentation, and the shared native landing-page
+standard. The diff contained no D1 migration, `wrangler.jsonc`, secret, provider
+configuration, or binding change; no remote D1 migration command ran.
+
+All six install suites passed 564 tests with only their documented
+install-specific skips, zero Astro/TypeScript diagnostics, and complete
+Cloudflare builds. Carukesi, Skincare BPOM, Taniniaga, and Zvara passed Wrangler
+dry-run before manual deployment. Zanobyshop and Permatamall deployed through
+their exact-SHA GitHub Actions workflows, both successful.
+
+Zvara exposed a new preservation case: replace-style sync would have removed its
+merchant-owned native landing route, stylesheet, manifest registration, and
+package policy. Those tracked files were restored from the install revision
+before its final validation and deployment. Live
+`/pembersih-saluran-tersumbat` returned `200` with its GlowHome title and zero
+overflow after release.
+
+Post-deploy browser evidence: every storefront root returned `200`, every
+unauthenticated admin-health request returned `401`, and every page shell had
+zero horizontal overflow. Zanobyshop's live Google configuration resolved to
+valid `AW-18116744287` plus label, queued two Consent Mode defaults before
+`js`/`config`, and loaded `gtag.js` from that destination. No test Purchase,
+Google Ads account mutation, GTM mutation, feed submission, API upload, consent
+policy change, or campaign mutation occurred; conversion receipt,
+deduplication, Enhanced Conversions processing, CPA, and ROAS remain
+account-side evidence.
+
+## 2026-08-25 — Google server/offline conversion delivery completed locally
+
+Google reliability no longer stops at the browser tag. Migration `0048` adds a
+dedicated one-row-per-order conversion outbox. `google-ads-offline.ts` validates
+an all-or-nothing install configuration, refreshes OAuth, uploads click
+conversions through Google Ads API v25, reconciles eligible orders, and retries
+transient failures with bounded backoff. Scheduled maintenance runs discovery
+and delivery after schema readiness.
+
+Eligibility is intentionally stronger than browser order-created measurement:
+online orders require paid/settled/success; COD requires delivered. Merchandise
+value comes from order items, the persisted `INV-` number is `orderId`, and
+only stored `gclid`, `gbraid`, or `wbraid` attribution is accepted. A required
+`GOOGLE_ADS_OFFLINE_START_AT` prevents credential setup from backfilling
+historical orders accidentally.
+
+The server path sends no user-provided identity yet. AdsBookCMS does not persist
+Google consent with the order, so adding hashed phone/email would claim consent
+the server cannot prove. Enhanced Conversions for Leads remains an account and
+data-contract extension, not an automatic side effect of this outbox.
+
+Evidence: focused Google/offline plus migration tests passed 11/11; full suite
+569/569; Astro/TypeScript check covered 392 files with zero diagnostics; the
+Cloudflare build completed. No OAuth credential, developer token, remote
+migration, API upload, install adoption, deployment, account mutation, or
+historical backfill occurred.
