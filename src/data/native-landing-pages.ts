@@ -35,11 +35,11 @@ export type NativeLandingPage = {
 };
 
 export const nativeLandingPages: NativeLandingPage[] = [
-  // Example, and the only entry that ships with the product:
-  // {
-  //   slug: 'promo-lebaran',
-  //   title: 'Promo Lebaran',
-  //   productSlug: 'pupuk-organik-cair',
-  //   description: 'Landing khusus kampanye Lebaran.',
-  // },
+  {
+    slug: 'pembersih-saluran-tersumbat',
+    title: 'GlowHome Pembersih Saluran Tersumbat 500ml',
+    productSlug: 'pemersih-saluran-tersumbat-110ml',
+    description: 'Landing page konversi untuk campaign pembersih saluran GlowHome.',
+    isActive: true,
+  },
 ];
