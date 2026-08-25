@@ -4290,3 +4290,66 @@ event IDs. The worktree dependency symlink caused unrelated local font requests
 to return 403; no Meta-related request failed. No live Meta token, provider
 mutation, install update, deployment, commit, or push occurred, so Meta
 acceptance, EMQ, attributed-conversion lift, CPA, and ROAS remain unproven.
+
+## 2026-08-25 — Stable Meta matching released to every install without a database touch
+
+Product commit `79ff3a5` added the stable first-party Meta `external_id` path.
+The release diff was inspected before adoption: fifteen tracking and
+documentation files only; no `src/db/migrations/`, `wrangler.jsonc`, secret, or
+provider configuration change. Each install's Worker name, route, and D1 binding
+was independently fingerprinted before any update; all six were distinct.
+
+`zanobyshop`, `zvarashop`, and `permatamall` used their documented
+`sync-from-product.sh` path, which preserves `wrangler.jsonc`, secrets, and
+merchant assets. `carukesi`, `skincarebpom`, and `taniniaga` merged
+`product/main` into their install branches. An independently pushed Zvara
+landing-page commit arrived while its release was being pushed; it was merged,
+then its full validation was rerun before deployment.
+
+All six installs passed their own `npm test`, `npm run check`, and `npm run
+build` gates. The manual deployments for Carukesi, Skincare BPOM, Taniniaga,
+and Zvara each passed Wrangler dry-run then deploy. Zanobyshop and Permatamall
+deployed through their own main-branch GitHub Actions workflows; both exact-SHA
+runs completed successfully. No remote D1 migration command ran.
+
+Post-deploy Chromium smoke: every root returned `200` with zero page-level
+horizontal overflow; every unauthenticated `/api/admin/health` returned `401`.
+Zanobyshop, the only install with a Meta Pixel configured, also served
+`fbevents.js`, created a stable 32-hex `adsbook_meta_external_id`, and sent its
+SHA-256 `external_id` with a PageView whose browser event ID matched the CAPI
+event ID. Meta acceptance, Event Match Quality, conversion lift, CPA, and ROAS
+still require Events Manager observation and are not inferred from the deploy.
+
+## 2026-08-25 — Zvara's native landing-page notes reconciled into the canonical guide
+
+Zvara's independently merged landing-page work included
+`docs/NATIVE_LANDING_PAGE_SPEC.md`. It was not copied into the product: that
+would create a second owner beside `docs/LANDING-PAGES.md`, which already owns
+native and CMS landing-page construction. The product guide now carries the
+reusable constraints: route-owned asset location, the existing image policy,
+evidence-backed conversion claims, and the canonical product-driven hybrid-form
+handoff. Campaign-specific visual recipes, another merchant's brand language,
+and prompts to fabricate testimonials, proof, scarcity, guarantees, or outcomes
+were deliberately excluded.
+
+## 2026-08-25 — Google Ads destination validity and ownership made explicit
+
+Google's current tag, consent, and enhanced-conversion documentation was
+rechecked. AdsBookCMS already placed `gtag('set', 'user_data', …)` before a
+verified Purchase conversion, used `INV-` order numbers as non-empty
+`transaction_id`, and applied a region-scoped Consent Mode default. The gap was
+the environment fallback: dashboard input validation rejected malformed Google
+Ads destinations, but an invalid environment `AW-` value or label could still
+cause the storefront to render a broken direct tag.
+
+`store-ads.ts` now owns one atomic Google Ads destination validator. The same
+patterns govern D1, environment fallback, the storefront component, and the
+admin API. A partial or malformed pair becomes disabled—not a malformed
+`send_to`. The Google setup and tracking contract now also name the operational
+ownership rule: GTM may consume GA4/ecommerce events beside the direct Google
+tag, but both must not fire the same Google Ads conversion action.
+
+Evidence: focused resolver and enhanced-conversion regressions passed 17/17;
+`npm run check` reported 390 files with zero diagnostics. This is local
+configuration evidence only. No Google Ads account setting, consent policy,
+real conversion, feed, API upload, deployment, or campaign mutation occurred.
