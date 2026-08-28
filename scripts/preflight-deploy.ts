@@ -74,4 +74,7 @@ if (!result.ok) {
   process.exit(1);
 }
 
-console.log("[preflight] tree matches the branch — deploying.\n");
+// Not "tree matches the branch": on the override path it demonstrably does not,
+// and a closing line that says otherwise is the one part of this output someone
+// skims. Say only what is true in both cases.
+console.log("[preflight] proceeding to deploy.\n");
