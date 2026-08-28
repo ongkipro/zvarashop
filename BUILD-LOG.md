@@ -4685,3 +4685,43 @@ again returned `200`.
 - **Reporting break, forward-only.** Meta does not retro-match. Historical
   browser Purchases stay low-quality; treat the deploy date as a break in EMQ,
   not an improvement in performance.
+
+## 2026-08-28 — a verified deploy was reverted 36 minutes later, and nothing said so
+
+- **What happened.** The Meta tracking fix above was deployed at 14:37 WIB
+  (version `7ca4d770`) and verified live. At 15:13 a second deploy
+  (`cc42257f`) replaced it with a tree that did not contain the commit, from a
+  clone that had not pulled. Production went back to matching the browser
+  `Purchase` on `external_id` alone. Both deploys reported success, the commit
+  never left `origin/install/zvarashop`, and no check anywhere failed.
+- **Why it was invisible.** `wrangler deploy` uploads the **working tree**, not
+  the branch, and nothing in its output says so. A clone that is behind deploys
+  a revert while looking exactly like a normal release. For the tracking layer
+  the damage is silent by construction: the pixel keeps firing, no error is
+  raised, only match quality drops.
+- **Established, not assumed.** The three landing-page commits entered this
+  clone by `pull --ff-only`, never by `commit` — reflog. Only one clone on this
+  machine names the worker `zvarashop`. Of the three local sessions, one is this
+  one and the other two are `~/Projects/adsbookcms` (whose `wrangler.jsonc`
+  resolves to the `adsbookcms-your-store` placeholder, so it cannot reach this
+  install) and an unrelated project. The deploys carry the account's own
+  identity from `Source: Unknown (deployment)`, i.e. a CLI on another machine.
+- **Changed.** `src/lib/deploy-preflight.ts` decides; `scripts/preflight-deploy.ts`
+  collects the git and wrangler facts; `predeploy`/`precf:deploy` wire it to
+  `npm run deploy` and `npm run cf:deploy`. It refuses a tree that is behind its
+  upstream, a tree with uncommitted tracked changes, a detached or untracked
+  HEAD, and the `adsbookcms-your-store` placeholder. `ALLOW_STALE_DEPLOY=1`
+  overrides the first three and prints in full what it overrode; the placeholder
+  is not overridable. `RELEASE.md` §1 now names `npm run deploy` as the deploy
+  command and states that every clone must `git pull --ff-only` first.
+- **Known limit, stated rather than papered over.** wrangler has no pre-deploy
+  hook, so a bare `npx wrangler deploy` still bypasses this. The guard raises
+  the floor for the documented path; it does not make the mistake impossible.
+- **Evidence.** 603 tests (was 595), `npm run check` clean, build complete. The
+  guard was exercised against a real dirty tree (it refused, naming
+  `package.json`) and against a branch deliberately one commit behind its
+  upstream (it refused, naming the commit count and `git pull --ff-only`).
+  Production redeployed from `aba1909` as version `3320ead9` and verified: the
+  live `/thanks` init carries all eight match keys, fbevents is requested at
+  244 ms, and all three landing pages from the other clone are intact — the
+  redeploy was the union of both machines' work, not a counter-clobber.

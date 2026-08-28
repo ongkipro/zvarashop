@@ -1,6 +1,6 @@
 # Release and Deployment — AdsBookCMS
 
-> Verified against disk: 2026-08-25 @ `17f3b9a` + Google offline delivery working tree
+> Verified against disk: 2026-08-28 @ `aba1909` + deploy-preflight working tree
 
 This document is the single owner of how a change reaches production. It replaces the previous `VERSION.md` runbook and the deleted `AUTO_UPDATE_DEPLOY.md`, which between them described three mutually exclusive release models, none of which matched the one workflow that exists.
 
@@ -31,11 +31,43 @@ lines are the whole trigger block in `ci.yml`.
 
 ### Manual deploy
 
-`npx wrangler deploy` (or `npm run deploy`) deploys the working tree to whatever
-Worker `wrangler.jsonc` names. In **this** repository that file is placeholders
+**Use `npm run deploy`, not `npx wrangler deploy`.** Both upload the working
+tree to whatever Worker `wrangler.jsonc` names; only the npm script runs the
+preflight below first. In **this** repository `wrangler.jsonc` is placeholders
 (`example.com`, placeholder binding ids), so there is no production Worker to
 reach; the command belongs in an install, run against that install's own
 resources.
+
+#### The preflight, and the release it exists because of
+
+`npm run deploy` and `npm run cf:deploy` run `npm run preflight` first
+(`scripts/preflight-deploy.ts`, decided by `src/lib/deploy-preflight.ts`, which
+is unit-tested). It refuses to deploy when:
+
+| Condition | Why it is fatal |
+| --- | --- |
+| HEAD is behind its upstream | Deploying uploads this tree and **reverts** whatever those commits changed |
+| Tracked files have uncommitted changes | Production would hold code no branch records |
+| HEAD is detached, or the branch has no upstream | Staleness cannot be detected at all |
+| The worker name is `adsbookcms-your-store` | A sync overwrote the install's config (§7) — never intended |
+
+`ALLOW_STALE_DEPLOY=1` overrides the first three and prints, in full, what it
+overrode. It does **not** override the placeholder: there is no reading of that
+one in which someone meant it.
+
+This is not hypothetical. On 2026-08-28 a verified Meta tracking fix was
+deployed at 14:37 WIB and silently reverted at 15:13 by a deploy from a clone
+two commits behind. Both deploys reported success, the commit never left
+`origin/install/zvarashop`, and production simply ran older code — which for the
+tracking layer degrades conversions with no error anywhere. `wrangler deploy`
+uploads a **working tree**, not a branch, and nothing about it says so.
+
+The preflight cannot cover a bare `npx wrangler deploy` — wrangler has no
+pre-deploy hook. That is why this section names the npm script as the deploy
+command; reaching for wrangler directly is choosing to skip the check.
+
+**Every clone that deploys must `git pull --ff-only` first.** More than one
+machine deploys this install.
 
 ---
 
