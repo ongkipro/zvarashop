@@ -70,6 +70,29 @@ export async function sha256Hex(value: string): Promise<string> {
 }
 
 /**
+ * `buyerEmail()` in `autolaris-payment.ts` mints `<phone digits>@<store host>`
+ * so an online payment provider has an address to accept. It is stored on the
+ * order, and `orders.customer_email` is read straight into the CAPI leg's `em`.
+ *
+ * It must never become a match key. Nobody owns that address, so it identifies
+ * no one — and a supplied key that matches nobody is worse than an absent one,
+ * because Meta scores match quality on the keys it was given. Meta's own
+ * customer-information guidance is to omit a field rather than invent it.
+ *
+ * Detected by comparing the local part to the order's phone through the same
+ * normaliser both use, so `08…` stored against a `628…` local part still reads
+ * as synthetic. A real address whose local part happens to be digits is only
+ * dropped if those digits are this buyer's own number.
+ */
+export function isSyntheticBuyerEmail(email?: string, phone?: string): boolean {
+  const local = String(email ?? "").trim().toLowerCase().split("@")[0];
+  if (!local || !/^\d+$/.test(local)) return false;
+  const normalizedLocal = toE164Digits(local);
+  const normalizedPhone = toE164Digits(phone);
+  return Boolean(normalizedLocal && normalizedPhone && normalizedLocal === normalizedPhone);
+}
+
+/**
  * There is no shared "advanced matching builder" any more, and there must not be
  * one: fbevents applies `fbq('init', pixelId, advancedMatching)` exactly once
  * per page, so anything that hashes a buyer *after* the Pixel bootstrap is work

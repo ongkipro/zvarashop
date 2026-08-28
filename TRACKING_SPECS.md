@@ -244,6 +244,33 @@ it required. AdsBookCMS takes the privacy-safe intersection and always hashes it
 on both Pixel and CAPI legs. A dashboard label that says “no hash required” is
 not permission to expose the raw identifier.
 
+### The advanced-matching key set, against Meta's own list
+
+Verified 2026-08-28 against Meta's Pixel advanced-matching reference. The valid
+manual keys are `em`, `fn`, `ln`, `ph`, `external_id`, `ge`, `db`, `ct`, `st`,
+`zp`, `country`. The confirmation page sends **eight** of them —
+`ph fn ln ct st zp country external_id` — which is every key this checkout
+actually knows. The three omissions are deliberate:
+
+- `ge` and `db` are never collected.
+- `em` has no real value to send. The native checkout is email-free by design;
+  the only address an order can carry is the `<phone digits>@<store host>` that
+  `buyerEmail()` mints so an online payment provider has something to accept.
+  That address identifies nobody, and Meta scores match quality on the keys it
+  is *given*, so supplying it is worse than omitting it. `isSyntheticBuyerEmail`
+  in `src/lib/meta-identity.ts` drops it at the CAPI boundary — until 2026-08-28
+  it was hashed into `em` for every paid online order.
+
+Meta's reference also settles two things this implementation depends on:
+pre-hashed values are accepted (`"accept[s] both lowercase unhashed and
+normalized SHA-256 hashed"`), so the SHA-256 the trackers compute is passed
+through rather than hashed again; and `client_user_agent` is **not** on the list,
+which is why it no longer appears in the Pixel payload.
+
+The docs are silent on what a *second* `fbq('init')` does. That behaviour was
+established against the live library instead (§4a) — which is the stronger
+evidence for this particular question, and the only kind available.
+
 ### Never hash Meta browser identifiers
 
 Preserve `_fbp` and `_fbc` exactly as issued when present. They are attribution

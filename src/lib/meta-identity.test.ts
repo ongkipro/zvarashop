@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
+  isSyntheticBuyerEmail,
   metaNameParts,
   normalizeMetaText,
   sha256Hex,
@@ -139,6 +140,37 @@ test("the Pixel bootstrap mints and hashes one stable first-party external ID", 
   assert.match(String(initData?.external_id ?? ""), /^[a-f0-9]{64}$/);
   assert.equal(initData?.external_id, await sha256Hex(externalId));
   assert.equal(pageViewOptions?.eventID, windowStub.__META_PAGEVIEW_EVENT_ID__);
+});
+
+test("the payment provider's minted address never becomes a match key", () => {
+  // `buyerEmail()` mints `<phone digits>@<store host>` so an online payment
+  // provider has an address to accept, and it is stored on the order. It was
+  // being read straight into the CAPI leg's `em`: two of this install's orders
+  // already carry one. Nobody owns that address, and Meta scores match quality
+  // on the keys it is given, so supplying it is worse than omitting it.
+  assert.equal(isSyntheticBuyerEmail("6281234567890@zvara.shop", "6281234567890"), true);
+  // Stored in either form, through the same normaliser both legs use.
+  assert.equal(isSyntheticBuyerEmail("081234567890@zvara.shop", "6281234567890"), true);
+  assert.equal(isSyntheticBuyerEmail("6281234567890@zvara.shop", "081234567890"), true);
+
+  // A real address survives, including one whose local part is digits but is
+  // not this buyer's number — dropping that would be inventing a rule.
+  assert.equal(isSyntheticBuyerEmail("budi.santoso@gmail.com", "6281234567890"), false);
+  assert.equal(isSyntheticBuyerEmail("123456789@gmail.com", "6281234567890"), false);
+  assert.equal(isSyntheticBuyerEmail(undefined, "6281234567890"), false);
+  assert.equal(isSyntheticBuyerEmail("6281234567890@zvara.shop", undefined), false);
+});
+
+test("the CAPI route sends the resolved email through that guard, not around it", () => {
+  // One guard at the boundary where both halves of the pair are known. Placing
+  // it on the resolved value also covers the headless route's payload.email.
+  const route = readFileSync("src/pages/api/meta-event.ts", "utf8");
+  assert.match(route, /isSyntheticBuyerEmail\(resolvedEmail,\s*resolvedPhone\)/);
+  assert.doesNotMatch(
+    route,
+    /email:\s*purchaseOrder\?\.customer_email\s*\|\|\s*payload\.email/,
+    "the raw order email must not reach userData unguarded",
+  );
 });
 
 test("MetaPixelBase is the only file allowed to call fbq('init')", () => {

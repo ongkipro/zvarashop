@@ -4,6 +4,7 @@ import { getStoreAdsConfig } from '../../lib/store-ads';
 import { validateMetaEventPayload } from '../../lib/meta-event-contract';
 import { getRuntimeEnv } from '../../lib/env';
 import { toE164Digits } from '../../lib/meta-capi';
+import { isSyntheticBuyerEmail } from '../../lib/meta-identity';
 import { getClientIp } from '../../lib/rate-limit';
 import { readMetaBrowserIds } from '../../lib/click-ids';
 
@@ -148,14 +149,24 @@ export const POST: APIRoute = async ({ request, locals }) => {
     // the dedicated external ID cookie wins over phone so every funnel event for
     // one visitor keeps the same advertiser-issued identity.
     const browserIds = readMetaBrowserIds(request);
+    // One guard, at the boundary where both halves of the pair are known. An
+    // online-payment order carries `<phone digits>@<store host>`, minted only so
+    // a payment provider had an address to accept, and it was being hashed into
+    // `em` for every paid Purchase — a match key nobody owns, scored against
+    // this store's match quality rather than ignored. Guarding the resolved
+    // value covers the headless route's `payload.email` on the same line.
+    const resolvedPhone = purchaseOrder?.customer_phone || payload.phone;
+    const resolvedEmail = purchaseOrder?.customer_email || payload.email;
     const event = {
       eventName: payload.eventName,
       eventId,
       eventSourceUrl: payload.eventSourceUrl,
       userData: {
-        phone: purchaseOrder?.customer_phone || payload.phone,
+        phone: resolvedPhone,
         name: purchaseOrder?.customer_name || payload.name,
-        email: purchaseOrder?.customer_email || payload.email,
+        email: isSyntheticBuyerEmail(resolvedEmail, resolvedPhone)
+          ? undefined
+          : resolvedEmail,
         city: purchaseOrder?.city || payload.city,
         province: purchaseOrder?.province || payload.province,
         postalCode: purchaseOrder?.postal_code || payload.postalCode,

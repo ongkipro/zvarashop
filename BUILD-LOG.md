@@ -4725,3 +4725,44 @@ again returned `200`.
   live `/thanks` init carries all eight match keys, fbevents is requested at
   244 ms, and all three landing pages from the other clone are intact — the
   redeploy was the union of both machines' work, not a counter-clobber.
+
+## 2026-08-28 — checking the implementation against Meta's own reference
+
+Prompted by "is this precise against the Meta docs?" — a fair challenge, since
+most of the day's evidence was empirical rather than documentary.
+
+- **Confirmed by the reference, not by observation.** The valid manual
+  advanced-matching keys are `em fn ln ph external_id ge db ct st zp country`;
+  the confirmation page sends eight of the eleven, which is every key this
+  checkout knows. `client_user_agent` is not on the list, so its removal is
+  documented rather than merely observed. Deduplication needs `eventID` ===
+  `event_id` **and** the pixel's `event` === the API's `event_name`, inside a
+  48-hour window — both legs send `Purchase` with the `INV-` order number, so
+  the pair holds. `ct`/`st`/`zp`/`country` normalisation matches what
+  `normalizeMetaText` already does, including the non-US `st` rule.
+- **The dangerous assumption, now closed.** The whole fix hands the Pixel
+  SHA-256 values. If the Pixel hashed them again, all eight keys would match
+  nobody — a worse outcome than the bug being fixed, and completely silent.
+  Meta's reference states it accepts pre-hashed values, and the live library
+  agrees: every one of the seven hashed keys is stored byte-identical to the
+  hash the tracker computed, 64 characters, with a 64-character
+  `censoredUserDataFormat` mask — not the 2-to-14 character masks the plaintext
+  would have produced. No double hashing.
+- **What the docs do not answer.** They say nothing about a second
+  `fbq('init')`. That behaviour stays established against the live library
+  (§4a); for this question there is no documentary evidence to be had.
+- **Found by the same check.** Reading Meta's key list surfaced `em`, which
+  nothing had audited: `orders.customer_email` was read straight into the CAPI
+  leg's `em`, and for an online payment that column holds the
+  `<phone digits>@<store host>` address `buyerEmail()` mints for the provider.
+  Two orders in this install already carry one. Nobody owns that address, and
+  Meta scores match quality on keys it is given, so it was a fabricated
+  identity waiting for the first paid QRIS order — no Purchase has carried one
+  yet only because both such orders are `failed` and `pending`.
+  `isSyntheticBuyerEmail` now drops it at the CAPI boundary, one guard on the
+  resolved value so the headless route's `payload.email` is covered too. A real
+  address survives, including one whose local part is digits but is not this
+  buyer's number.
+- **Evidence.** 605 tests (was 603), `npm run check` clean, build complete.
+  Bypassing the guard fails the route test; the browser-side claim was measured
+  against the live `fbevents.js`, not asserted.
