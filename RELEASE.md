@@ -139,17 +139,29 @@ Two registries, currently in step:
 
 | Source | Field | Value |
 | --- | --- | --- |
-| `src/lib/version.ts` | `version` | `1.3.1` |
-| `src/lib/version.ts` | `releaseTag` | `2026.08-google-offline` |
-| `src/lib/version.ts` | `schemaVersion` | `49` |
-| `package.json` | `version` | `1.3.1` |
+| `src/lib/version.ts` | `version` | `1.4.1` |
+| `src/lib/version.ts` | `releaseTag` | `2026.08-meta-purchase-matching` |
+| `src/lib/version.ts` | `schemaVersion` | `51` |
+| `package.json` | `version` | `1.4.1` |
 
 `src/lib/version.ts` is what the admin sidebar renders and is the value users
 see. Keep it and `package.json` in step when bumping.
 
-`schemaVersion` counts migration files, and the tree holds 49 (`0000`–`0048`).
+**`1.4.1` is this install, not a product release.** It is AdsBookCMS `1.4.0`
+plus zvarashop's own tracking and release work (BUILD-LOG 2026-08-28). The next
+`chore: adopt AdsBookCMS …` overwrites these fields with the product's, which is
+correct and expected — the install's own number exists so the operator's sidebar
+does not claim stock `1.4.0` while running four commits that are not in it.
+
+`schemaVersion` counts migration files, and the tree holds 51 (`0000`–`0050`).
 `schema-version.test.ts` fails CI on drift; middleware enforces the same chain at
 runtime; `operational-health.ts` and the dashboard expose applied version.
+
+> Until 2026-08-28 this table read `1.3.1` / `2026.08-google-offline` / `49`
+> while the tree held `1.4.0` / `2026.08-stock-unlimited` / `51`, and the
+> migration sentence said `0000`–`0048` against 51 files on disk. A version
+> registry that is itself out of date is the one document nobody can use to tell
+> whether anything else is.
 
 > This section previously declared the two drifted (`34` against `36`) and said
 > `schemaVersion` was "read by nothing in `src/`". Both were false, and acting on
@@ -160,7 +172,7 @@ runtime; `operational-health.ts` and the dashboard expose applied version.
 1. Update `src/lib/version.ts` (`version`, `releaseTag`, `lastUpdated`, and `schemaVersion` if migrations were added).
 2. Record the change in `BUILD-LOG.md` as a new entry.
 3. Update `STATUS.md` if the system state changed.
-4. Merge to `main`. In this repository that ships nothing; an install picks the change up through §7.
+4. Merge to the install branch. **In zvarashop that reaches live traffic** — see §1 for the deploy path and its preflight. In the product repository the same merge ships nothing; an install picks the change up through §7.
 
 ---
 

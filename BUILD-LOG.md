@@ -4766,3 +4766,27 @@ most of the day's evidence was empirical rather than documentary.
 - **Evidence.** 605 tests (was 603), `npm run check` clean, build complete.
   Bypassing the guard fails the route test; the browser-side claim was measured
   against the live `fbevents.js`, not asserted.
+
+## 2026-08-28 — 1.4.1, and a version registry that had stopped being one
+
+- **Bumped.** `src/lib/version.ts` and `package.json` to `1.4.1`, release tag
+  `2026.08-meta-purchase-matching`. `schemaVersion` stays `51`: this release adds
+  no migration.
+- **What the number means.** `1.4.1` is *this install*, not a product release —
+  AdsBookCMS `1.4.0` plus zvarashop's own tracking and release work from today.
+  The admin sidebar renders this value, so leaving it at `1.4.0` would have told
+  the operator they were running stock while four commits that are not in stock
+  were live. The next `chore: adopt AdsBookCMS …` overwrites these fields with
+  the product's, which is correct and expected.
+- **Corrected.** `RELEASE.md` §4 had read `1.3.1` / `2026.08-google-offline` /
+  `49` while the tree held `1.4.0` / `2026.08-stock-unlimited` / `51`, and its
+  migration sentence said `0000`–`0048` against 51 files on disk — a whole
+  product release stale. A version registry that is itself out of date is the one
+  document nobody can use to check whether anything else is. Its "bumping a
+  release" step 4 also still said merging ships nothing, which is true in the
+  product repository and false here.
+- **Refreshed.** `STATUS.md`'s version row and its executed baseline, which still
+  cited 2026-08-27's 592 tests over 399 files.
+- **Evidence.** 605 tests (604 pass, 1 skipped), `npm run check` 420 files clean.
+  `schema-version.test.ts` compares `CMS_VERSION.schemaVersion` against the
+  migration files on disk, so the unchanged `51` is asserted rather than assumed.

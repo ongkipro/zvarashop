@@ -1,13 +1,15 @@
 # STATUS — AdsBookCMS
 
-> Verified against disk: 2026-08-27 @ `679f577` + stock-unlimited working tree
+> Verified against disk: 2026-08-28 @ `25000de` + version-registry working tree
 
-> Last executed baseline: 2026-08-27 @ `1acbd7e` + review-hardening working tree.
-> `npm run check` 399 files / 0 errors / 0 warnings / 0 hints · `npm test`
-> 592 / 592 · `npm run build` Cloudflare server bundle complete · local
-> `wrangler dev` run: fresh install applied `0049`–`0050` (51 claims),
-> login/logout/session revocation, local district search, the 60/min and
-> 5/10min public limits, and a recorded AutoLaris callback all observed.
+> Last executed baseline: 2026-08-28 @ `25000de`.
+> `npm run check` 420 files / 0 errors / 0 warnings / 0 hints · `npm test`
+> 605 (604 pass, 1 skipped) · `npm run build` Cloudflare server bundle complete ·
+> local `astro dev` against a seeded store: `/thanks` rendered its own order and
+> the Meta Pixel's single `init` carried all eight advanced-matching keys, with
+> the browser `Purchase` and the CAPI leg quoting the same `INV-` event id ·
+> production `zvara.shop` verified after deploy: eight keys live, `fbevents.js`
+> requested at 244 ms, eight routes answering `200`.
 >
 > `main` was re-founded as AdsBookCMS and its history rewritten (ADR-012), so
 > commit ranges older documents cite may not exist on this branch; the
@@ -26,7 +28,7 @@ The previous version of this file described a different repository — it opened
 | Product | AdsBookCMS (single) |
 | Repository role | **Product.** Deploys nothing; CI runs check, test and build only |
 | Install model | 1 installer = 1 Worker = 1 store (ADR-001) |
-| Version | `1.4.0` / `2026.08-stock-unlimited` (`src/lib/version.ts`) |
+| Version | `1.4.1` / `2026.08-meta-purchase-matching` (`src/lib/version.ts`) — product `1.4.0` plus this install's own tracking and release work; see `RELEASE.md` §4 |
 | Schema | 51 migration files, `0000`-`0050` |
 | Bindings | `OMS_DB` (D1), `SESSION` (KV, caches only since ADR-021), `ASSET_BUCKET` (R2), `AI`, `ASSETS` — names fixed across installs |
 | `wrangler.jsonc` | template of placeholders; each install supplies its own resources |
