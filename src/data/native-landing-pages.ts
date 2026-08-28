@@ -63,4 +63,11 @@ export const nativeLandingPages: NativeLandingPage[] = [
     description: 'Landing page konversi untuk Lampu Dinding Solar Outdoor Pagar & Halaman Rumah.',
     isActive: true,
   },
+  {
+    slug: 'holder-hp',
+    title: 'Holder HP Spion Motor Besi Tangguh (Kokoh Anti Getar & Stabil)',
+    productSlug: 'holder-hp',
+    description: 'Landing page konversi untuk Holder HP Spion Motor Besi All-Motorcycle.',
+    isActive: true,
+  },
 ];
