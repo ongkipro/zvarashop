@@ -42,4 +42,11 @@ export const nativeLandingPages: NativeLandingPage[] = [
     description: 'Landing page konversi untuk campaign pembersih saluran GlowHome.',
     isActive: true,
   },
+  {
+    slug: 'tas-selempang-wanita-modern',
+    title: 'Tas Selempang Wanita Modern (Chic Korean Style)',
+    productSlug: 'tas-selempang-wanita-modern',
+    description: 'Landing page konversi untuk campaign Tas Selempang Wanita Modern kulit PU premium.',
+    isActive: true,
+  },
 ];

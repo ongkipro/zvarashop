@@ -1,0 +1,309 @@
+---
+/*
+ * Native Astro landing page — Tas Selempang Wanita Modern.
+ *
+ * Clean, High-Converting Direct-Response Funnel.
+ * 100% Precision Visuals matching catalog product & variants.
+ * Form: Native GeoIpResolvedForm with hybrid mode.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import MetaLandingTracker from '../components/storefront/tracking/MetaLandingTracker.astro';
+import GeoIpResolvedForm from '../components/storefront/forms/GeoIpResolvedForm.astro';
+import Icon from '../components/storefront/shared/Icon.astro';
+import SocialProofToast from '../components/storefront/shared/SocialProofToast.astro';
+import { getStorefrontProduct } from '../lib/catalog';
+import { nativeLandingCanonicalPath } from '../lib/landing-pages';
+import { defaultCatalogContentId } from '../lib/catalog-feed';
+import { resolveFormModeContext } from '../lib/form-mode';
+import '../styles/form-hybrid.css';
+import '../styles/landing-pages/landing.css';
+
+export const prerender = false;
+
+const SLUG = 'tas-selempang-wanita-modern';
+const PRODUCT_SLUG = 'tas-selempang-wanita-modern';
+
+const product = await getStorefrontProduct(Astro.locals, PRODUCT_SLUG);
+if (!product) return Astro.rewrite('/404');
+
+const formContext = await resolveFormModeContext(Astro.request);
+
+const canonical = `${Astro.locals.tenant.siteUrl}${await nativeLandingCanonicalPath(Astro.locals, SLUG)}`;
+const seoTitle = 'Tas Slempang Serbaguna — Simple, Elegan & Praktis';
+const seoDescription =
+  'Tas slempang wanita serbaguna, ringan dibawa dan tetap stylish. Bahan berkualitas, resleting halus, kompak tapi lega. Bayar di Tempat (COD).';
+
+const cheapest = [...product.variants].sort((a, b) => a.price - b.price)[0] ?? null;
+const price = cheapest?.price ?? product.price;
+---
+
+<BaseLayout
+  title={seoTitle}
+  description={seoDescription}
+  image="/images/landing/tas-selempang/banner-hero-model.webp"
+  preloadImages="/images/landing/tas-selempang/banner-hero-model.webp"
+  canonical={canonical}
+  hideHeader={true}
+  hideFooter={true}
+>
+  <main class="mx-auto min-h-screen w-full max-w-[480px] bg-white text-stone-950 pb-20 font-sans antialiased">
+    <MetaLandingTracker
+      slug={SLUG}
+      contentId={defaultCatalogContentId(product)}
+      contentName={product.contentName}
+      price={price}
+    />
+
+    <!-- ═══ 1. TOP ANNOUNCEMENT BAR ═══ -->
+    <div class="bg-neutral-950 px-4 py-2.5 text-center text-white">
+      <p class="text-[12px] font-medium tracking-wide">
+        🔥 <span class="font-bold text-amber-300">PROMO SPESIAL HARI INI</span> — Diskon Terbatas &amp; Bisa <span class="font-bold underline text-white">COD (Bayar di Tempat)</span>
+      </p>
+    </div>
+
+    <!-- ═══ 2. HERO INFOGRAPHIC BANNER ═══ -->
+    <section id="landing-hero" data-hero-section class="bg-white text-left">
+      <div class="relative overflow-hidden bg-stone-100">
+        <img
+          src="/images/landing/tas-selempang/banner-hero-model.webp"
+          alt="Tas Kecil Gaya Elegannya Besar - Simple Classy dan Praktis"
+          class="w-full h-auto object-cover"
+          width="900"
+          height="1125"
+          fetchpriority="high"
+          loading="eager"
+          decoding="async"
+        />
+      </div>
+
+      <!-- Quick Trust Strip -->
+      <div class="grid grid-cols-3 divide-x divide-stone-200 border-b border-stone-200 bg-white py-3 px-2 text-center shadow-sm">
+        <div class="px-1">
+          <span class="block text-[14px]">🚚</span>
+          <span class="text-[11px] font-bold text-neutral-950">Bisa COD</span>
+          <p class="text-[10px] text-stone-500">Bayar ke Kurir</p>
+        </div>
+        <div class="px-1">
+          <span class="block text-[14px]">⭐</span>
+          <span class="text-[11px] font-bold text-neutral-950">Rating 4.9/5</span>
+          <p class="text-[10px] text-stone-500">1.400+ Terjual</p>
+        </div>
+        <div class="px-1">
+          <span class="block text-[14px]">✨</span>
+          <span class="text-[11px] font-bold text-neutral-950">Quality Check</span>
+          <p class="text-[10px] text-stone-500">Dicek Sebelum Kirim</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 3. FITUR & KEUNGGULAN UTAMA (INFOGRAPHIC) ═══ -->
+    <section class="bg-white px-4 pt-7 pb-2">
+      <div class="overflow-hidden rounded-2xl border border-stone-200 shadow-sm">
+        <img
+          src="/images/landing/tas-selempang/banner-features-detail.webp"
+          alt="Tas Slempang Serbaguna - Ringan & Nyaman, Bahan Berkualitas, Design Minimalis, Resleting Halus, Kompak Tapi Lega"
+          class="w-full h-auto block"
+          width="900"
+          height="900"
+          loading="lazy"
+          decoding="async"
+        />
+      </div>
+    </section>
+
+    <!-- ═══ 4. PILIHAN 3 WARNA FASHION (INFOGRAPHIC) ═══ -->
+    <section class="bg-white px-4 pt-4 pb-6">
+      <div class="overflow-hidden rounded-2xl border border-stone-200 shadow-sm">
+        <img
+          src="/images/landing/tas-selempang/banner-colors-showcase.webp"
+          alt="Pilihan Warna Tas Fashion: Hitam Elegan, Coksu Manis, dan Hijau Army Unik"
+          class="w-full h-auto block"
+          width="900"
+          height="1125"
+          loading="lazy"
+          decoding="async"
+        />
+      </div>
+    </section>
+
+    <!-- ═══ 5. TESTIMONIALS (ULASAN JUJUR PEMBELI) ═══ -->
+    <section class="bg-[#FAF9F6] px-5 py-8 border-t border-stone-200">
+      <div class="mb-6 text-center">
+        <span class="inline-block rounded-full bg-amber-100 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-900 mb-1">
+          Testimoni Pembeli
+        </span>
+        <h2 class="text-[22px] font-bold text-neutral-950">
+          Apa Kata Pelanggan Zvara?
+        </h2>
+        <p class="mt-1 text-[13px] text-stone-600">
+          Ulasan nyata dari pembeli yang sudah menggunakan Tas Slempang Serbaguna:
+        </p>
+      </div>
+
+      <div class="space-y-4">
+        <!-- Review 1 -->
+        <div class="rounded-2xl border border-stone-200 bg-white p-4.5 space-y-2.5 shadow-sm">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-[14.5px] font-bold text-neutral-950">Ibu Rina Mariana</h3>
+              <p class="text-[11.5px] text-stone-500">Jakarta Selatan • Varian Hitam</p>
+            </div>
+            <div class="text-[13px] text-amber-500">★★★★★</div>
+          </div>
+          <p class="text-[13.5px] leading-relaxed text-stone-700">
+            “Bagus banget tasnya! <strong class="text-neutral-950 font-semibold">Bahannya tebal, enteng di pundak, dan logo bunganya kelihatan mewah.</strong> Muat HP, dompet lipat, dan kosmetik. Dipake ngantor kelihatan rapi dan elegan.”
+          </p>
+        </div>
+
+        <!-- Review 2 -->
+        <div class="rounded-2xl border border-stone-200 bg-white p-4.5 space-y-2.5 shadow-sm">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-[14.5px] font-bold text-neutral-950">Kak Dinda Lestari</h3>
+              <p class="text-[11.5px] text-stone-500">Surabaya • Varian Coksu</p>
+            </div>
+            <div class="text-[13px] text-amber-500">★★★★★</div>
+          </div>
+          <p class="text-[13.5px] leading-relaxed text-stone-700">
+            “Warna Coksunya manis banget ala eonni Korea! <strong class="text-neutral-950 font-semibold">Talinya lebar dan empuk jadi pundak gak gampang pegal walau dipakai seharian jalan.</strong> Resletingnya lancar gak seret sama sekali.”
+          </p>
+        </div>
+
+        <!-- Review 3 -->
+        <div class="rounded-2xl border border-stone-200 bg-white p-4.5 space-y-2.5 shadow-sm">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-[14.5px] font-bold text-neutral-950">Kak Nurul Hidayah</h3>
+              <p class="text-[11.5px] text-stone-500">Bandung • Varian Hijau Army</p>
+            </div>
+            <div class="text-[13px] text-amber-500">★★★★★</div>
+          </div>
+          <p class="text-[13.5px] leading-relaxed text-stone-700">
+            “Warna Hijau Armynya unik dan cakep pol. <strong class="text-neutral-950 font-semibold">Pengiriman cepat dan bisa bayar COD pas kurir datang.</strong> Jahitannya kuat dan rapi, recommended banget belanja di sini!”
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 6. JAMINAN BELANJA AMAN & NYAMAN ═══ -->
+    <section class="bg-neutral-950 px-5 py-8 text-center text-white">
+      <div class="mx-auto mb-3 flex h-12 w-12 items-center justify-center text-amber-400">
+        <Icon name="shield-check" class="h-10 w-10" aria-hidden="true" />
+      </div>
+      <h2 class="text-[22px] font-bold tracking-tight text-white">BELANJA AMAN &amp; TERPERCAYA</h2>
+      <p class="mt-1 text-[13.5px] text-stone-300">
+        Pengalaman belanja online yang nyaman dan terjamin:
+      </p>
+
+      <div class="mt-5 grid grid-cols-3 gap-2 text-left">
+        <div class="rounded-xl bg-white/10 p-3 text-center border border-white/10">
+          <span class="text-[18px] block mb-1">📦</span>
+          <p class="text-[11px] font-bold text-white">100% Real Picture</p>
+          <p class="text-[9.5px] text-stone-300 mt-0.5">Sesuai foto</p>
+        </div>
+        <div class="rounded-xl bg-white/10 p-3 text-center border border-white/10">
+          <span class="text-[18px] block mb-1">💵</span>
+          <p class="text-[11px] font-bold text-white">Bisa COD</p>
+          <p class="text-[9.5px] text-stone-300 mt-0.5">Bayar ke kurir</p>
+        </div>
+        <div class="rounded-xl bg-white/10 p-3 text-center border border-white/10">
+          <span class="text-[18px] block mb-1">🛡️</span>
+          <p class="text-[11px] font-bold text-white">Packing Aman</p>
+          <p class="text-[9.5px] text-stone-300 mt-0.5">Dicek &amp; rapi</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 7. FORMULIR PEMESANAN RESMI (CHECKOUT) ═══ -->
+    <section id="form-pemesanan" class="scroll-mt-6 bg-white px-3 pt-6 pb-2">
+      <div class="px-3 pb-3 text-center">
+        <span class="inline-block rounded-full bg-amber-100 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-900 mb-1">
+          Formulir Pemesanan
+        </span>
+        <h2 class="text-[22px] font-bold text-neutral-950">
+          Isi Data Pengiriman Anda
+        </h2>
+        <p class="mt-1 text-[13px] text-stone-600">
+          Pilih varian warna di bawah dan isi alamat tujuan. Bayar saat barang sampai (COD).
+        </p>
+      </div>
+
+      <GeoIpResolvedForm
+        mode={formContext.mode}
+        province={formContext.province}
+        productSlug={product.slug}
+        embedded={true}
+      />
+    </section>
+
+    <!-- ═══ 8. STICKY CTA & SOCIAL PROOF ═══ -->
+    <div
+      id="sticky-purchase-bar"
+      class="fixed inset-x-0 bottom-0 z-40 mx-auto flex w-full max-w-[480px] items-center justify-between border-t border-stone-200 bg-white/95 px-5 py-3 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] backdrop-blur-md transition-all duration-300"
+      style="transform: translateY(100%); opacity: 0; pointer-events: none;"
+    >
+      <div>
+        <p class="text-[9px] font-semibold uppercase tracking-[0.12em] text-stone-500">Harga Promo</p>
+        <p class="text-base font-bold text-neutral-950">Rp{Math.round(price).toLocaleString('id-ID')}</p>
+      </div>
+      <a
+        href="#form-pemesanan"
+        class="inline-flex min-h-11 items-center justify-center rounded-full bg-neutral-950 px-6 text-[11px] font-bold uppercase tracking-[0.1em] text-white shadow-md transition-colors hover:bg-neutral-800 active:scale-[0.98]"
+      >
+        Pesan Sekarang (COD)
+      </a>
+    </div>
+
+    <SocialProofToast
+      productLabel="Tas Slempang Serbaguna"
+      productImage="/images/landing/tas-selempang/avatar-1.webp"
+      heroSelector=""
+      formSelector="#form-pemesanan"
+    />
+  </main>
+
+  <script slot="head" is:inline>
+    function initStickyBarObserver() {
+      const stickyBar = document.getElementById('sticky-purchase-bar');
+      const orderForm = document.getElementById('form-pemesanan');
+      const hero = document.getElementById('landing-hero');
+      if (!stickyBar) return;
+
+      let heroVisible = true;
+      let formVisible = false;
+
+      const applyStickyVisibility = () => {
+        if (heroVisible || formVisible) {
+          stickyBar.style.transform = 'translateY(100%)';
+          stickyBar.style.opacity = '0';
+          stickyBar.style.pointerEvents = 'none';
+        } else {
+          stickyBar.style.transform = 'translateY(0)';
+          stickyBar.style.opacity = '1';
+          stickyBar.style.pointerEvents = 'auto';
+        }
+      };
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.target === hero) heroVisible = entry.isIntersecting;
+            if (entry.target === orderForm) formVisible = entry.isIntersecting;
+          });
+          applyStickyVisibility();
+        },
+        { threshold: 0.05, rootMargin: '0px 0px -40px 0px' }
+      );
+
+      if (hero) observer.observe(hero);
+      if (orderForm) observer.observe(orderForm);
+      applyStickyVisibility();
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initStickyBarObserver);
+    } else {
+      initStickyBarObserver();
+    }
+  </script>
+</BaseLayout>

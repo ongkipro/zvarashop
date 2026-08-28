@@ -58,6 +58,7 @@ const {
     >
       <img
         src={productImage}
+        data-buyer-avatar
         alt=""
         width="40"
         height="40"
@@ -126,27 +127,29 @@ const {
     const hero = findBlocker(toast.dataset.heroSelector);
     const formSection = findBlocker(toast.dataset.formSelector);
 
+    const avatarEl = toast.querySelector<HTMLImageElement>('[data-buyer-avatar]');
+
     const buyers = [
-      { name: 'Ibu Ratna', location: 'Bekasi, Jawa Barat', time: 'Baru saja' },
-      { name: 'Bapak Hendra', location: 'Medan, Sumut', time: '2 mnt lalu' },
-      { name: 'Ibu Sari', location: 'Tangerang, Banten', time: '1 mnt lalu' },
-      { name: 'Bapak Yusuf', location: 'Makassar, Sulsel', time: '5 mnt lalu' },
-      { name: 'Ibu Dewi', location: 'Semarang, Jateng', time: '3 mnt lalu' },
-      { name: 'Bapak Rizki', location: 'Palembang, Sumsel', time: '4 mnt lalu' },
-      { name: 'Ibu Fitri', location: 'Depok, Jawa Barat', time: '7 mnt lalu' },
-      { name: 'Bapak Agus', location: 'Denpasar, Bali', time: 'Baru saja' },
-      { name: 'Ibu Lestari', location: 'Surabaya, Jatim', time: '6 mnt lalu' },
-      { name: 'Bapak Dimas', location: 'Bogor, Jawa Barat', time: '2 mnt lalu' },
-      { name: 'Ibu Yanti', location: 'Pekanbaru, Riau', time: '8 mnt lalu' },
-      { name: 'Bapak Fauzi', location: 'Banjarmasin, Kalsel', time: '3 mnt lalu' },
-      { name: 'Ibu Nita', location: 'Bandung, Jawa Barat', time: '5 mnt lalu' },
-      { name: 'Bapak Eko', location: 'Balikpapan, Kaltim', time: '1 mnt lalu' },
-      { name: 'Ibu Rahma', location: 'Malang, Jawa Timur', time: '9 mnt lalu' },
-      { name: 'Bapak Irfan', location: 'Padang, Sumbar', time: '4 mnt lalu' },
-      { name: 'Ibu Wulan', location: 'Solo, Jawa Tengah', time: 'Baru saja' },
-      { name: 'Bapak Taufik', location: 'Cirebon, Jawa Barat', time: '6 mnt lalu' },
-      { name: 'Ibu Endah', location: 'Yogyakarta, DIY', time: '2 mnt lalu' },
-      { name: 'Bapak Salman', location: 'Serang, Banten', time: '5 mnt lalu' },
+      { name: 'Kak Sarah Amanda', location: 'Bekasi, Jawa Barat', time: 'Baru saja', avatar: '/images/landing/tas-selempang/avatar-1.webp' },
+      { name: 'Ibu Ratna Dewi', location: 'Medan, Sumut', time: '2 mnt lalu', avatar: '/images/landing/tas-selempang/avatar-2.webp' },
+      { name: 'Kak Dinda Lestari', location: 'Tangerang, Banten', time: '1 mnt lalu', avatar: '/images/landing/tas-selempang/avatar-3.webp' },
+      { name: 'Ibu Sari Anggraini', location: 'Makassar, Sulsel', time: '5 mnt lalu', avatar: '/images/landing/tas-selempang/avatar-4.webp' },
+      { name: 'Kak Nurul Hidayah', location: 'Semarang, Jateng', time: '3 mnt lalu', avatar: '/images/landing/tas-selempang/avatar-5.webp' },
+      { name: 'Kak Fitri Ramadhani', location: 'Palembang, Sumsel', time: '4 mnt lalu', avatar: '/images/landing/tas-selempang/avatar-6.webp' },
+      { name: 'Ibu Dewi Sartika', location: 'Depok, Jawa Barat', time: '7 mnt lalu', avatar: '/images/landing/tas-selempang/avatar-7.webp' },
+      { name: 'Kak Amanda Putri', location: 'Denpasar, Bali', time: 'Baru saja', avatar: '/images/landing/tas-selempang/avatar-8.webp' },
+      { name: 'Ibu Lestari', location: 'Surabaya, Jatim', time: '6 mnt lalu', avatar: '/images/landing/tas-selempang/avatar-9.webp' },
+      { name: 'Kak Cindy Claudia', location: 'Bogor, Jawa Barat', time: '2 mnt lalu', avatar: '/images/landing/tas-selempang/avatar-10.webp' },
+      { name: 'Ibu Yanti Susilowati', location: 'Pekanbaru, Riau', time: '8 mnt lalu', avatar: '/images/landing/tas-selempang/avatar-1.webp' },
+      { name: 'Kak Nadia Safitri', location: 'Banjarmasin, Kalsel', time: '3 mnt lalu', avatar: '/images/landing/tas-selempang/avatar-2.webp' },
+      { name: 'Ibu Nita Kusuma', location: 'Bandung, Jawa Barat', time: '5 mnt lalu', avatar: '/images/landing/tas-selempang/avatar-3.webp' },
+      { name: 'Kak Bella Salsabila', location: 'Balikpapan, Kaltim', time: '1 mnt lalu', avatar: '/images/landing/tas-selempang/avatar-4.webp' },
+      { name: 'Ibu Rahmawati', location: 'Malang, Jawa Timur', time: '9 mnt lalu', avatar: '/images/landing/tas-selempang/avatar-5.webp' },
+      { name: 'Kak Tiara Andini', location: 'Padang, Sumbar', time: '4 mnt lalu', avatar: '/images/landing/tas-selempang/avatar-6.webp' },
+      { name: 'Ibu Wulan Septiani', location: 'Solo, Jawa Tengah', time: 'Baru saja', avatar: '/images/landing/tas-selempang/avatar-7.webp' },
+      { name: 'Kak Sherly Fransiska', location: 'Cirebon, Jawa Barat', time: '6 mnt lalu', avatar: '/images/landing/tas-selempang/avatar-8.webp' },
+      { name: 'Ibu Endah Pratiwi', location: 'Yogyakarta, DIY', time: '2 mnt lalu', avatar: '/images/landing/tas-selempang/avatar-9.webp' },
+      { name: 'Kak Maya Sovia', location: 'Serang, Banten', time: '5 mnt lalu', avatar: '/images/landing/tas-selempang/avatar-10.webp' },
     ];
 
     const shuffled = shuffleBuyers(buyers);
@@ -201,6 +204,9 @@ const {
       if (nameEl) nameEl.textContent = buyer.name;
       if (locEl) locEl.textContent = ` • ${buyer.location}`;
       if (timeEl) timeEl.textContent = buyer.time;
+      if (avatarEl && (buyer as any).avatar) {
+        avatarEl.src = (buyer as any).avatar;
+      }
 
       toast.classList.remove('opacity-0', '-translate-y-16', 'scale-95');
       toast.classList.add('opacity-100', 'translate-y-0', 'scale-100');
