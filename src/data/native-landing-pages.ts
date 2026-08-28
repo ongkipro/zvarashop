@@ -49,4 +49,11 @@ export const nativeLandingPages: NativeLandingPage[] = [
     description: 'Landing page konversi untuk campaign Tas Selempang Wanita Modern kulit PU premium.',
     isActive: true,
   },
+  {
+    slug: 'senter-led-mini',
+    title: 'Lampu Senter LED Mini Multifungsi (Headlamp Sensor Gerak)',
+    productSlug: 'lampu-led-mini',
+    description: 'Landing page konversi untuk Lampu Senter LED Mini & Headlamp Sensor Gerak.',
+    isActive: true,
+  },
 ];

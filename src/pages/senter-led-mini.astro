@@ -1,0 +1,610 @@
+---
+/*
+ * Native Astro landing page — Senter LED Mini & Headlamp Sensor Gerak.
+ *
+ * Architecture: 10-Section High-Converting Editorial Funnel (Pembersih-Saluran Style).
+ * Performance: 100% Lightweight WebP (Sub-85KB per asset).
+ * Form: Native GeoIpResolvedForm with hybrid COD mode linked to product catalog.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import MetaLandingTracker from '../components/storefront/tracking/MetaLandingTracker.astro';
+import GeoIpResolvedForm from '../components/storefront/forms/GeoIpResolvedForm.astro';
+import Icon from '../components/storefront/shared/Icon.astro';
+import SocialProofToast from '../components/storefront/shared/SocialProofToast.astro';
+import { getStorefrontProduct } from '../lib/catalog';
+import { nativeLandingCanonicalPath } from '../lib/landing-pages';
+import { defaultCatalogContentId } from '../lib/catalog-feed';
+import { resolveFormModeContext } from '../lib/form-mode';
+import '../styles/form-hybrid.css';
+import '../styles/landing-pages/landing.css';
+import '../styles/landing-pages/senter-led-mini.css';
+
+export const prerender = false;
+
+const SLUG = 'senter-led-mini';
+const PRODUCT_SLUG = 'lampu-led-mini';
+
+const product = await getStorefrontProduct(Astro.locals, PRODUCT_SLUG);
+if (!product) return Astro.rewrite('/404');
+
+const formContext = await resolveFormModeContext(Astro.request);
+
+const canonical = `${Astro.locals.tenant.siteUrl}${await nativeLandingCanonicalPath(Astro.locals, SLUG)}`;
+const seoTitle = 'Senter LED Mini & Headlamp Sensor Gerak — Terang, Ringkas & Bebas Tangan';
+const seoDescription =
+  'Senter LED mini multifungsi dengan sensor lambaian tangan dan tali kepala elastis. Terang benderang, sudut 60°, siap untuk kerja teknisi, camping, dan mati lampu. Bayar di Tempat (COD).';
+
+const sectionTitle = 'text-[24px] font-bold leading-[1.18] tracking-tight text-[#0F2942]';
+const body = 'text-[15px] leading-relaxed text-slate-600';
+const listIcon = 'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center text-[#1E3A8A]';
+const dangerIcon = 'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center text-[#C93A1B]';
+
+const cheapest = [...product.variants].sort((a, b) => a.price - b.price)[0] ?? null;
+const price = cheapest?.price ?? product.price;
+---
+
+<BaseLayout
+  title={seoTitle}
+  description={seoDescription}
+  image="/images/landing/senter-led-mini/hero-action.webp"
+  preloadImages="/images/landing/senter-led-mini/hero-action.webp"
+  canonical={canonical}
+  hideHeader={true}
+  hideFooter={true}
+>
+  <main class="mx-auto min-h-screen w-full max-w-[480px] bg-white text-slate-950 pb-20 font-sans antialiased">
+    <MetaLandingTracker
+      slug={SLUG}
+      contentId={defaultCatalogContentId(product)}
+      contentName={product.contentName}
+      price={price}
+    />
+
+    <!-- ═══ 1. TOP ANNOUNCEMENT BAR ═══ -->
+    <div class="bg-neutral-950 px-4 py-2.5 text-center text-white">
+      <p class="text-[12px] font-medium tracking-wide">
+        🔥 <span class="font-bold text-amber-300">PROMO SPESIAL HARI INI</span> — Diskon Terbatas &amp; Bisa <span class="font-bold underline text-white">COD (Bayar di Tempat)</span>
+      </p>
+    </div>
+
+    <!-- ═══ 2. HERO SECTION ═══ -->
+    <section id="landing-hero" data-hero-section class="bg-white pb-8 text-left text-slate-950">
+      <div class="px-5 pt-8">
+        <span class="inline-block rounded-full bg-amber-100 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-amber-900 mb-2">
+          Inovasi Senter Pintar 2-in-1
+        </span>
+        <h1 class="max-w-[420px] text-[28px] font-bold leading-[1.15] tracking-tight text-slate-950">
+          Gelap Gulita &amp; Repot Pegang Senter? <span
+            class="box-decoration-clone px-0.5 text-[#C93A1B]"
+            style="background-image: linear-gradient(to top, #FFD84D 0.22em, rgba(255,216,77,0) 0.22em); background-repeat: no-repeat; background-position: 0 94%; background-size: 100% 100%;"
+            >Lampu LED Mini &amp; Headlamp Sensor: Terang Maksimal Tanpa Pegang Senter!</span
+          >
+        </h1>
+
+        <p class="mt-4 max-w-[400px] text-[15px] font-semibold leading-relaxed text-slate-700">
+          Benerin motor di tempat gelap, tracking malam, hingga mati lampu — <span class="box-decoration-clone bg-[#FFD84D]/45 px-1 text-slate-950">sekali lambaikan tangan, lampu langsung nyala terang &amp; kedua tangan bebas bergerak.</span>
+        </p>
+      </div>
+
+      <!-- Hero Visual with Overlay & Ping Badge -->
+      <div class="relative mt-7">
+        <div
+          class="relative overflow-hidden border-y border-slate-100 bg-slate-900 shadow-[0_14px_34px_rgba(30,58,138,0.12)]"
+        >
+          <img
+            src="/images/landing/senter-led-mini/hero-action.webp"
+            alt="Lampu Senter LED Mini & Headlamp Sensor Gerak Terang di Malam Hari"
+            class="aspect-[16/9] w-full object-cover"
+            width="800"
+            height="450"
+            fetchpriority="high"
+            loading="eager"
+            decoding="async"
+          />
+        </div>
+
+        <!-- Floating Glassmorphic Benefit Card -->
+        <div
+          class="relative z-20 mx-auto -mt-6 w-[90%] rounded-xl border border-blue-200/80 bg-white/95 p-4 text-left shadow-[0_14px_34px_rgba(30,58,138,0.14)] backdrop-blur-md"
+        >
+          <div class="flex gap-3">
+            <span class="relative mt-1 flex h-3 w-3 shrink-0">
+              <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#1E3A8A] opacity-70"></span>
+              <span
+                class="relative inline-flex h-3 w-3 rounded-full bg-[#1E3A8A] shadow-[0_0_0_6px_rgba(30,58,138,0.10)]"
+              ></span>
+            </span>
+            <div>
+              <h2 class="text-[16px] font-bold leading-tight text-[#0F2942]">Sensor Gerak Pintar (Smart Wave)!</h2>
+              <p class="mt-1 text-[13.5px] leading-relaxed text-slate-700">
+                Respon lambaian tangan 10 cm on/off otomatis. <strong class="text-[#C93A1B]">Sangat praktis saat tangan kotor atau basah.</strong>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hero Quick Trust Strip -->
+        <div class="mt-5 grid grid-cols-3 divide-x divide-slate-200 px-5 text-center">
+          <div class="px-2">
+            <span class="block text-[14px]">🚚</span>
+            <span class="text-[11px] font-bold text-slate-800">Bisa COD</span>
+            <p class="text-[10px] text-slate-500">Bayar di Tempat</p>
+          </div>
+          <div class="px-2">
+            <span class="block text-[14px]">💡</span>
+            <span class="text-[11px] font-bold text-slate-800">Cahaya Fokus</span>
+            <p class="text-[10px] text-slate-500">Super Terang</p>
+          </div>
+          <div class="px-2">
+            <span class="block text-[14px]">⭐</span>
+            <span class="text-[11px] font-bold text-slate-800">Rating 4.9/5</span>
+            <p class="text-[10px] text-slate-500">2.100+ Terjual</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 3. VALUE PROPOSITION / HOOK ═══ -->
+    <section class="px-5 py-10">
+      <h2 class={sectionTitle}>
+        Solusi Praktis Segala Situasi: <span class="box-decoration-clone bg-[#EFF6FF] px-1.5 pb-0.5 text-[#1E3A8A]"
+          >Kedua Tangan Bebas, Pandangan Terang Benderang</span
+        >
+      </h2>
+      <p class={`${body} mt-2`}>
+        Satu alat untuk berbagai kebutuhan darurat, hobi outdoor, maupun pekerjaan teknis sehari-hari.
+      </p>
+
+      <div class="mt-6 grid gap-3">
+        <div class="rounded-2xl border border-blue-100 bg-[#EFF6FF] p-4">
+          <div class="flex gap-3">
+            <span class={listIcon}><Icon name="check" class="h-4 w-4" aria-hidden="true" /></span>
+            <p class={body}>
+              <strong class="text-slate-950">Sensor Gerak Cepat &amp; Bebas Sentuh</strong> — Nyalakan dan matikan lampu hanya dengan melambaikan tangan di depan sensor dalam jarak 10 cm.
+            </p>
+          </div>
+        </div>
+        <div class="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+          <div class="flex gap-3">
+            <span class={listIcon}><Icon name="shield-check" class="h-4 w-4" aria-hidden="true" /></span>
+            <p class={body}>
+              <strong class="text-slate-950">Sudut Putar 60° &amp; Ikat Kepala Nyaman</strong> — Arahkan sorot lampu presisi ke area kerja tanpa bikin silau orang lain di depan Anda.
+            </p>
+          </div>
+        </div>
+        <div class="rounded-2xl border border-blue-100 bg-[#EFF6FF] p-4">
+          <div class="flex gap-3">
+            <span class={listIcon}><Icon name="badge-check" class="h-4 w-4" aria-hidden="true" /></span>
+            <p class={body}>
+              <strong class="text-slate-950">Desain 2-in-1 (Headlamp + Senter Saku)</strong> — Unit lampu bisa dilepas dari tali kepala dan disimpan ringkas di dalam kantong baju atau saku celana.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 4. AGITATION / DANGER SIGNS ═══ -->
+    <section class="border-t border-[#C93A1B]/10 bg-[#FFF7ED] px-5 py-10">
+      <h2 class={sectionTitle}>
+        Awas! Ribetnya Menggunakan <span
+          class="text-[#C93A1B] underline decoration-amber-300 decoration-4 underline-offset-4">Senter Konvensional di Kondisi Darurat:</span>
+      </h2>
+      <div class="mt-6 grid gap-4">
+        <div class="flex gap-3">
+          <span class={dangerIcon}><Icon name="triangle-alert" class="h-4 w-4" aria-hidden="true" /></span>
+          <p class={body}>
+            <strong class="text-slate-950">Tangan Terkunci Memegang Senter:</strong> Susah benerin mesin mobil, pipa air, atau barang rusak karena satu tangan sibuk memegang senter/HP.
+          </p>
+        </div>
+        <div class="flex gap-3">
+          <span class={dangerIcon}><Icon name="triangle-alert" class="h-4 w-4" aria-hidden="true" /></span>
+          <p class={body}>
+            <strong class="text-slate-950">Tombol Kotor &amp; Berlumur Oli:</strong> Menekan tombol sakelar dengan tangan berminyak atau basah membuat tombol cepat aus dan kotor.
+          </p>
+        </div>
+        <div class="flex gap-3">
+          <span class={dangerIcon}><Icon name="triangle-alert" class="h-4 w-4" aria-hidden="true" /></span>
+          <p class={body}>
+            <strong class="text-slate-950">Senter Berat &amp; Bikin Kepala Pusing:</strong> Headlamp murah zaman dulu berbahan berat dan talinya kaku menekan kening.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 5. SCENARIOS BREAKDOWN (BUKTI PENGGUNAAN) ═══ -->
+    <section class="border-t border-slate-100 px-5 py-10">
+      <h2 class={sectionTitle}>
+        Solusi Tepat: <span class="box-decoration-clone bg-[#EFF6FF] px-1.5 pb-0.5 text-[#1E3A8A]"
+          >Kerja Cepat, Jalan Aman, Rumah Siaga</span
+        >
+      </h2>
+      <p class={`${body} mt-2 mb-6`}>
+        Satu lampu serbaguna yang menjawab berbagai kebutuhan dalam satu genggaman:
+      </p>
+
+      <div class="grid gap-4">
+        <figure class="relative overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
+          <img
+            src="/images/landing/senter-led-mini/proof-mechanic.webp"
+            alt="Pekerjaan teknisi otomotif dengan headlamp sensor gerak"
+            class="aspect-[16/9] w-full object-cover"
+            width="800"
+            height="450"
+            loading="lazy"
+            decoding="async"
+          />
+          <figcaption
+            class="absolute left-3 top-3 rounded-md bg-[#0F2942] px-3 py-1 text-[12px] font-bold uppercase tracking-wide text-white shadow-sm"
+          >
+            Kerja Teknisi &amp; Bengkel
+          </figcaption>
+        </figure>
+
+        <figure class="relative overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
+          <img
+            src="/images/landing/senter-led-mini/proof-camping.webp"
+            alt="Camping dan tracking malam hari dengan senter kepala"
+            class="aspect-[16/9] w-full object-cover"
+            width="800"
+            height="450"
+            loading="lazy"
+            decoding="async"
+          />
+          <figcaption
+            class="absolute left-3 top-3 rounded-md bg-[#16A34A] px-3 py-1 text-[12px] font-bold uppercase tracking-wide text-white shadow-sm"
+          >
+            Camping &amp; Outdoor Harian
+          </figcaption>
+        </figure>
+      </div>
+
+      <p class="mt-5 text-[14px] leading-relaxed text-slate-500">
+        <strong class="text-slate-950">Praktis &amp; Efisien:</strong> Pasang di kepala, lambaikan tangan, dan nikmati pencahayaan optimal tanpa perlu repot.
+      </p>
+    </section>
+
+    <!-- ═══ 6. DARK CONTRAST SECTION (RUMAH SIAGA & CARA PAKAI) ═══ -->
+    <section class="border-t border-slate-900 bg-[#0B1E36] px-5 py-10 text-white">
+      <h2 class="text-[26px] font-bold leading-[1.14] tracking-tight text-white">
+        Kenyamanan Nyata: <span class="text-[#93C5FD]">Siaga Mati Lampu di Rumah</span>
+      </h2>
+      <p class="mt-2 mb-6 text-[15px] leading-relaxed text-slate-300">
+        Bebas panik saat pemadaman listrik mendadak, letakkan di meja sebagai lampu darurat:
+      </p>
+
+      <div class="-mx-5 mb-8">
+        <div class="relative overflow-hidden bg-slate-900">
+          <img
+            src="/images/landing/senter-led-mini/proof-blackout.webp"
+            alt="Lampu darurat saat mati lampu di rumah"
+            class="aspect-[16/9] w-full object-cover"
+            width="800"
+            height="450"
+            loading="lazy"
+            decoding="async"
+          />
+          <div
+            class="absolute left-4 top-4 rounded bg-amber-500 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-slate-950 shadow"
+          >
+            Lampu Siaga Darurat Rumah
+          </div>
+        </div>
+      </div>
+
+      <div class="border-t border-slate-700/60 pt-7">
+        <h3 class="text-[19px] font-bold text-white mb-4">3 Langkah Mudah Penggunaan:</h3>
+        <div class="grid gap-4">
+          <div class="flex gap-3">
+            <span
+              class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#93C5FD] text-[14px] font-bold text-slate-950"
+              >1</span
+            >
+            <p class="text-[15px] leading-relaxed text-slate-300">
+              <strong class="text-white">Pilih Mode Pemakaian:</strong> Pasang pada tali kepala untuk mode headlamp, atau gunakan unitnya langsung sebagai senter saku mini.
+            </p>
+          </div>
+          <div class="flex gap-3">
+            <span
+              class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#93C5FD] text-[14px] font-bold text-slate-950"
+              >2</span
+            >
+            <p class="text-[15px] leading-relaxed text-slate-300">
+              <strong class="text-white">Aktifkan Sensor Gerak:</strong> Tekan tombol sensor satu kali, lalu cukup lambaikan tangan di depan lampu untuk menyalakan/mematikan.
+            </p>
+          </div>
+          <div class="flex gap-3">
+            <span
+              class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#93C5FD] text-[14px] font-bold text-slate-950"
+              >3</span
+            >
+            <p class="text-[15px] leading-relaxed text-slate-300">
+              <strong class="text-white">Setel Sudut 60°:</strong> Sesuaikan arah sorot lampu ke bawah sesuai jarak pandang kerja agar tepat sasaran.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 7. INFOGRAPHIC FITUR DETAIL PRODUK ═══ -->
+    <section class="border-t border-slate-100 bg-[#F8FAFC] px-4 py-8 space-y-5">
+      <div class="rounded-2xl overflow-hidden border border-slate-200 shadow-sm bg-white">
+        <img
+          src="/images/landing/senter-led-mini/banner-hero-features.webp"
+          alt="Lampu LED Mini - Ringkas, Cahaya Fokus, Siap untuk Berbagai Kebutuhan"
+          class="w-full h-auto block"
+          width="800"
+          height="1000"
+          loading="lazy"
+          decoding="async"
+        />
+      </div>
+
+      <div class="rounded-2xl overflow-hidden border border-slate-200 shadow-sm bg-white">
+        <img
+          src="/images/landing/senter-led-mini/banner-headlamp-sensor.webp"
+          alt="Lampu Headlamp LED - Sensor Gerak Pintar, Sudut Penyesuaian 60 Derajat, Ikat Kepala Elastis"
+          class="w-full h-auto block"
+          width="800"
+          height="1000"
+          loading="lazy"
+          decoding="async"
+        />
+      </div>
+    </section>
+
+    <!-- ═══ 8. TESTIMONIALS (EDITORIAL OPEN PROOF PATTERN) ═══ -->
+    <section class="border-t border-slate-100 px-5 py-10">
+      <div class="mb-8">
+        <span class="inline-block rounded-md bg-[#EFF6FF] px-2.5 py-1 text-[11px] font-bold uppercase tracking-widest text-[#1E3A8A] ring-1 ring-[#1E3A8A]/15 mb-2">
+          Pengalaman Nyata Pelanggan
+        </span>
+        <h2 class={sectionTitle}>
+          Bukti Nyata Pengguna: <span class="box-decoration-clone bg-[#EFF6FF] px-1.5 pb-0.5 text-[#1E3A8A]"
+            >Terang Maksimal &amp; Sangat Praktis</span
+          >
+        </h2>
+        <p class={`${body} mt-2`}>
+          Cerita jujur dari pelanggan setelah menggunakan Senter LED Mini &amp; Headlamp Sensor:
+        </p>
+      </div>
+
+      <div class="space-y-9">
+        {
+          [
+            {
+              name: 'Pak Joko Santoso',
+              location: 'Semarang, Jawa Tengah',
+              avatar: '/images/landing/senter-led-mini/avatar-2.webp',
+              problem: 'Kerja Bengkel Otomotif • Masalah: Tangan Kotor Saat Benerin Mesin',
+              image: '/images/landing/senter-led-mini/proof-mechanic.webp',
+              imageCaption: 'Hasil nyata: Kedua tangan leluasa bekerja, lampu on/off hanya dengan lambaian tangan',
+              review:
+                'Kecil-kecil cabe rawit! Pas tangan lagi penuh oli benerin mesin mobil, <strong class="box-decoration-clone bg-[#EFF6FF] px-1.5 pb-0.5 text-[#1E3A8A] font-semibold">sensor lambaian tangannya sangat responsif</strong> tinggal kibaskan tangan langsung nyala. Gak perlu lagi gigit senter atau minta tolong orang pegangin lampu.',
+              takeaway: 'Kedua tangan leluasa bekerja cepat, tombol bebas kotoran dan oli mesin.',
+            },
+            {
+              name: 'Mas Bagus Pratama',
+              location: 'Bandung, Jawa Barat',
+              avatar: '/images/landing/senter-led-mini/avatar-1.webp',
+              problem: 'Outdoor & Hiking • Masalah: Butuh Headlamp Ringan & Anti Pusing',
+              image: '/images/landing/senter-led-mini/proof-camping.webp',
+              imageCaption: 'Hasil nyata: Tali elastis empuk dan sorot lampu bisa disetel 60 derajat ke bawah',
+              review:
+                'Sangat ringan di kepala dan <strong class="box-decoration-clone bg-[#EFF6FF] px-1.5 pb-0.5 text-[#1E3A8A] font-semibold">talinya empuk gak bikin pusing kening</strong> walau dipakai berjam-jam jalan malam. Sorot 60 derajat ke bawah pas banget buat lihat jalanan bebatuan tanpa bikin silau teman di depan.',
+              takeaway: 'Ringan, nyaman dipakai semalaman, sudut cahaya presisi ke jalur tracking.',
+            },
+            {
+              name: 'Ibu Ratna Dewi',
+              location: 'Surabaya, Jawa Timur',
+              avatar: '/images/landing/senter-led-mini/avatar-3.webp',
+              problem: 'Rumah Tangga • Masalah: Siaga Listrik Padam Tiba-tiba',
+              image: '/images/landing/senter-led-mini/proof-blackout.webp',
+              imageCaption: 'Hasil nyata: Lampu diletakkan di meja saat mati lampu, ruangan langsung terang benderang',
+              review:
+                'Wajib punya di rumah buat jaga-jaga kalau mati lampu malam-malam. <strong class="box-decoration-clone bg-[#EFF6FF] px-1.5 pb-0.5 text-[#1E3A8A] font-semibold">Cahayanya terang fokus, baterai awet gampang dicas, dan pengirimannya cepat bisa bayar COD pas kurir datang.</strong> Sangat recommended!',
+              takeaway: 'Solusi penerangan darurat rumah tangga yang aman dan bebas repot lilin.',
+            },
+          ].map((item, index, arr) => (
+            <div class="space-y-3.5">
+              <!-- Customer Header -->
+              <div class="flex items-start justify-between gap-3">
+                <div class="flex items-center gap-3">
+                  <img
+                    src={item.avatar}
+                    alt={`Foto ${item.name}`}
+                    class="h-12 w-12 rounded-full object-cover ring-2 ring-slate-100 shrink-0"
+                    width="48"
+                    height="48"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                  <div>
+                    <div class="flex items-center gap-1.5">
+                      <h3 class="text-[16px] font-bold text-slate-950">{item.name}</h3>
+                      <span class="flex h-4 w-4 items-center justify-center text-blue-600">
+                        <Icon name="badge-check" class="h-4 w-4" aria-hidden="true" />
+                      </span>
+                    </div>
+                    <p class="text-[12px] font-medium text-slate-500">{item.location}</p>
+                  </div>
+                </div>
+                <div class="shrink-0 text-[13px] text-[#FBBF24]" role="img" aria-label="5 dari 5 bintang">
+                  ★★★★★
+                </div>
+              </div>
+
+              <!-- Problem Pill -->
+              <div class="inline-block rounded-md px-2.5 py-1 text-[11px] font-semibold tracking-wide border border-slate-200/70 bg-slate-50 text-slate-700">
+                {item.problem}
+              </div>
+
+              <!-- Proof Photo with Aspect 16/9 -->
+              <div class="relative aspect-[16/9] w-full overflow-hidden rounded-xl border border-slate-200/80 shadow-sm">
+                <img
+                  src={item.image}
+                  alt={item.imageCaption}
+                  class="h-full w-full object-cover"
+                  width="800"
+                  height="450"
+                  loading="lazy"
+                  decoding="async"
+                />
+              </div>
+
+              <!-- Quote with Highlighted Spans and Left Border Accent -->
+              <p
+                class="border-l-2 border-[#1E3A8A]/35 pl-3.5 text-[15px] leading-relaxed text-slate-700 italic pt-0.5"
+                set:html={`“${item.review}”`}
+              />
+
+              <!-- Key Takeaway Box -->
+              <div class="flex items-center gap-2 rounded-lg bg-[#EFF6FF] px-3 py-2 text-[12px] font-semibold text-[#1E3A8A]">
+                <span>📌</span>
+                <span>{item.takeaway}</span>
+              </div>
+
+              {index < arr.length - 1 && (
+                <div class="pt-6">
+                  <div class="h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent" />
+                </div>
+              )}
+            </div>
+          ))
+        }
+      </div>
+    </section>
+
+    <!-- ═══ 9. GARANSI 100% BELANJA AMAN ═══ -->
+    <section class="border-t border-[#0F2942] bg-[#0F2942] px-5 py-10 text-center text-white">
+      <div class="mx-auto mb-5 flex h-16 w-16 items-center justify-center text-[#FBBF24]">
+        <Icon name="shield-check" class="h-14 w-14" aria-hidden="true" />
+      </div>
+      <p class="mb-2 text-[11px] font-bold uppercase tracking-widest text-[#93C5FD]">Jaminan Belanja Bebas Resiko</p>
+      <h2 class="text-[30px] font-bold leading-[1.1] tracking-tight text-white">BELANJA AMAN &amp; TERPERCAYA</h2>
+      <p class="mx-auto mt-3 max-w-[320px] text-[15px] leading-relaxed text-blue-100/80">
+        Pesan sekarang dengan tenang, bayar saat barang sampai di tangan Anda (COD)!
+      </p>
+
+      <div class="mt-8 grid gap-4 text-left">
+        <div class="flex items-start gap-4 rounded-2xl border border-white/10 bg-white p-4 shadow-sm">
+          <span class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center text-[#1E3A8A]">
+            <Icon name="badge-check" class="h-5 w-5" aria-hidden="true" />
+          </span>
+          <p class="text-[15px] leading-relaxed text-slate-700">
+            <strong class="mb-0.5 block text-slate-950">100% Real Picture &amp; Berfungsi Normal.</strong> Produk sesuai dengan spesifikasi dan foto yang ditampilkan.
+          </p>
+        </div>
+
+        <div class="flex items-start gap-4 rounded-2xl border border-white/10 bg-white p-4 shadow-sm">
+          <span class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center text-[#1E3A8A]">
+            <Icon name="truck" class="h-5 w-5" aria-hidden="true" />
+          </span>
+          <p class="text-[15px] leading-relaxed text-slate-700">
+            <strong class="mb-0.5 block text-slate-950">Bisa Bayar di Tempat (COD).</strong> Bayar langsung ke kurir saat paket tiba di alamat Anda tanpa transfer di awal.
+          </p>
+        </div>
+
+        <div class="flex items-start gap-4 rounded-2xl border border-white/10 bg-white p-4 shadow-sm">
+          <span class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center text-[#1E3A8A]">
+            <Icon name="shield-check" class="h-5 w-5" aria-hidden="true" />
+          </span>
+          <p class="text-[15px] leading-relaxed text-slate-700">
+            <strong class="mb-0.5 block text-slate-950">Quality Check &amp; Packing Rapi.</strong> Setiap produk dicek teliti dan dikemas aman dengan bubble wrap sebelum dikirim.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 10. NATIVE HYBRID CHECKOUT FORM ═══ -->
+    <section id="form-pemesanan" class="mt-4 scroll-mt-6 overflow-hidden rounded-none bg-white p-2">
+      <div class="px-3 pt-6 pb-2 text-center">
+        <p class="text-[11px] font-bold uppercase tracking-widest text-[#1E3A8A]">
+          Formulir Pemesanan Resmi
+        </p>
+        <h2 class="mt-1 text-[24px] font-bold text-slate-950">
+          Lengkapi Data Pengiriman
+        </h2>
+        <p class="mt-1 text-[13px] text-slate-600">
+          Pilih paket promo di bawah dan isi alamat lengkap. Bayar saat barang sampai (COD).
+        </p>
+      </div>
+
+      <GeoIpResolvedForm
+        mode={formContext.mode}
+        province={formContext.province}
+        productSlug={product.slug}
+        embedded={true}
+      />
+    </section>
+
+    <!-- ═══ 11. STICKY CTA & SOCIAL PROOF ═══ -->
+    <div
+      id="sticky-purchase-bar"
+      class="fixed inset-x-0 bottom-0 z-40 mx-auto flex w-full max-w-[480px] items-center justify-between border-t border-slate-200 bg-white/95 px-5 py-3 shadow-[0_-8px_24px_rgba(17,17,17,0.08)] backdrop-blur-md transition-all duration-300"
+      style="transform: translateY(100%); opacity: 0; pointer-events: none;"
+    >
+      <div>
+        <p class="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#555555]">Harga Promo</p>
+        <p class="text-base font-bold text-[#111111]">Rp{Math.round(price).toLocaleString('id-ID')}</p>
+      </div>
+      <a
+        href="#form-pemesanan"
+        class="inline-flex min-h-11 items-center justify-center rounded-full bg-[#1E3A8A] px-6 text-[11px] font-bold uppercase tracking-[0.1em] text-white shadow-md transition-colors hover:bg-[#0F2942] active:scale-[0.98]"
+      >
+        Pesan Sekarang (COD)
+      </a>
+    </div>
+
+    <SocialProofToast
+      productLabel="Lampu Senter LED Mini"
+      productImage="/images/landing/senter-led-mini/product-thumb.webp"
+      heroSelector=""
+      formSelector="#form-pemesanan"
+    />
+  </main>
+
+  <script slot="head" is:inline>
+    function initStickyBarObserver() {
+      const stickyBar = document.getElementById('sticky-purchase-bar');
+      const orderForm = document.getElementById('form-pemesanan');
+      const hero = document.getElementById('landing-hero');
+      if (!stickyBar) return;
+
+      let heroVisible = true;
+      let formVisible = false;
+
+      const applyStickyVisibility = () => {
+        if (heroVisible || formVisible) {
+          stickyBar.style.transform = 'translateY(100%)';
+          stickyBar.style.opacity = '0';
+          stickyBar.style.pointerEvents = 'none';
+        } else {
+          stickyBar.style.transform = 'translateY(0)';
+          stickyBar.style.opacity = '1';
+          stickyBar.style.pointerEvents = 'auto';
+        }
+      };
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.target === hero) heroVisible = entry.isIntersecting;
+            if (entry.target === orderForm) formVisible = entry.isIntersecting;
+          });
+          applyStickyVisibility();
+        },
+        { threshold: 0.05, rootMargin: '0px 0px -40px 0px' }
+      );
+
+      if (hero) observer.observe(hero);
+      if (orderForm) observer.observe(orderForm);
+      applyStickyVisibility();
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initStickyBarObserver);
+    } else {
+      initStickyBarObserver();
+    }
+  </script>
+</BaseLayout>
