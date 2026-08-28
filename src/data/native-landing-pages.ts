@@ -56,4 +56,11 @@ export const nativeLandingPages: NativeLandingPage[] = [
     description: 'Landing page konversi untuk Lampu Senter LED Mini & Headlamp Sensor Gerak.',
     isActive: true,
   },
+  {
+    slug: 'lampu-dinding-solar',
+    title: 'Lampu Dinding Solar Tenaga Surya (Sensor Gerak & Tahan Air IP65)',
+    productSlug: 'lampu-dinding-solar',
+    description: 'Landing page konversi untuk Lampu Dinding Solar Outdoor Pagar & Halaman Rumah.',
+    isActive: true,
+  },
 ];
