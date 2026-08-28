@@ -4609,3 +4609,79 @@ again returned `200`.
   `npm run check` 399 files clean and a Cloudflare build. Local `wrangler dev`
   against a seeded store whose only variant carries `stock = 0`: the product
   page renders and offers it.
+
+## 2026-08-28 — Meta browser Purchase was matched on one key, and could not reach the pixel in time
+
+- **Symptom.** The Meta Pixel `Purchase` was effectively absent from Events
+  Manager while the server leg was complete. On the zvarashop install, D1
+  showed 8 `sent` CAPI Purchases covering every qualifying order — the four
+  without one are INV-10001/10002 (pre-tracking), INV-10008 (QRIS `failed`) and
+  INV-10017 (QRIS `pending`), all correctly excluded.
+- **Root cause.** `fbevents.js` honours `fbq('init', pixelId, advancedMatching)`
+  once per pixel id and silently ignores every later call. Three files called it
+  behind `MetaPixelBase`'s bootstrap — `MetaThanksTracker.astro`,
+  `form-hybrid.ts`, `form-middle.ts` — so every advanced-matching object they
+  hashed was discarded. Read off the live library on zvara.shop:
+  `pixelsByID['2160620184547975'].userData` held `{ external_id }` and nothing
+  else, on a Purchase whose CAPI leg carried eight keys for the same person.
+- **Second cause.** `fbevents.js` is deferred to first interaction or 2500 ms,
+  measured at 2522–3204 ms across runs. `/thanks` exists to hand the buyer to
+  WhatsApp, so the Purchase sat in the `fbq` stub queue with the buyer already
+  leaving. The Google leg has had `__PS_LOAD_GOOGLE_TAG__` for exactly this
+  since its own deferral shipped; the Meta leg had no equivalent.
+- **Third cause.** `once()` wrote its `localStorage` claim at the moment the
+  tracker *decided* to fire, before either leg went out and outside a
+  `try`/`catch`. An interrupted page — or a browser that refuses the write —
+  kept the claim and lost the conversion on both legs, permanently.
+- **Changed.** `MetaPixelBase.astro` now owns the single `fbq('init')`, installs
+  `__PS_META_INIT__`, `__PS_LOAD_META_PIXEL__` and `__META_PIXEL_ID__`
+  synchronously (no `await` in front of them, so no page tracker can race the
+  hook), and waits for a page's hashes when that page declares
+  `__PS_META_AWAIT_MATCHING__`, with a 1500 ms backstop. `/thanks` declares it
+  in the head slot `BaseLayout` renders ahead of the pixel.
+  `MetaThanksTracker.astro` builds its advanced matching from sessionStorage at
+  page load — it never needed the order-status round trip — hands it to
+  `__PS_META_INIT__`, pulls the library forward, drops the invalid
+  `client_user_agent` Pixel key, and claims its guards only after both legs are
+  dispatched, wrapped. Both checkout forms stop re-initing; late identity goes
+  to the CAPI leg alone, which already carried it.
+  `buildMetaAdvancedMatching` deleted — it had no caller left, and it was the
+  shared source of the `client_user_agent` mistake. The `/admin/ads/google`
+  snippet was still teaching operators the nested `user_data` payload the code
+  was fixed away from in August, with a lowercase `country`; corrected to
+  `gtag('set', 'user_data', …)` and `'ID'`.
+- **Not changed.** `country` stays the lowercase ISO 3166-1 alpha-2 `id` on both
+  Meta legs and uppercase `ID` for Google, re-verified against Meta's customer
+  information parameters documentation on 2026-08-28. A full country name would
+  hash to a value matching nobody.
+- **Evidence.** `npm test` 594/594 (was 592), `npm run check` 400 files clean,
+  Cloudflare build complete. Four mutations — dropping the matching handover,
+  removing the load escape hatch, restoring the pre-dispatch guard write, and
+  making the base ignore the handshake — each fail exactly one of the new tests.
+  The tests execute the real inline scripts of *both* components together
+  against an `fbq` stub that reproduces fbevents' one-init rule, because the
+  defect lived only in the seam between two individually correct files.
+  Real-browser A/B: the same two components served to Chrome against the real
+  `fbevents.js`, before and after —
+  `userData` `["external_id"]` → `["country","ct","external_id","fn","ln","ph","st","zp"]`,
+  every one of them present in `censoredUserDataFormat` (i.e. recognised as a
+  match key), and the library request moving from 2522 ms to 45 ms. The harness
+  answered `/api/order-status` with an empty `order_number`, so no Purchase was
+  written to a live ad account.
+- **End-to-end on the real route.** A seeded local install (store, product
+  `78981`, order `INV-90001`) served `/thanks` to Chrome. The page rendered its
+  own order; the pixel's single `init` carried all eight match keys; the browser
+  leg sent `Purchase` with `content_ids ["78981"]`, `value 89000` and
+  `eventID "INV-90001"`; the CAPI leg posted the identical `event_id` with the
+  same value, `country id`, city, province and postal code. `value` is the goods
+  only — the order's `total_amount` is 97647, and the 8647 of shipping is
+  correctly excluded.
+- **Also corrected.** `TRACKING_SPECS.md` §5 described a variant-level catalog
+  identity, `p{product_id}-v{variant_id}` with an `item_group_id`. Nothing has
+  ever published or sent such a string: `catalogProductId()` emits the bare
+  five-plus-digit D1 Product ID, one catalog item per product, and
+  `catalog-identity.test.ts` asserts it. Per AGENTS.md §1 the tree wins; §5 now
+  describes what ships.
+- **Reporting break, forward-only.** Meta does not retro-match. Historical
+  browser Purchases stay low-quality; treat the deploy date as a break in EMQ,
+  not an improvement in performance.

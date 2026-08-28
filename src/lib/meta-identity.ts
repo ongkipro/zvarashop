@@ -69,59 +69,15 @@ export async function sha256Hex(value: string): Promise<string> {
     .join("");
 }
 
-export type MetaAdvancedMatchingInput = {
-  customer_name?: unknown;
-  customer_phone?: unknown;
-  city?: unknown;
-  province?: unknown;
-  postal_code?: unknown;
-  country?: unknown;
-  external_id?: unknown;
-};
-
 /**
- * The hashed object `fbq('init', pixelId, advancedMatching)` takes, built with
- * exactly the same normalisation the server CAPI leg applies (`meta-capi.ts`).
- *
- * `ensureMetaAdvancedMatching` in the checkout scripts calls this again every
- * time more identity becomes known — AddToCart with only a name and phone,
- * then InitiateCheckout once an address is picked — so it must read every
- * field CAPI already hashes (ct/st/zp/country), not only ph/fn/ln. Before this
- * it read only phone and name: city, province, postal code and country were
- * being sent to CAPI on the same event and silently dropped from the browser
- * leg, so the Pixel re-identified the visitor with a weaker key than the
- * server leg used for the same person on the same event.
+ * There is no shared "advanced matching builder" any more, and there must not be
+ * one: fbevents applies `fbq('init', pixelId, advancedMatching)` exactly once
+ * per page, so anything that hashes a buyer *after* the Pixel bootstrap is work
+ * thrown away. The one page that knows its buyer at bootstrap time — `/thanks` —
+ * builds the object inline in `MetaThanksTracker.astro` and hands it to
+ * `__PS_META_INIT__`; the checkout forms send late identity to the CAPI leg
+ * instead. The builder that used to live here also emitted `client_user_agent`,
+ * which is a Conversions API field and not a Pixel match key at all — the live
+ * library stores it on `userData` without a censored-format entry, so it was
+ * never counted as one.
  */
-export async function buildMetaAdvancedMatching(
-  input: MetaAdvancedMatchingInput | undefined,
-): Promise<{
-  ph?: string;
-  fn?: string;
-  ln?: string;
-  ct?: string;
-  st?: string;
-  zp?: string;
-  country?: string;
-  external_id?: string;
-  client_user_agent?: string;
-}> {
-  const normalizedPhone = toE164Digits(String(input?.customer_phone ?? ""));
-  const { firstName, lastName } = metaNameParts(String(input?.customer_name ?? ""));
-  const city = normalizeMetaText(String(input?.city ?? ""));
-  const state = normalizeMetaText(String(input?.province ?? ""));
-  const zip = normalizeMetaText(String(input?.postal_code ?? ""));
-  const country = normalizeMetaText(String(input?.country ?? ""));
-  const externalId = normalizeMetaText(String(input?.external_id ?? "")) ?? normalizedPhone;
-  return {
-    ph: normalizedPhone ? await sha256Hex(normalizedPhone) : undefined,
-    fn: firstName ? await sha256Hex(firstName) : undefined,
-    ln: lastName ? await sha256Hex(lastName) : undefined,
-    ct: city ? await sha256Hex(city) : undefined,
-    st: state ? await sha256Hex(state) : undefined,
-    zp: zip ? await sha256Hex(zip) : undefined,
-    country: country ? await sha256Hex(country) : undefined,
-    external_id: externalId ? await sha256Hex(externalId) : undefined,
-    client_user_agent:
-      typeof navigator !== "undefined" ? navigator.userAgent : undefined,
-  };
-}

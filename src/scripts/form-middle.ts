@@ -1,4 +1,3 @@
-import { buildMetaAdvancedMatching } from "../lib/meta-identity.ts";
 import { META_EXTERNAL_ID_COOKIE } from "../lib/click-ids.ts";
 import { normalizePhone } from "../lib/validation";
 import { formatIdr } from "../lib/format-idr";
@@ -94,21 +93,12 @@ export function initMiddleOrderForm(
       .split("; ")
       .find((row) => row.startsWith(`${name}=`))
       ?.split("=")[1] || "";
-  const ensureMetaAdvancedMatching = async (
-    extraUserData?: Record<string, unknown>,
-  ) => {
-    const pixelId = (window as any).__META_PIXEL_ID__;
-    if (!(window as any).fbq || !pixelId) return;
-    const advancedMatching = await buildMetaAdvancedMatching({
-      ...extraUserData,
-      external_id:
-        getCookieValue(META_EXTERNAL_ID_COOKIE) || extraUserData?.external_id,
-    });
-    const signature = JSON.stringify(advancedMatching);
-    if ((window as any).__META_AM_SIGNATURE__ === signature) return;
-    (window as any).__META_AM_SIGNATURE__ = signature;
-    (window as any).fbq("init", pixelId, advancedMatching);
-  };
+  // There is deliberately no browser advanced-matching call here. fbevents
+  // accepts `fbq('init', pixelId, …)` once per page and silently ignores every
+  // later one, so re-initing when a name and phone appear mid-form hashed the
+  // buyer on every AddToCart and threw the result away. Identity that becomes
+  // known after the Pixel bootstrap belongs to the CAPI leg, which `trackMeta`
+  // below already sends it to under the same `event_id`.
   const postMetaEvent = (payload: Record<string, unknown>) =>
     fetch("/api/meta-event", {
       method: "POST",
@@ -131,7 +121,6 @@ export function initMiddleOrderForm(
     const variantUniqueId = String(selected?.value || "");
     const value = Number(selected?.dataset.price || 1);
     if ((window as any).fbq) {
-      await ensureMetaAdvancedMatching(extraUserData);
       (window as any).fbq(
         "track",
         eventName,

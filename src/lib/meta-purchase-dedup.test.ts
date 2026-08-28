@@ -14,41 +14,109 @@ const TRACKER_SOURCE = readFileSync(
   new URL("../components/storefront/tracking/MetaThanksTracker.astro", import.meta.url),
   "utf8",
 );
+const PIXEL_BASE_SOURCE = readFileSync(
+  new URL("../components/storefront/tracking/MetaPixelBase.astro", import.meta.url),
+  "utf8",
+);
 
-const INLINE_SCRIPT = (() => {
-  const match = TRACKER_SOURCE.match(/<script\b[^>]*\bis:inline\b[^>]*>([\s\S]*)<\/script>/);
-  assert.ok(match, "MetaThanksTracker must keep its inline tracking script");
+const inlineScript = (source: string, label: string) => {
+  const match = source.match(/<script\b[^>]*\bis:inline\b[^>]*>([\s\S]*)<\/script>/);
+  assert.ok(match, `${label} must keep its inline script`);
   return match[1];
-})();
+};
+
+const INLINE_SCRIPT = inlineScript(TRACKER_SOURCE, "MetaThanksTracker");
+const PIXEL_BASE_SCRIPT = inlineScript(PIXEL_BASE_SOURCE, "MetaPixelBase");
+
+const PIXEL_ID = "1234567890";
 
 type OrderStatus = Record<string, unknown>;
 
 type TrackerRun = {
+  /** eventID of each browser Purchase; PageView is tracked in `trackedEvents`. */
   pixelEventIds: string[];
   postedPayloads: Record<string, unknown>[];
+  /** Every `fbq('init', …)` fbevents would actually have honoured. */
   pixelInitCalls: Record<string, unknown>[];
+  /** The advanced matching the pixel ends up carrying, as fbevents would hold it. */
+  pixelUserData: Record<string, unknown> | undefined;
+  trackedEvents: string[];
+  pixelLoadPulledForward: boolean;
+  guardKeys: string[];
 };
 
-function storageStub() {
+function storageStub(throwOnWrite = false) {
   const store = new Map<string, string>();
   return {
+    keys: () => [...store.keys()],
     getItem: (key: string) => store.get(key) ?? null,
     setItem: (key: string, value: string) => {
+      if (throwOnWrite) throw new Error("QuotaExceededError");
       store.set(key, String(value));
     },
   };
 }
 
 /**
- * Executes the real inline tracker script from MetaThanksTracker.astro against a
- * stubbed browser, with /api/order-status answering `orderStatus`.
+ * fbevents.js, as far as this contract is concerned: it honours `init` for a
+ * given pixel id exactly once and silently ignores every later one. Verified
+ * against the live library on 2026-08-28 — a second
+ * `fbq('init', id, {ph, fn, ct})` left `pixelsByID[id].userData` as the
+ * `{external_id}` the first init had set. A stub that merged instead would have
+ * happily passed the code that shipped this bug to production.
+ */
+function fbeventsStub(run: TrackerRun) {
+  const pixels = new Map<string, Record<string, unknown>>();
+  const fbq = (
+    action: string,
+    subject: unknown,
+    payload?: unknown,
+    options?: { eventID?: string },
+  ) => {
+    if (action === "init") {
+      const id = String(subject);
+      if (pixels.has(id)) return;
+      const userData = (payload && typeof payload === "object" ? payload : {}) as Record<
+        string,
+        unknown
+      >;
+      pixels.set(id, { ...userData });
+      run.pixelInitCalls.push({ ...userData });
+      run.pixelUserData = pixels.get(id);
+      return;
+    }
+    if (action === "track") {
+      run.trackedEvents.push(String(subject));
+      if (String(subject) === "Purchase") {
+        run.pixelEventIds.push(String(options?.eventID || ""));
+      }
+    }
+  };
+  return fbq;
+}
+
+/**
+ * Executes the real inline scripts from MetaPixelBase.astro **and**
+ * MetaThanksTracker.astro against one stubbed browser, with /api/order-status
+ * answering `orderStatus`. Both are run because the bug they exist to prevent
+ * only appears in the seam between them: each was individually correct while the
+ * pair sent Meta a Purchase matched on `external_id` alone.
  */
 async function runTracker(
   orderStatus: OrderStatus,
   thanksStateOverrides: Record<string, unknown> = {},
   documentCookie = "",
+  options: { awaitMatching?: boolean; localStorageThrows?: boolean } = {},
 ): Promise<TrackerRun> {
-  const run: TrackerRun = { pixelEventIds: [], postedPayloads: [], pixelInitCalls: [] };
+  const run: TrackerRun = {
+    pixelEventIds: [],
+    postedPayloads: [],
+    pixelInitCalls: [],
+    pixelUserData: undefined,
+    trackedEvents: [],
+    pixelLoadPulledForward: false,
+    guardKeys: [],
+  };
   const thanksState = {
     order_id: "INV-10042",
     order_pk: "42",
@@ -66,6 +134,7 @@ async function runTracker(
 
   const sessionStorage = storageStub();
   sessionStorage.setItem("thanks_state", JSON.stringify(thanksState));
+  const localStorage = storageStub(options.localStorageThrows === true);
 
   const fetchStub = (input: string, init?: { body?: string }) => {
     if (input.startsWith("/api/order-status")) {
@@ -81,23 +150,51 @@ async function runTracker(
     throw new Error(`unexpected request: ${input}`);
   };
 
-  const windowStub: Record<string, unknown> = {
-    __META_PIXEL_ID__: "1234567890",
+  const documentStub = {
+    cookie: documentCookie,
+    createElement: () => ({}),
+    head: { appendChild: () => undefined },
+  };
+
+  const windowStub: Record<string, any> = {
+    // What `/thanks` declares in its head slot, ahead of MetaPixelBase.
+    __PS_META_AWAIT_MATCHING__: options.awaitMatching !== false,
     location: {
       search: "",
       href: "https://permatamall.shop/thanks",
+      protocol: "https:",
     },
-    fbq: (
-      action: string,
-      _eventName: unknown,
-      arg3?: unknown,
-      options?: { eventID?: string },
-    ) => {
-      if (action === "track") run.pixelEventIds.push(String(options?.eventID || ""));
-      if (action === "init" && arg3 && typeof arg3 === "object") {
-        run.pixelInitCalls.push(arg3 as Record<string, unknown>);
-      }
-    },
+    addEventListener: () => undefined,
+    // The 2.5 s deferral timer never fires here: the assertions are about what
+    // the page does on its own, not about the backstop rescuing it.
+    setTimeout: () => 1,
+    fbq: fbeventsStub(run),
+  };
+
+  const pixelBase = new Function(
+    "pixelId",
+    "metaExternalIdCookie",
+    "window",
+    "document",
+    "crypto",
+    "TextEncoder",
+    "Uint8Array",
+    PIXEL_BASE_SCRIPT,
+  );
+  pixelBase(
+    PIXEL_ID,
+    META_EXTERNAL_ID_COOKIE,
+    windowStub,
+    documentStub,
+    globalThis.crypto,
+    TextEncoder,
+    Uint8Array,
+  );
+
+  const baseLoadPixel = windowStub.__PS_LOAD_META_PIXEL__;
+  windowStub.__PS_LOAD_META_PIXEL__ = () => {
+    run.pixelLoadPulledForward = true;
+    if (typeof baseLoadPixel === "function") baseLoadPixel();
   };
 
   const tracker = new Function(
@@ -118,17 +215,19 @@ async function runTracker(
     "permatamall",
     META_EXTERNAL_ID_COOKIE,
     windowStub,
-    { cookie: documentCookie },
+    documentStub,
     { userAgent: "node-test" },
     sessionStorage,
-    storageStub(),
+    localStorage,
     fetchStub,
   );
 
   // The script fires asynchronously (status fetch + SHA-256 hashing).
-  for (let i = 0; i < 20 && run.postedPayloads.length === 0; i += 1) {
+  for (let i = 0; i < 40 && run.postedPayloads.length === 0; i += 1) {
     await new Promise((resolve) => setTimeout(resolve, 5));
   }
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  run.guardKeys = localStorage.keys();
   return run;
 }
 
@@ -155,11 +254,14 @@ test("browser and server Purchase legs derive the same event_id for one order", 
   assert.equal(run.postedPayloads[0].status_token, "status-token-42");
 });
 
-test("the browser Pixel's Purchase advanced-matching object hashes city, state, zip and country, not just phone and name", async () => {
-  // The CAPI leg (postedPayloads[0].user_data, asserted below) has always
-  // carried the buyer's address on Purchase. The browser Pixel's own
-  // `fbq('init', pixelId, {...})` call used to stop at ph/fn/ln — a full
-  // match key server-side, a partial one client-side, for the same order.
+test("the buyer's match keys survive onto the one init fbevents actually honours", async () => {
+  // This is the bug this pair of scripts exists to prevent, and it shipped:
+  // MetaPixelBase initialised the pixel on `external_id` alone at page load, and
+  // MetaThanksTracker then called `fbq('init', pixelId, {ph, fn, ln, ct, st, zp,
+  // country})` a second time. fbevents ignores a repeat init, so every hash the
+  // tracker computed was discarded and Meta received a browser Purchase matched
+  // on one key while the CAPI leg for the same order carried seven. Both files
+  // typechecked, both had passing tests, and the pixel reported no error.
   const run = await runTracker(
     {
       success: true,
@@ -176,16 +278,27 @@ test("the browser Pixel's Purchase advanced-matching object hashes city, state, 
     },
   );
 
-  assert.equal(run.pixelInitCalls.length, 1, "the browser must re-init the Pixel exactly once for this Purchase");
-  const advancedMatching = run.pixelInitCalls[0];
+  assert.equal(
+    run.pixelInitCalls.length,
+    1,
+    "exactly one fbq('init') may reach fbevents — a second is silently dropped",
+  );
+  const advancedMatching = run.pixelUserData ?? {};
   for (const key of ["ph", "fn", "ln", "ct", "st", "zp", "country", "external_id"]) {
     assert.match(
       String(advancedMatching[key] ?? ""),
       /^[a-f0-9]{64}$/,
-      `advanced matching's ${key} must be a SHA-256 hex hash`,
+      `the pixel's advanced matching lost ${key} — a repeat init cannot add it back`,
     );
   }
-  assert.equal(advancedMatching.ph, advancedMatching.external_id);
+  // MetaPixelBase minted a first-party visitor ID for this page, so the buyer's
+  // advertiser identity is that, not their phone number. Collapsing the two
+  // would change `external_id` at checkout and split one visitor's funnel in
+  // half — the phone fallback exists only for a session that predates the cookie.
+  assert.notEqual(advancedMatching.ph, advancedMatching.external_id);
+  // `client_user_agent` is a Conversions API field. The live pixel stores it on
+  // `userData` without a censored-format entry, i.e. it is not a match key.
+  assert.equal(advancedMatching.client_user_agent, undefined);
 
   // The CAPI leg on the same Purchase must describe the same address, not a
   // different or narrower one.
@@ -194,6 +307,67 @@ test("the browser Pixel's Purchase advanced-matching object hashes city, state, 
   assert.equal(capiUserData.province, "DKI Jakarta");
   assert.equal(capiUserData.postal_code, "12430");
   assert.equal(capiUserData.country, "id");
+});
+
+test("every leg says Indonesia, in the case each platform asks for", async () => {
+  // `id` here is a country, not an identifier: ISO 3166-1 alpha-2 for Indonesia.
+  // Meta requires it lowercase ("use the lowercase, 2-letter country codes in
+  // ISO 3166-1 alpha-2", customer information parameters, re-verified
+  // 2026-08-28) and hashes it, so a full country name would produce a match key
+  // for nobody and nothing would report the mistake. Google's
+  // enhanced-conversions address wants the same country uppercase, unhashed.
+  const run = await runTracker(
+    {
+      success: true,
+      order_number: "INV-10042",
+      payment_status: "unpaid",
+      payment_method: "cod",
+      is_paid: false,
+      total_amount: 189_000,
+    },
+    { city: "Jakarta Selatan", province: "DKI Jakarta", postal_code: "12430" },
+  );
+
+  // Browser Pixel: SHA-256 of the lowercase alpha-2 code.
+  assert.equal(run.pixelUserData?.country, await sha256Hex("id"));
+  assert.notEqual(run.pixelUserData?.country, await sha256Hex("indonesia"));
+  // Server CAPI: the same lowercase code, hashed server-side by meta-capi.ts.
+  assert.equal(
+    (run.postedPayloads[0].user_data as Record<string, unknown>).country,
+    "id",
+  );
+  // Google enhanced conversions: same country, uppercase, unhashed.
+  assert.match(
+    TRACKER_SOURCE,
+    /country:\s*'ID',/,
+    "Google's address country must be the uppercase alpha-2 code",
+  );
+});
+
+test("the confirmation page pulls the deferred pixel library forward instead of queueing behind its timer", async () => {
+  // fbevents is deferred to first interaction or 2.5 s, measured at 2.7–3.2 s on
+  // a live install. On /thanks the first interaction is the WhatsApp button, so
+  // a Purchase queued in the fbq stub can lose the race with the buyer leaving.
+  // `__PS_LOAD_GOOGLE_TAG__` has always existed for exactly this reason; the
+  // Meta leg had no equivalent.
+  const run = await runTracker({
+    success: true,
+    order_number: "INV-10042",
+    payment_status: "unpaid",
+    payment_method: "cod",
+    is_paid: false,
+    total_amount: 189_000,
+  });
+
+  assert.ok(
+    run.pixelLoadPulledForward,
+    "MetaThanksTracker must call __PS_LOAD_META_PIXEL__ rather than wait on the 2.5 s timer",
+  );
+  assert.deepEqual(
+    run.trackedEvents,
+    ["PageView", "Purchase"],
+    "the deferred init must still emit PageView, and it must precede the Purchase",
+  );
 });
 
 test("Purchase keeps one stable first-party external_id across Pixel and CAPI", async () => {
@@ -211,10 +385,36 @@ test("Purchase keeps one stable first-party external_id across Pixel and CAPI", 
     `${META_EXTERNAL_ID_COOKIE}=${externalId}`,
   );
 
-  assert.equal(run.pixelInitCalls[0].external_id, await sha256Hex(externalId));
+  assert.equal(run.pixelUserData?.external_id, await sha256Hex(externalId));
   const capiUserData = run.postedPayloads[0].user_data as Record<string, unknown>;
   assert.equal(capiUserData.external_id, externalId);
-  assert.notEqual(run.pixelInitCalls[0].external_id, capiUserData.external_id);
+  assert.notEqual(run.pixelUserData?.external_id, capiUserData.external_id);
+});
+
+test("the duplicate guard is claimed only after both legs are dispatched", async () => {
+  const orderStatus = {
+    success: true,
+    order_number: "INV-10042",
+    payment_status: "unpaid",
+    payment_method: "cod",
+    is_paid: false,
+    total_amount: 189_000,
+  };
+
+  const run = await runTracker(orderStatus);
+  assert.deepEqual(
+    run.guardKeys.sort(),
+    ["meta_once_Purchase_INV-10042", "meta_once_Purchase_order_INV-10042"],
+    "both guards must be recorded once the Purchase has gone out",
+  );
+
+  // A browser that refuses the write — Safari private mode throws on
+  // localStorage.setItem — must still get its conversion out. The guard used to
+  // be written *before* the dispatch and was not wrapped, so the throw killed
+  // fire() ahead of both the Pixel and the CAPI post.
+  const hostile = await runTracker(orderStatus, {}, "", { localStorageThrows: true });
+  assert.equal(hostile.pixelEventIds.length, 1, "the Pixel Purchase must still fire");
+  assert.equal(hostile.postedPayloads.length, 1, "the CAPI Purchase must still be posted");
 });
 
 test("a Purchase without a resolvable order number emits nothing at all", async () => {

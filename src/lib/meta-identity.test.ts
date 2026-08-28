@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
-  buildMetaAdvancedMatching,
   metaNameParts,
   normalizeMetaText,
   sha256Hex,
@@ -142,65 +141,90 @@ test("the Pixel bootstrap mints and hashes one stable first-party external ID", 
   assert.equal(pageViewOptions?.eventID, windowStub.__META_PAGEVIEW_EVENT_ID__);
 });
 
-test("the browser Pixel's advanced-matching object hashes every field CAPI also hashes for the same event", async () => {
-  // This is the gap that motivated the shared builder: AddToCart and
-  // InitiateCheckout already send city/province/postal_code/country to the
-  // server CAPI leg on the same event (meta-event.ts -> sendMetaCapiEvent),
-  // but the browser Pixel's `fbq('init', pixelId, advancedMatching)` object
-  // read only phone and name. A field CAPI hashes and the Pixel drops means
-  // the two legs describe the same person with different keys.
-  const am = await buildMetaAdvancedMatching({
-    customer_name: "Siti Nur Aisyah",
-    customer_phone: "081234567890",
-    city: "Jakarta Selatan",
-    province: "DKI Jakarta",
-    postal_code: "12430",
-    country: "id",
-    external_id: "0123456789abcdef0123456789abcdef",
-  });
-  for (const key of ["ph", "fn", "ln", "ct", "st", "zp", "country", "external_id"] as const) {
-    assert.match(am[key] ?? "", /^[a-f0-9]{64}$/, `${key} must be a SHA-256 hex hash`);
-  }
-  assert.notEqual(am.ph, am.external_id);
-  assert.equal(
-    am.external_id,
-    await sha256Hex("0123456789abcdef0123456789abcdef"),
-  );
-});
+test("MetaPixelBase is the only file allowed to call fbq('init')", () => {
+  // fbevents honours `init` for a pixel id exactly once and silently ignores
+  // every later call. Three files used to call it — the pixel bootstrap, and
+  // then both checkout scripts and the thanks tracker behind it — so every
+  // advanced-matching object any of them built after page load was discarded.
+  // Nothing errored: the pixel kept firing events, matched on `external_id`
+  // alone, while the CAPI leg carried seven keys for the same person.
+  // Whole-line comments only: these files explain the rule in prose that quotes
+  // the very call being banned, and a stripper clever enough to also handle
+  // trailing comments would start eating `https://` out of string literals.
+  const withoutComments = (source: string) =>
+    source
+      .split("\n")
+      .filter((line) => !/^\s*(\/\/|\/?\*)/.test(line))
+      .join("\n");
 
-test("advanced matching omits a field entirely rather than hashing an empty string", async () => {
-  // AddToCart fires before an address is known; InitiateCheckout re-inits with
-  // the fuller object. A hash of "" is a match key for nobody and would still
-  // count toward Meta's parameter-coverage metric as if it mattered.
-  const am = await buildMetaAdvancedMatching({
-    customer_name: "Andi",
-    customer_phone: "081234567890",
-  });
-  assert.equal(am.ct, undefined);
-  assert.equal(am.st, undefined);
-  assert.equal(am.zp, undefined);
-  assert.equal(am.country, undefined);
-  assert.match(am.ph ?? "", /^[a-f0-9]{64}$/);
-  // Upgrading sessions without the first-party visitor cookie retain the
-  // historical phone-derived external_id until the next Pixel bootstrap.
-  assert.equal(am.external_id, am.ph);
-});
-
-test("the inline thanks tracker's browser Pixel leg hashes city, state, zip and country like the server CAPI leg does", () => {
-  // The CAPI leg (postMeta's user_data, further down this same file) has
-  // always sent ct/st/zp/country for Purchase. The browser Pixel's
-  // `fbq('init', pixelId, {...})` object used to stop at ph/fn/ln, so the two
-  // legs of one Purchase described the same person with different keys.
-  const initCall = THANKS_TRACKER.slice(
-    THANKS_TRACKER.indexOf("window.fbq('init', pixelId,"),
-    THANKS_TRACKER.indexOf("window.fbq('track', eventName, data"),
-  );
-  for (const key of ["ct:", "st:", "zp:", "country:"]) {
-    assert.ok(
-      initCall.includes(key),
-      `MetaThanksTracker.astro's browser Pixel init call is missing ${key}`,
+  const trackingSources = [
+    "src/components/storefront/tracking/MetaThanksTracker.astro",
+    "src/components/storefront/tracking/MetaLandingTracker.astro",
+    "src/components/storefront/tracking/MetaViewContentTracker.astro",
+    "src/components/storefront/tracking/MetaPageViewTracker.astro",
+    "src/scripts/form-hybrid.ts",
+    "src/scripts/form-middle.ts",
+  ];
+  for (const path of trackingSources) {
+    assert.doesNotMatch(
+      withoutComments(readFileSync(path, "utf8")),
+      /fbq\(\s*["']init["']/,
+      `${path} must hand advanced matching to __PS_META_INIT__, not re-init the pixel`,
     );
   }
+  const baseInits = withoutComments(PIXEL_BASE).match(/fbq\(\s*["']init["']/g) ?? [];
+  assert.equal(
+    baseInits.length,
+    2,
+    "MetaPixelBase owns the single init — one call with user data, one without",
+  );
+});
+
+test("the confirmation page's advanced matching reaches the pixel through the one init", () => {
+  // The CAPI leg (postMeta's user_data, further down MetaThanksTracker) has
+  // always sent ct/st/zp/country for Purchase. The browser Pixel must describe
+  // the same person with the same keys, and the only call fbevents honours is
+  // MetaPixelBase's — so the tracker contributes to it rather than repeating it.
+  const handover = THANKS_TRACKER.slice(
+    THANKS_TRACKER.indexOf("const advancedMatching = {"),
+    THANKS_TRACKER.indexOf("window.__PS_META_INIT__(advancedMatching)"),
+  );
+  assert.ok(handover, "MetaThanksTracker must build advanced matching for __PS_META_INIT__");
+  for (const key of ["ph:", "fn:", "ln:", "ct:", "st:", "zp:", "country:", "external_id:"]) {
+    assert.ok(
+      handover.includes(key),
+      `MetaThanksTracker.astro's advanced matching is missing ${key}`,
+    );
+  }
+  // A Conversions API field, not a Pixel match key: the live library stores it
+  // on `userData` with no censored-format entry, so it counts for nothing.
+  assert.doesNotMatch(
+    THANKS_TRACKER,
+    /client_user_agent/,
+    "client_user_agent belongs to the CAPI leg, which derives it server-side",
+  );
+  // `/thanks` is what makes the base wait for these hashes; without the flag the
+  // base initialises on external_id alone and the handover arrives too late.
+  assert.match(
+    readFileSync("src/pages/thanks.astro", "utf8"),
+    /__PS_META_AWAIT_MATCHING__\s*=\s*true/,
+    "thanks.astro must declare __PS_META_AWAIT_MATCHING__ before MetaPixelBase runs",
+  );
+});
+
+test("both ad libraries give a conversion a way past their deferral timer", () => {
+  // gtag.js and fbevents.js are both deferred to first interaction or 2.5 s.
+  // On /thanks the first interaction is the WhatsApp hand-off, so a conversion
+  // that waits for the timer can lose the race with the buyer leaving. The
+  // Google leg has had this escape hatch since its deferral shipped; the Meta
+  // leg did not, and its Purchase sat in the fbq queue.
+  assert.match(GOOGLE_ADS_BASE, /window\.__PS_LOAD_GOOGLE_TAG__\s*=\s*loadGtag/);
+  assert.match(PIXEL_BASE, /window\.__PS_LOAD_META_PIXEL__\s*=\s*loadPixel/);
+  assert.match(
+    THANKS_TRACKER,
+    /window\.__PS_LOAD_META_PIXEL__\(\)/,
+    "the confirmation page must pull fbevents forward instead of queueing behind its timer",
+  );
 });
 
 test("Google enhanced conversions call `set` before `event`, not a nested user_data param", () => {

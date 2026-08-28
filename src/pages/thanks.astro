@@ -45,6 +45,12 @@ const productCatalog = products.map((item) => ({
     if (window.location.search) {
       window.history.replaceState(null, '', `${window.location.pathname}${window.location.hash}`);
     }
+    // BaseLayout renders this slot before MetaPixelBase, which is the only
+    // window in which this can be declared. fbevents honours `fbq('init')`
+    // once, so the confirmation page — the one page that already knows the
+    // buyer — makes the base wait for `MetaThanksTracker`'s hashes rather than
+    // initialising on `external_id` alone and discarding them.
+    window.__PS_META_AWAIT_MATCHING__ = true;
   </script>
   <main id="thanks-shell" hidden class="min-h-screen bg-white py-4 font-sans text-[14px] text-[#111111] antialiased sm:py-8">
     <MetaThanksTracker tenantName={Astro.locals.tenant.name} tenantSlug={Astro.locals.tenant.slug} />

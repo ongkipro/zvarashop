@@ -1,6 +1,6 @@
 # AdsBookCMS Meta Pixel, CAPI, GTM, and Google Ads Specification
 
-> Verified against disk: 2026-08-27 @ `3bb51a3` + payment-recovery working tree
+> Verified against disk: 2026-08-28 @ `aea1a7b` + meta-browser-purchase-matching working tree
 
 This document owns the technical tracking contract for AdsBookCMS-rendered and headless storefronts. It covers event semantics, identity, browser/server boundaries, deduplication, durable delivery, store configuration, and verification. It does not claim attribution certainty, legal compliance, consent applicability, or live provider acceptance.
 
@@ -30,7 +30,7 @@ A headless storefront may use a different framework and design, but it must not 
 
 ### Implemented in AdsBookCMS-rendered routes
 
-- `MetaPixelBase.astro` resolves a valid Pixel ID from D1 with environment fallback.
+- `MetaPixelBase.astro` resolves a valid Pixel ID from D1 with environment fallback, and owns the **single** `fbq('init')` (§4a) plus `window.__PS_LOAD_META_PIXEL__`.
 - `GtmBase.astro` resolves and validates the GTM container ID.
 - `GoogleAdsBase.astro` resolves a complete Google Ads conversion ID/label pair, emits the region-scoped Consent Mode v2 defaults (§10), and exposes `window.__PS_PUSH_GOOGLE_CONVERSION__`.
 - Page, product, landing, and thanks trackers emit the supported browser events.
@@ -92,22 +92,88 @@ Security rules:
 
 `src/lib/meta-event-contract.ts` accepts exactly these five names. The repository does not map every interaction to `Lead` or `Purchase`. Analytics UI events must remain separate from optimization events.
 
+## 4a. One `fbq('init')` per page, and who owns it
+
+`fbevents.js` honours `fbq('init', pixelId, advancedMatching)` for a given Pixel
+ID **exactly once** and silently ignores every later call. Verified against the
+live library on 2026-08-28: after a second
+`fbq('init', id, { ph, fn, ct })`, `fbq.instance.pixelsByID[id].userData` still
+held only the `{ external_id }` the first init had set.
+
+Consequences, which are contract rather than style:
+
+- `MetaPixelBase.astro` is the **only** file permitted to call `fbq('init')`.
+  `meta-identity.test.ts` fails if any other tracking source calls it.
+- A page that knows the visitor's identity at bootstrap time declares
+  `window.__PS_META_AWAIT_MATCHING__ = true` **before** `MetaPixelBase` runs —
+  `BaseLayout` renders `<slot name="head" />` ahead of it, which is the only
+  window in which that is possible — and then calls
+  `window.__PS_META_INIT__(advancedMatching)` once its SHA-256 hashes are ready.
+  `/thanks` is currently the only such page. A 1500 ms timer in the base is the
+  backstop, so a tracker that bails out (no order state, `?preview=1`) still
+  costs nothing but its advanced matching.
+- Identity discovered **after** bootstrap cannot reach the browser leg at all.
+  The checkout forms therefore send late identity to the CAPI leg only, under
+  the same `event_id`; they no longer re-init the Pixel.
+
+Until 2026-08-28 three files called `init` behind the bootstrap —
+`MetaThanksTracker.astro`, `form-hybrid.ts` and `form-middle.ts`. Every
+advanced-matching object they built was discarded, so a browser `Purchase` was
+matched on `external_id` alone while the CAPI leg for the same order carried
+`ph`, `fn`, `ln`, `ct`, `st`, `zp`, `country` and `external_id`. Nothing errored;
+the Pixel kept firing and reported no problem.
+
+`client_user_agent` was also being sent in that object. It is a Conversions API
+field, not a Pixel match key: the live library stores it on `userData` with no
+`censoredUserDataFormat` entry, i.e. it counts for nothing. The CAPI leg derives
+the user agent at the request boundary (§ "Request-derived context").
+
+### The conversion never waits on the deferral timer
+
+`fbevents.js` is deferred to first interaction or 2500 ms. On `/thanks` the
+first interaction is the WhatsApp hand-off, so a `Purchase` queued in the `fbq`
+stub can lose the race with the buyer leaving. `MetaPixelBase.astro` therefore
+exposes `window.__PS_LOAD_META_PIXEL__`, which `MetaThanksTracker.astro` calls
+as soon as it knows it is on a confirmation page — the same escape hatch
+`__PS_LOAD_GOOGLE_TAG__` has always provided for the Google leg (§10). Measured
+on the real library: the request moved from 2522 ms to 45 ms.
+
 ## 5. Product Catalog Identity
 
-Every product event carries the **catalog item id** in `content_ids`:
-`p{product_id}-v{variant_id}`, for example `p1-v11`. That is the same string the
-Google and Meta feeds publish as `<g:id>`, and it has to be byte-identical or
-Advantage+ and Dynamic Product Ads match nothing — silently, with no error and no
-diagnostic anywhere.
+Every product event carries the **catalog item id** in `content_ids`: the
+immutable D1 Product ID as a bare decimal string with no leading zero and at
+least five digits, for example `78981`. That is the same string the Google and
+Meta feeds publish as `<g:id>`, and it has to be byte-identical or Advantage+ and
+Dynamic Product Ads match nothing — silently, with no error and no diagnostic
+anywhere.
 
-The catalog is variant-level, so the id names a variant, not a product. Where no
-variant has been chosen (a product page, a landing page), the event carries the
-**first** variant's id. Where one has (AddToCart, InitiateCheckout, Purchase), it
-carries the chosen one. `p{product_id}` alone is the `item_group_id` and is never
-sent as a `content_ids` value.
+**The catalog is product-level.** One catalog item per product; a variant is a
+checkout choice and never a separate catalog identity. `ViewContent`,
+`AddToCart`, `InitiateCheckout` and both Purchase legs therefore all send the
+same product id, whether or not a variant has been picked. The variant id stays
+on the order for fulfilment and reporting and is never folded into `content_ids`.
 
-Until 2026-08-17 this said the bare D1 `products.id` — which is what the Pixel
-actually sent, while the feed published `10000 + id`. Nothing matched.
+`catalogProductId()` in `src/lib/catalog-feed.ts` is the single implementation,
+and it **fails closed**: an id that is not `^[1-9]\d{4,15}$` throws rather than
+being padded into a value that is no longer the real Product ID.
+`catalog-identity.test.ts` asserts the invariant by checking the feed output
+against what the trackers send — the two halves against each other, never each
+against its own fixture, because separate fixtures are exactly how three
+different values passed CI once before.
+
+Two corrections are worth remembering, because both were invisible while live:
+
+- Until 2026-08-17 the Pixel sent the bare row id (`1`) while both feeds
+  published `10000 + id` (`10001`) and the admin screen showed the operator
+  `10001`. Three values for one product, every test green, catalog retargeting
+  dead.
+- Until 2026-08-28 **this section** described a variant-level scheme,
+  `p{product_id}-v{variant_id}` with `p{product_id}` as an `item_group_id`. No
+  such string has ever been published or sent. Per `AGENTS.md` §1 the tree wins;
+  the document was the bug. Do not reintroduce that scheme casually — an id that
+  a feed has already published can never be changed without orphaning the
+  catalog's history, so moving to a variant-level grain is a catalog
+  re-creation, not an edit.
 
 - D1 product ID: tracking and external catalog identity.
 - D1 variant ID: order selection identity when variant detail is needed.
@@ -127,8 +193,18 @@ A funnel event and a Purchase event must not reuse one ID.
 2. Return and preserve that ID with the persisted order state.
 3. Browser Pixel Purchase and server CAPI Purchase use the identical string.
 4. The thanks flow applies both browser guards:
-   - `once('Purchase_' + purchaseEventId)`;
-   - `once('Purchase_order_' + orderId)`.
+   - `Purchase_' + purchaseEventId`;
+   - `Purchase_order_' + orderId`.
+
+   Each is **read** before the event is dispatched and **written** only after
+   both legs have gone out. Until 2026-08-28 a single `once()` did both at the
+   moment the tracker decided to fire, so a page that died inside the pixel's
+   2.5 s deferral — or a browser that threw on the `localStorage` write, as
+   Safari private mode does — kept the claim and lost the conversion on both
+   legs, permanently. Retrying is safe because Meta deduplicates on `event_id`
+   and `capi_event_outbox.event_id` is `UNIQUE`; losing a conversion is not.
+   Both storage calls are now wrapped, so a refused write costs the guard, never
+   the Purchase.
 5. Refresh, revisit, duplicate callback, or repeated polling must not create another Purchase for the same qualifying order.
 6. A new valid order receives a new Purchase event ID.
 
@@ -371,7 +447,7 @@ Consequences to keep in mind:
 1. Every conversion payload includes `transaction_id` set to the persisted **order number**, not a numeric row ID.
 2. Order numbers come from `src/lib/order-persistence.ts` and use `` `INV-${10000 + id}` `` for completed orders — e.g. order row `1` is `INV-10001`. Abandoned/partial leads use `` `ABN-${10000 + id}` `` and are converted to the `INV-` form when the order completes. No order number is ever minted with an `ORD-` prefix. The string appears three times as operator-facing example copy in `src/pages/admin/ads/meta.astro` and `google.astro`; it is not produced by `order-persistence.ts`.
 3. Browser/direct-tag and Google Ads API conversions may share the same `INV-` order identity, but they must target separately owned conversion actions. Account configuration decides which action is Primary; `transaction_id` does not make dual Primary actions safe.
-4. Refreshing `/thanks` or revisiting the confirmation URL does not re-trigger the conversion, thanks to the `once('Purchase_order_' + orderId)` local guard.
+4. Refreshing `/thanks` or revisiting the confirmation URL does not re-trigger a conversion that already went out, thanks to the `Purchase_order_<orderId>` local guard — which is read before dispatch and written after it (§6), so a revisit after an interrupted attempt recovers the Purchase instead of burying it.
 
 ### Smart Bidding signals
 
