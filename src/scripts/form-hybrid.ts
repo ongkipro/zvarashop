@@ -1907,7 +1907,7 @@ function initHybridOrderFormInstance(formRoot: HTMLElement) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          submit_token: `${submitToken}_${eventId}`,
+          submit_token: submitToken,
           website: String(fd.get("contact_url_confirm") || ""),
           customer_name: customerName,
           seller_bank_account_id:

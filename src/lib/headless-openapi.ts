@@ -165,9 +165,10 @@ export const headlessOpenApiDocument = {
           content: { "application/json": { schema: { $ref: "#/components/schemas/CheckoutRequest" } } },
         },
         responses: {
+          "200": { description: "Canonical order returned for an exact checkout replay", content: { "application/json": { schema: { $ref: "#/components/schemas/CheckoutEnvelope" } } } },
           "201": { description: "Order created", content: { "application/json": { schema: { $ref: "#/components/schemas/CheckoutEnvelope" } } } },
           "400": errorResponse("Request JSON is invalid"),
-          "409": errorResponse("Submission token was already used"),
+          "409": errorResponse("Submission token conflicted without a canonical order"),
           "422": errorResponse("Checkout input or shipping selection is invalid"),
           "500": errorResponse("Checkout failed"),
           ...authenticatedErrors,
@@ -512,7 +513,7 @@ export const headlessOpenApiDocument = {
       },
       CheckoutOrder: {
         type: "object",
-        required: ["id", "order_number", "public_status_token", "total_amount", "unit_price", "cod_service_fee", "cod_service_fee_vat", "cod_fee_bearer"],
+        required: ["id", "order_number", "public_status_token", "total_amount", "unit_price", "cod_service_fee", "cod_service_fee_vat", "cod_fee_bearer", "deduplicated"],
         properties: {
           id: { type: ["integer", "string"] },
           order_number: { type: "string" },
@@ -525,6 +526,7 @@ export const headlessOpenApiDocument = {
           seller_bank_name: { type: ["string", "null"] },
           seller_account_holder: { type: ["string", "null"] },
           seller_account_number: { type: ["string", "null"] },
+          deduplicated: { type: "boolean" },
         },
       },
       CheckoutEnvelope: {

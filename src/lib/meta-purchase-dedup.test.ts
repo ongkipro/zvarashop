@@ -461,6 +461,16 @@ test("no checkout form mints a random Purchase event_id any more", () => {
       `${script} must not carry a browser-minted purchase_event_id into thanks state`,
     );
   }
+  const hybrid = readFileSync(
+    new URL("../scripts/form-hybrid.ts", import.meta.url),
+    "utf8",
+  );
+  assert.match(hybrid, /submit_token:\s*submitToken/);
+  assert.doesNotMatch(
+    hybrid,
+    /submit_token:\s*`\$\{submitToken\}_\$\{eventId\}`/,
+    "a funnel event id must not turn a retry into a new order identity",
+  );
 });
 
 test("embed parent surfaces never emit Purchase before verified thanks", () => {

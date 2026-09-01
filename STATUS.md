@@ -1,6 +1,6 @@
 # STATUS — ZvaraShop
 
-> Verified against disk: 2026-09-01 @ `e6b9fbe` + standalone/ad-signals working tree
+> Verified against disk: 2026-09-01 @ `a99e7eb` + order/Purchase dedupe working tree
 
 ## Repository authority
 
@@ -56,12 +56,16 @@ The current audit hardens ad signals and repository ownership:
   preserve the original event time and prioritize Purchase delivery.
 - `ZvaraShop` is the public/repository identity. Stable AdsBook compatibility
   identifiers remain intentionally unchanged.
+- Exact checkout replays within two hours now resolve to one D1-owned canonical
+  order even when the browser supplies different submit tokens. Notification,
+  receiver scoring, payment creation, Pixel Purchase, and CAPI Purchase all
+  reuse that order; expired or terminal claims permit a genuine later reorder.
 
 Final local evidence after the last source edit:
 
-- version candidate `1.5.0`, schema `53`, migrations `0000`–`0052`;
-- `npm test`: 625 total, 624 passed, 1 skipped, 0 failed;
-- `npm run check`: 430 files, 0 errors, warnings, or hints;
+- version candidate `1.5.0`, schema `54`, migrations `0000`–`0053`;
+- `npm test`: 628 total, 627 passed, 1 skipped, 0 failed;
+- `npm run check`: 412 files, 0 errors, warnings, or hints;
 - `npm run build`: passed with only expected missing-local-secret warnings;
 - `npm run docs:check`: 29 Markdown files and all local links passed;
 - a fresh local D1 applied all 53 migrations successfully;
@@ -70,6 +74,10 @@ Final local evidence after the last source edit:
   WhatsApp confirmation button to the stored support number. Its message came
   from the CMS `redirect` template and carried the order number, buyer name,
   product, and total; page-level horizontal overflow was zero.
+- The same `/thanks` run emitted one Pixel Purchase with `eventID` equal to the
+  canonical order number, catalog Product ID in `content_ids`, and the order
+  value/currency; GTM used the same `transaction_id`. Reload emitted neither a
+  second Pixel nor a second GTM Purchase.
 - deployment preflight correctly refused the untracked feature branch and dirty
   working tree; no release was attempted.
 
@@ -87,3 +95,5 @@ but rendered authenticated behavior remains a release gate.
 - `theme_color`, `locale`, and `admin_name` remain stored but have no admin
   editor.
 - Production release is not automatic and is not authorized by this document.
+- The checkout fingerprint blocks exact replays, not fraud where an attacker
+  materially changes buyer, address, item, shipping, or payment identity.

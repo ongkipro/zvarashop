@@ -325,17 +325,20 @@ export const POST: APIRoute = async ({ request, locals }) => {
         );
       }
     }
-    scheduleReceiverPerformanceRefresh(
-      database,
-      order.orderNumber,
-      customerPhone,
-      locals,
-    );
+    if (order.created) {
+      scheduleReceiverPerformanceRefresh(
+        database,
+        order.orderNumber,
+        customerPhone,
+        locals,
+      );
+    }
     const paymentStatus =
       data.payment_method === "cod" ? "unpaid" : payment?.status || "pending";
     const paymentUrl = payment?.providerPaymentUrl || "";
     return json({
       success: true,
+      deduplicated: !order.created,
       order: {
         id: order.id,
         order_id: order.orderNumber,

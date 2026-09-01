@@ -112,9 +112,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
           seller_bank_name: order.sellerBankName,
           seller_account_holder: order.sellerAccountHolder,
           seller_account_number: order.sellerAccountNumber,
+          deduplicated: !order.created,
         },
       },
-      201,
+      order.created ? 201 : 200,
       validation.corsHeaders
     ));
   } catch (error) {

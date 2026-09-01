@@ -1,10 +1,29 @@
 # BUILD LOG: ZvaraShop
 
-> Verified against disk: 2026-09-01 @ `e6b9fbe` + standalone/ad-signals working tree
+> Verified against disk: 2026-09-01 @ `a99e7eb` + order/Purchase dedupe working tree
 
 Author & Curator: **[ongki.pro](https://ongki.pro)**
 
 ---
+
+## 2026-09-01 — Canonical checkout replay and Purchase protection
+
+- Added forward migration `0053_checkout_order_deduplication.sql`: one active,
+  server-derived checkout fingerprint has one D1 owner during a two-hour replay
+  window. A terminal or expired owner releases the identity for a genuine later
+  reorder.
+- Normal, middle/hybrid, and Headless checkout return the canonical order across
+  changing submit tokens. Only the creator records the notification and receiver
+  score; online payment reuses its existing unique order transaction.
+- COD remains `Purchase`. Thanks-page Pixel, GTM, and CAPI continue to share the
+  canonical order number as event/transaction identity and use D1 Product IDs,
+  order value, currency, and retained advanced-matching context.
+- Evidence: sequential and concurrent replay coverage, 628 tests (627 passed,
+  one intentional skip), 412 files with zero diagnostics, successful build,
+  29-document link validation, all 54 migrations on a fresh local D1, and a
+  390 × 844 `/thanks` inspection proving one Pixel/GTM Purchase plus reload
+  suppression. No live provider call, remote mutation, deploy, commit, or push.
+
 
 ## Provenance — read before citing any entry
 

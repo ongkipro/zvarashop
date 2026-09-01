@@ -198,12 +198,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
       adClickIds: storedClickIds,
       metaRequestContext,
     });
-    scheduleReceiverPerformanceRefresh(
-      database,
-      order.orderNumber,
-      customerPhone,
-      locals,
-    );
+    if (order.created) {
+      scheduleReceiverPerformanceRefresh(
+        database,
+        order.orderNumber,
+        customerPhone,
+        locals,
+      );
+    }
     const data = {
       id: order.id,
       order_id: order.orderNumber,
@@ -228,6 +230,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     };
     return json({
       success: true,
+      deduplicated: !order.created,
       data: { order: data, ...data },
       order: data,
       ...data,

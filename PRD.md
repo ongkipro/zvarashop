@@ -1,6 +1,21 @@
 # PRD — ZvaraShop
 
-> Verified against disk: 2026-09-01 @ `e6b9fbe` + standalone/ad-signals working tree
+> Verified against disk: 2026-09-01 @ `a99e7eb` + order/Purchase dedupe working tree
+
+## A24 — Canonical checkout replay
+
+**Status:** Accepted 2026-09-01.
+
+- **REQ-177** — Exact repeats of one validated checkout within two hours shall
+  resolve to one canonical order even when form mode, retry timing, or browser
+  code supplies different submit tokens. The database shall enforce the claim
+  under concurrent writes.
+- **REQ-178** — A canonical replay shall not repeat order notifications,
+  receiver scoring, conversion identity, or a second live payment instruction
+  for an order that already has one. COD remains a qualified `Purchase`;
+  browser Pixel and server CAPI continue to share the canonical `INV-` order
+  number, while a later order after expiry or terminal state receives a new
+  order and event ID.
 
 ## A23 — Standalone repository authority
 

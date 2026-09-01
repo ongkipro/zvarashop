@@ -11,9 +11,9 @@ export const CMS_VERSION: CmsVersionInfo = {
   version: "1.5.0",
   channel: "production",
   // Standalone ZvaraShop release candidate: repository authority, hardened
-  // Meta/Google delivery, and delayed-Purchase request context in migration 0052.
+  // Meta/Google delivery, delayed-Purchase context, and order replay dedupe.
   releaseTag: "2026.09-standalone-signals",
   coreEngine: "Astro 7 SSR + Cloudflare Workers",
-  schemaVersion: 53,
+  schemaVersion: 54,
   lastUpdated: "2026-09-01",
 };

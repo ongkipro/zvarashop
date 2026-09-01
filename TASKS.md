@@ -1,6 +1,24 @@
 # Tasks: ZvaraShop
 
-> Verified against disk: 2026-09-01 @ `e6b9fbe` + standalone/ad-signals working tree
+> Verified against disk: 2026-09-01 @ `a99e7eb` + order/Purchase dedupe working tree
+
+## A28 — Canonical checkout replay
+
+- [x] **A-180** — Collapse repeated checkout submissions before they become
+  duplicate orders or duplicate Purchase signals.
+      -> REQ: REQ-177, REQ-178 · Done when: a forward migration gives one live
+      checkout fingerprint a unique D1 owner; normal, middle/hybrid, and
+      Headless paths return the canonical order across different submit tokens;
+      concurrent writes produce one order and notification; the payment path
+      reuses its unique live transaction and scoring runs only for the creator;
+      the replay window permits a later
+      genuine reorder; COD remains Purchase; Pixel/CAPI use the same canonical
+      order number; focused/full tests, check, build, docs validation, and local
+      browser evidence pass after the final edit.
+      -> Evidence: migration `0053`, sequential and concurrent replay tests,
+      628-test full suite, clean 412-file check, successful build, 29-document
+      link validation, fresh 54-migration D1, and mobile `/thanks` Pixel/GTM
+      inspection using the canonical order number.
 
 ## A27 — Standalone repository and ad-signal hardening
 
