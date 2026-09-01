@@ -8,18 +8,12 @@ export type CmsVersionInfo = {
 };
 
 export const CMS_VERSION: CmsVersionInfo = {
-  version: "1.4.1",
+  version: "1.5.0",
   channel: "production",
-  // Product 1.4.0 plus this install's own tracking and release work: the Meta
-  // browser Purchase carries all eight advanced-matching keys instead of
-  // `external_id` alone, the pixel no longer waits on its 2.5 s deferral timer
-  // to send a conversion, a synthetic payment-provider address stops being
-  // hashed into `em`, and a deploy whose tree is behind the branch is refused.
-  // The operator's sidebar reads this: leaving it at 1.4.0 would have told them
-  // they were running stock when they were not.
-  releaseTag: "2026.08-meta-purchase-matching",
+  // Standalone ZvaraShop release candidate: repository authority, hardened
+  // Meta/Google delivery, and delayed-Purchase request context in migration 0052.
+  releaseTag: "2026.09-standalone-signals",
   coreEngine: "Astro 7 SSR + Cloudflare Workers",
-  // Unchanged: this release adds no migration.
-  schemaVersion: 51,
-  lastUpdated: "2026-08-28",
+  schemaVersion: 53,
+  lastUpdated: "2026-09-01",
 };

@@ -1,10 +1,26 @@
-# PRD — AdsBookCMS (single)
+# PRD — ZvaraShop
 
-> Verified against disk: 2026-08-27 @ `679f577` + stock-unlimited working tree
+> Verified against disk: 2026-09-01 @ `e6b9fbe` + standalone/ad-signals working tree
+
+## A23 — Standalone repository authority
+
+**Status:** Accepted 2026-09-01 per ADR-024.
+
+- **REQ-173** — ZvaraShop shall own one coherent application, schema,
+  configuration, asset, document, and release history in this repository.
+- **REQ-174** — External repositories may be reference inputs only; no sync may
+  replace tracked source, migrations, docs, config, or merchant assets.
+- **REQ-175** — CI shall verify docs, tests, types, and build without deploying;
+  remote D1 and Worker deploy remain explicit production actions.
+- **REQ-176** — Live compatibility identifiers shall remain stable unless a
+  separately approved forward migration provides a safe transition.
+
+The older A22 product/install update model is retained below as historical
+lineage and is superseded for ZvaraShop by this section and ADR-024.
 
 ## A22 — Release-driven updates for isolated installs
 
-**Status:** Accepted, **revised 2026-08-23 per ADR-020** — updates are
+**Status:** Superseded for ZvaraShop by ADR-024. Previously accepted and revised 2026-08-23 per ADR-020 — updates were
 distributed by manual copy, not a fleet engine. Security gate A-151 is done; the
 engine requirements (REQ-165/166/168/169/171) are withdrawn as YAGNI. Pre-
 remediation evidence is in `docs/AUDIT-2026-08-23.md`; open execution is owned by
@@ -200,7 +216,7 @@ remediation evidence is in `docs/AUDIT-2026-08-23.md`; open execution is owned b
 
 ## 0. About this document
 
-AdsBookCMS is a direct-response commerce CMS that installs onto Cloudflare Workers. **One installer run produces one Worker, one database, one store.**
+ZvaraShop is a standalone direct-response commerce store and CMS on Cloudflare Workers. **This repository produces one Worker, one database, and one store.**
 
 The previous version of this document specified a multi-tenant engine with a provisioning installer, a tenant registry, and fleet deployment — none of which exists in this repository. It also defined three requirement IDs twice with different text, and mandated behaviour (`admin`/`admin` login) that the code was deliberately hardened against.
 
@@ -217,7 +233,7 @@ Each requirement carries a status:
 
 ## 1. Product definition
 
-AdsBookCMS gives one merchant a complete direct-response storefront: catalog, landing pages, checkout with cash-on-delivery and online payment, order and shipping operations against an Indonesian 3PL aggregator, ad-signal tracking for Meta and Google, and an admin dashboard — deployed as a single Cloudflare Worker the merchant owns.
+ZvaraShop gives one merchant a complete direct-response storefront: catalog, landing pages, checkout with cash-on-delivery and online payment, order and shipping operations against an Indonesian 3PL aggregator, ad-signal tracking for Meta and Google, and an admin dashboard — deployed as a single Cloudflare Worker the merchant owns.
 
 **Goals**
 1. A merchant can install, configure, and operate a store without a developer after the first deploy.
@@ -341,7 +357,7 @@ remain separate correctness work.
 
 | ID | Requirement | Status |
 | --- | --- | --- |
-| REQ-60 | Admin access shall require a signed session validated against both KV and the credential record, with credential rotation invalidating existing sessions. | Implemented |
+| REQ-60 | Admin access shall require a signed session validated against the D1 `admin_sessions` and credential records, with credential rotation invalidating existing sessions. | Implemented — KV is cache-only per ADR-021 |
 | REQ-61 | Admin routes shall be authorised per role, and unsafe admin API methods shall require same-origin. | Implemented |
 | REQ-62 | The admin shall provide catalog CRUD, order management and detail, shipping operations, expedition configuration, payment and reconciliation views, ad configuration, store/warehouse/CRM settings, operator management, and developer API keys. | Implemented |
 | REQ-63 | The content workbench shall support manual drafting and AI-assisted generation from live catalog facts, with publication always explicit. | Implemented |
@@ -372,7 +388,7 @@ remain separate correctness work.
 
 | ID | Requirement | Status |
 | --- | --- | --- |
-| REQ-80 | Merging to the release branch shall deploy production, and this shall be documented as the release action rather than contradicted. | Implemented **in an install repository**. Not true of this one: the product repository deploys nothing and holds no Cloudflare credentials (ADR-012, `RELEASE.md` §1) |
+| REQ-80 | Production deployment shall be an explicit operator action after local verification; CI and branch merges shall not deploy or hold Cloudflare credentials. | Implemented for the standalone repository per ADR-024 and `RELEASE.md` |
 | REQ-81 | Schema upgrades shall be forward-only, validated against the bundled chain, and applied atomically by the Worker before database-backed requests; operators may run the same migrations explicitly as a pre-deploy check. | Implemented 2026-08-17 |
 | REQ-82 | The system shall emit structured, labelled logs retained by Workers Logs, and shall send deduplicated firing and recovery notifications for actionable schema and CAPI outbox failures when an operator configures an HTTPS webhook. | Implemented 2026-08-17 |
 | REQ-83 | An install shall report its version and applied schema version so an operator can determine what a given deployment is running. | Implemented — `src/pages/api/admin/health.ts`, role-gated, reporting version and applied schema version; surfaced on the dashboard |

@@ -150,8 +150,22 @@ async function runTracker(
     throw new Error(`unexpected request: ${input}`);
   };
 
+  const cookies = new Map<string, string>();
+  for (const part of documentCookie.split(";")) {
+    const pair = part.trim();
+    if (!pair) continue;
+    const separator = pair.indexOf("=");
+    if (separator > 0) cookies.set(pair.slice(0, separator), pair.slice(separator + 1));
+  }
   const documentStub = {
-    cookie: documentCookie,
+    get cookie() {
+      return [...cookies].map(([name, value]) => `${name}=${value}`).join("; ");
+    },
+    set cookie(value: string) {
+      const [pair] = value.split(";");
+      const separator = pair.indexOf("=");
+      cookies.set(pair.slice(0, separator), pair.slice(separator + 1));
+    },
     createElement: () => ({}),
     head: { appendChild: () => undefined },
   };

@@ -5,8 +5,12 @@ import { validateMetaEventPayload } from '../../lib/meta-event-contract';
 import { getRuntimeEnv } from '../../lib/env';
 import { toE164Digits } from '../../lib/meta-capi';
 import { isSyntheticBuyerEmail } from '../../lib/meta-identity';
-import { getClientIp } from '../../lib/rate-limit';
+import { checkRateLimit, getClientIp, rateLimitHeaders } from '../../lib/rate-limit';
 import { readMetaBrowserIds } from '../../lib/click-ids';
+import {
+  findPurchaseOrderByStatusToken,
+  type MetaPurchaseOrder,
+} from '../../lib/meta-purchase-order';
 
 export const prerender = false;
 
@@ -15,19 +19,6 @@ const json = (body: Record<string, unknown>, status: number) =>
     status,
     headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
   });
-
-type PurchaseOrderRow = {
-  order_number: string;
-  customer_name: string;
-  customer_phone: string;
-  customer_email: string | null;
-  province: string;
-  city: string;
-  postal_code: string | null;
-  total_amount: number;
-  /** Variant price x quantity, summed from order_items. See the Purchase value. */
-  product_value: number;
-};
 
 type PurchaseReference = {
   orderLocator: string;
@@ -76,31 +67,34 @@ function getPurchaseReference(
   return orderLocator ? { orderLocator, statusToken: statusToken || undefined } : null;
 }
 
-async function findPurchaseOrder(
-  database: D1Database,
-  reference: PurchaseReference & { statusToken: string },
-): Promise<PurchaseOrderRow | null> {
-  return database
-    .prepare(
-      `SELECT
-         o.order_number, o.customer_name, o.customer_phone, o.customer_email,
-         o.province, o.city, o.postal_code, o.total_amount,
-         (
-           SELECT COALESCE(SUM(oi.unit_price * oi.quantity), 0)
-           FROM order_items oi
-           WHERE oi.order_id = o.id
-         ) AS product_value
-       FROM orders o
-       WHERE (CAST(o.id AS TEXT) = ? OR o.order_number = ?)
-         AND o.public_status_token = ?
-       LIMIT 1`,
-    )
-    .bind(reference.orderLocator, reference.orderLocator, reference.statusToken)
-    .first<PurchaseOrderRow>();
-}
-
 export const POST: APIRoute = async ({ request, locals }) => {
   try {
+    const database = getRuntimeEnv(locals)?.OMS_DB as D1Database | undefined;
+    const clientIp = getClientIp(request.headers);
+    const rateLimit = await checkRateLimit(
+      database,
+      `public-meta-event:${clientIp}`,
+      60,
+      60_000,
+    );
+    if (!rateLimit.allowed) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Terlalu banyak event. Coba lagi sebentar.',
+          code: 'RATE_LIMITED',
+        }),
+        {
+          status: 429,
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-store',
+            ...rateLimitHeaders(rateLimit.remaining, rateLimit.resetAt),
+          },
+        },
+      );
+    }
+
     const rawPayload = await request.json().catch(() => null);
     const validated = validateMetaEventPayload(rawPayload, request.url);
     if (validated.ok === false) return json({ success: false, error: validated.error }, 400);
@@ -113,12 +107,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
         202,
       );
     }
-    const database = getRuntimeEnv(locals)?.OMS_DB as D1Database | undefined;
     if (!database?.prepare) {
       return json({ success: false, error: 'Event store belum tersedia.' }, 503);
     }
 
-    let purchaseOrder: PurchaseOrderRow | null = null;
+    let purchaseOrder: MetaPurchaseOrder | null = null;
     let purchaseOrderNumber: string | undefined;
     if (payload.eventName === 'Purchase') {
       const reference = getPurchaseReference(rawPayload, payload.eventSourceUrl);
@@ -128,10 +121,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
           400,
         );
       }
-      purchaseOrder = await findPurchaseOrder(database, {
-        orderLocator: reference.orderLocator,
-        statusToken: reference.statusToken,
-      });
+      purchaseOrder = await findPurchaseOrderByStatusToken(
+        database,
+        reference.orderLocator,
+        reference.statusToken,
+      );
       if (!purchaseOrder) {
         return json({ success: false, error: 'Order Purchase tidak ditemukan atau token tidak valid.' }, 404);
       }
@@ -174,7 +168,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
           browserIds.externalId || purchaseExternalId || payload.externalId,
         fbp: payload.fbp || browserIds.fbp,
         fbc: payload.fbc || browserIds.fbc,
-        clientIp: getClientIp(request.headers),
+        clientIp,
         userAgent: request.headers.get('user-agent') || undefined,
       },
       customData: {

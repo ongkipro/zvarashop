@@ -42,7 +42,7 @@ test('Meta CAPI uses supported API version and forwards test event code', async 
       clientIp: '127.0.0.1',
       userAgent: 'test',
     },
-    { contentName: 'AdsBookCMS Meta CAPI connection test' },
+    { contentName: 'ZvaraShop Meta CAPI connection test' },
     '123456789',
     'test-token',
     'TEST12345',

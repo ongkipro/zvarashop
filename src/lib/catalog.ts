@@ -9,12 +9,12 @@ import {
   loadPublishedProductContent,
   mergeRuntimeProductContent,
 } from "./storefront-content.ts";
-import { catalogProductId } from "./catalog-feed.ts";
+import { catalogProductIdOrNull } from "./catalog-feed.ts";
 
 async function loadCatalogRows(database: D1Database) {
   const [products, variants] = await database.batch([
     database.prepare(`
-      SELECT id, title, slug, category, image_url, is_active, created_at
+      SELECT id, title, slug, category, brand, description, image_url, is_active, created_at
       FROM products
       ORDER BY created_at DESC, id DESC
     `),
@@ -40,7 +40,7 @@ async function loadLocalDevCatalogRows() {
     if (!dbPath) return { products: [], variants: [] };
     const db = new DatabaseSync(dbPath);
     const products = db.prepare(`
-      SELECT id, title, slug, category, image_url, is_active, created_at
+      SELECT id, title, slug, category, brand, description, image_url, is_active, created_at
       FROM products
       ORDER BY created_at DESC, id DESC
     `).all() as unknown as CatalogProductRow[];
@@ -92,6 +92,6 @@ export async function getStorefrontProduct(locals: App.Locals, key: string) {
       // Accepting it back keeps the documented list/detail round trip stable.
       // is the difference between a documented round trip and a 404 on the value
       // the API just returned.
-      catalogProductId(product.productId) === key,
+      catalogProductIdOrNull(product.productId) === key,
   );
 }

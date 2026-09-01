@@ -1055,7 +1055,7 @@ export function ProductCatalog({
               <span>Embed Checkout Form - {embedTarget?.title}</span>
             </DialogTitle>
             <DialogDescription>
-              Pilih alur dan varian awal. Snippet embed selalu menggunakan ID produk dan varian canonical dari AdsBookCMS.
+              Pilih alur dan varian awal. Snippet embed selalu menggunakan ID produk dan varian canonical dari ZvaraShop.
             </DialogDescription>
           </DialogHeader>
 
@@ -1118,7 +1118,7 @@ export function ProductCatalog({
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-950">
-                      AdsBookCMS Widget Snippet
+                      ZvaraShop Widget Snippet
                     </h3>
                     <Badge variant="default" className="bg-emerald-700 text-white font-bold text-[9px] uppercase">
                       Direkomendasikan
@@ -1128,7 +1128,7 @@ export function ProductCatalog({
                     type="button"
                     size="sm"
                     className="h-8 gap-1.5 bg-emerald-700 text-white hover:bg-emerald-800 text-xs"
-                    onClick={() => void copyText(widgetHtml, "AdsBookCMS Widget")}
+                    onClick={() => void copyText(widgetHtml, "ZvaraShop Widget")}
                   >
                     <Copy className="size-3.5" />
                     Salin Snippet
@@ -1141,7 +1141,7 @@ export function ProductCatalog({
                   value={widgetHtml}
                   readOnly
                   rows={6}
-                  aria-label="AdsBookCMS widget embed"
+                  aria-label="ZvaraShop widget embed"
                   className="mt-3 w-full resize-y rounded-lg border border-emerald-300 bg-white p-3 font-mono text-[11px] leading-5 text-slate-800 outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
                 />
               </section>

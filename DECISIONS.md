@@ -1,6 +1,6 @@
-# Architecture Decision Record — AdsBookCMS
+# Architecture Decision Record — ZvaraShop
 
-> Verified against disk: 2026-08-27 @ `679f577` + stock-unlimited working tree
+> Verified against disk: 2026-09-01 @ `e6b9fbe` + standalone/ad-signals working tree
 
 Append-only. One decision per entry. A decision is recorded here only when it constrains future work; implementation detail belongs in `ARCHITECTURE.md`, remaining work in `UNIMPLEMENTED_SPECS.md`.
 
@@ -711,3 +711,36 @@ rules disagreeing about one column. *Setting every counter to `NULL` to mean
 but as **unpublished** in the read path, which is the bug in the first place;
 making the representation carry the meaning would have left that trap in place
 for whoever typed a number next.
+
+## ADR-024 — ZvaraShop is a standalone repository
+
+**Date:** 2026-09-01 · **Status:** Accepted. Supersedes ADR-020 for this repository.
+
+**Context.** ZvaraShop began as an AdsBookCMS installation, but it now owns a
+live store's configuration, merchant experience, schema history, assets, and
+release evidence. The replacement-style `sync-from-product.sh` deleted `src/`
+and `docs/`, copied a foreign tree, merged public assets, and could overwrite
+repository-owned release truth. It also made local migration ownership unsafe:
+another store already used migration number `0051` for a different schema
+change than AdsBookCMS, while runtime validation correctly treats filename
+history as exact. “Base product plus install” was no longer one coherent source
+of truth.
+
+**Decision.** `ongkipro/zvarashop` is the only source and release repository for
+ZvaraShop. All tracked paths—including `wrangler.jsonc`, migrations, merchant
+assets, docs, and CI—are owned here. AdsBookCMS and other stores may be studied
+as references, but changes are ported as ordinary reviewed commits with local
+tests and the next valid ZvaraShop migration. Blind sync/tree replacement is
+retired and its script fails closed. CI verifies and never deploys; production
+still requires explicit operator approval.
+
+Existing `adsbook_*` compatibility identifiers are not renamed. Cookie names,
+API-key prefixes, database columns, event labels, and migration history are
+runtime contracts, not branding. The public/repository identity is ZvaraShop;
+the compatible internals remain stable until a separately justified migration.
+
+**Consequences.** Product/install path ownership and fleet-update documents no
+longer govern this repo. Bugs fixed elsewhere do not arrive automatically; the
+cost is deliberate review, and the benefit is one code/schema/document truth
+with no foreign merchant or migration state crossing the boundary. The former
+`product` Git remote may remain fetch-only for comparison but has no authority.

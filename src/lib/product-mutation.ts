@@ -12,6 +12,8 @@ export type ProductMutationPayload = {
   title?: unknown;
   slug?: unknown;
   category?: unknown;
+  brand?: unknown;
+  description?: unknown;
   is_active?: unknown;
   image_url?: unknown;
   variants?: unknown;
@@ -85,6 +87,8 @@ type ParsedProduct = {
   title: string;
   slug: string;
   category: string;
+  brand: string | null;
+  description: string | null;
   image_url: string | null;
   is_active: boolean;
   variants: ParsedVariant[];
@@ -140,6 +144,8 @@ export function parseProductMutationPayload(
   const title = capitalizeTitle(rawTitle);
   const slug = normalizeSlug(clean(body.slug, 200));
   const category = clean(body.category, 120) || "Umum";
+  const brand = clean(body.brand, 70);
+  const description = clean(body.description, 320);
   const imageUrl = clean(body.image_url, 500);
   if (
     imageUrl &&
@@ -256,6 +262,8 @@ export function parseProductMutationPayload(
     title,
     slug,
     category,
+    brand: brand || null,
+    description: description || null,
     image_url: imageUrl || null,
     is_active: isActive,
     variants,

@@ -1,7 +1,7 @@
 {
-  "name": "adsbookcms",
-  "version": "1.4.1",
-  "description": "AdsBookCMS — single-install direct-response commerce CMS for Cloudflare Workers",
+  "name": "zvarashop",
+  "version": "1.5.0",
+  "description": "ZvaraShop — standalone direct-response commerce store on Cloudflare Workers",
   "engines": {
     "node": ">=22",
     "npm": ">=10"
@@ -13,6 +13,7 @@
     "build": "astro build",
     "check": "astro check && tsc --noEmit",
     "test": "node --experimental-strip-types --test src/lib/*.test.ts",
+    "docs:check": "node --experimental-strip-types scripts/check-docs.ts",
     "preview": "astro preview",
     "cf:dev": "wrangler dev --local",
     "preflight": "node --experimental-strip-types scripts/preflight-deploy.ts",

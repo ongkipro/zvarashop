@@ -62,29 +62,30 @@ const feedUrl = `${Astro.locals.tenant.siteUrl.replace(/\/$/, '')}/feed/google-c
       <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
         <div class="flex items-center justify-between">
           <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Enhanced Conv.</span>
-          <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+          <span class="h-2 w-2 rounded-full bg-slate-300"></span>
         </div>
-        <div class="mt-2 text-sm font-extrabold text-emerald-700">SHA-256 Web</div>
-        <p class="mt-1 text-[11px] text-slate-500">Phone E.164 + Name</p>
+        <div class="mt-2 text-sm font-extrabold text-slate-700">Didukung sistem</div>
+        <p class="mt-1 text-[11px] text-slate-500">Enhanced conversions saat data tersedia</p>
       </div>
 
       <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
         <div class="flex items-center justify-between">
           <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Catalog Feed</span>
-          <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+          <span class="h-2 w-2 rounded-full bg-slate-300"></span>
         </div>
-        <div class="mt-2 text-sm font-extrabold text-blue-700">GPC Auto-Mapped</div>
-        <p class="mt-1 text-[11px] text-slate-500">PMax & Shopping XML</p>
+        <div class="mt-2 text-sm font-extrabold text-slate-700">Didukung sistem</div>
+        <p class="mt-1 text-[11px] text-slate-500">Feed tersedia; penerimaan Merchant Center terpisah</p>
       </div>
     </div>
 
     <!-- Navigation Tabs -->
-    <div class="flex overflow-x-auto border-b border-slate-200 text-sm font-bold [&>button]:shrink-0 [&>button]:whitespace-nowrap">
+    <div class="flex overflow-x-auto border-b border-slate-200 text-sm font-bold [&>button]:shrink-0 [&>button]:whitespace-nowrap" role="tablist" aria-label="Pengaturan Google Ads">
       <button
         id="tabBtnConfig"
         type="button"
         class="tab-btn border-b-2 border-blue-600 px-4 py-2.5 text-blue-600 focus:outline-none"
         data-target="tabConfig"
+        role="tab" aria-selected="true" aria-controls="tabConfig" tabindex="0"
       >
         ⚙️ Konfigurasi ID
       </button>
@@ -93,6 +94,7 @@ const feedUrl = `${Astro.locals.tenant.siteUrl.replace(/\/$/, '')}/feed/google-c
         type="button"
         class="tab-btn border-b-2 border-transparent px-4 py-2.5 text-slate-500 hover:text-slate-900 focus:outline-none"
         data-target="tabTutorial"
+        role="tab" aria-selected="false" aria-controls="tabTutorial" tabindex="-1"
       >
         📘 Tutorial Step-by-Step
       </button>
@@ -101,6 +103,7 @@ const feedUrl = `${Astro.locals.tenant.siteUrl.replace(/\/$/, '')}/feed/google-c
         type="button"
         class="tab-btn border-b-2 border-transparent px-4 py-2.5 text-slate-500 hover:text-slate-900 focus:outline-none"
         data-target="tabFeed"
+        role="tab" aria-selected="false" aria-controls="tabFeed" tabindex="-1"
       >
         🛒 Catalog XML Feed
       </button>
@@ -109,6 +112,7 @@ const feedUrl = `${Astro.locals.tenant.siteUrl.replace(/\/$/, '')}/feed/google-c
         type="button"
         class="tab-btn border-b-2 border-transparent px-4 py-2.5 text-slate-500 hover:text-slate-900 focus:outline-none"
         data-target="tabSpecs"
+        role="tab" aria-selected="false" aria-controls="tabSpecs" tabindex="-1"
       >
         🔬 Sinyal & Payload Inspector
       </button>
@@ -123,7 +127,7 @@ const feedUrl = `${Astro.locals.tenant.siteUrl.replace(/\/$/, '')}/feed/google-c
     <div id="googleError" class="hidden rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm font-bold text-rose-800" role="alert"></div>
 
     <!-- TAB 1: Konfigurasi Form -->
-    <div id="tabConfig" class="tab-content">
+    <div id="tabConfig" class="tab-content" role="tabpanel" aria-labelledby="tabBtnConfig">
       <form id="googleForm" class="hidden rounded-xl border border-slate-200 bg-white text-slate-950 shadow-sm" novalidate aria-busy="false">
         <div class="border-b border-slate-200 p-5 md:p-6">
           <div class="flex items-center justify-between">
@@ -206,7 +210,7 @@ const feedUrl = `${Astro.locals.tenant.siteUrl.replace(/\/$/, '')}/feed/google-c
     </div>
 
     <!-- TAB 2: Step-by-Step Tutorial -->
-    <div id="tabTutorial" class="tab-content hidden space-y-4">
+    <div id="tabTutorial" class="tab-content hidden space-y-4" role="tabpanel" aria-labelledby="tabBtnTutorial">
       <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
         <div class="flex items-center justify-between border-b border-slate-100 pb-4">
           <div>
@@ -229,7 +233,7 @@ const feedUrl = `${Astro.locals.tenant.siteUrl.replace(/\/$/, '')}/feed/google-c
                   <div class="rounded-lg border border-slate-200 bg-white p-3">
                     <span class="block text-[11px] font-bold text-slate-400 uppercase">Kategori & Nama</span>
                     <p class="mt-1 font-semibold text-slate-800">Category: <span class="text-blue-600 font-bold">Purchase (Pembelian)</span></p>
-                    <p class="text-slate-600">Conversion name: <code class="bg-slate-100 px-1 font-mono">Zanoby Purchase</code></p>
+                    <p class="text-slate-600">Conversion name: <code class="bg-slate-100 px-1 font-mono">Purchase</code></p>
                   </div>
 
                   <div class="rounded-lg border border-slate-200 bg-white p-3">
@@ -353,7 +357,7 @@ const feedUrl = `${Astro.locals.tenant.siteUrl.replace(/\/$/, '')}/feed/google-c
     </div>
 
     <!-- TAB 3: Catalog XML Feed Manager -->
-    <div id="tabFeed" class="tab-content hidden space-y-4">
+    <div id="tabFeed" class="tab-content hidden space-y-4" role="tabpanel" aria-labelledby="tabBtnFeed">
       <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -426,7 +430,7 @@ const feedUrl = `${Astro.locals.tenant.siteUrl.replace(/\/$/, '')}/feed/google-c
     </div>
 
     <!-- TAB 4: Technical Signal Specs & Inspector -->
-    <div id="tabSpecs" class="tab-content hidden space-y-4">
+    <div id="tabSpecs" class="tab-content hidden space-y-4" role="tabpanel" aria-labelledby="tabBtnSpecs">
       <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
         <h3 class="text-base font-extrabold text-slate-900">Spesifikasi Sinyal & Payload Inspector</h3>
         <p class="mt-1 text-xs text-slate-500">Detail spesifikasi teknis sinyal konversi yang dikirimkan oleh sistem {storeName}.</p>
@@ -487,21 +491,29 @@ window.gtag('event', 'conversion', &#123;
       google_tag_manager_id?: string;
       google_ads_conversion_id?: string;
       google_ads_conversion_label?: string;
+      google_tag_manager_effective_id?: string;
+      google_ads_conversion_effective_id?: string;
+      google_ads_conversion_effective_label?: string;
+      google_tag_manager_source?: string;
+      google_ads_conversion_source?: string;
     };
 
     // Tab Switching Logic
     const tabBtns = document.querySelectorAll<HTMLButtonElement>('.tab-btn');
     const tabContents = document.querySelectorAll<HTMLDivElement>('.tab-content');
 
-    tabBtns.forEach((btn) => {
-      btn.addEventListener('click', () => {
+    const activateTab = (btn: HTMLButtonElement) => {
         const targetId = btn.getAttribute('data-target');
         tabBtns.forEach((b) => {
           b.classList.remove('border-blue-600', 'text-blue-600');
           b.classList.add('border-transparent', 'text-slate-500');
+          b.setAttribute('aria-selected', 'false');
+          b.tabIndex = -1;
         });
         btn.classList.remove('border-transparent', 'text-slate-500');
         btn.classList.add('border-blue-600', 'text-blue-600');
+        btn.setAttribute('aria-selected', 'true');
+        btn.tabIndex = 0;
 
         tabContents.forEach((c) => {
           if (c.id === targetId) {
@@ -510,6 +522,16 @@ window.gtag('event', 'conversion', &#123;
             c.classList.add('hidden');
           }
         });
+    };
+    tabBtns.forEach((btn, index) => {
+      btn.addEventListener('click', () => activateTab(btn));
+      btn.addEventListener('keydown', (event) => {
+        if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+        event.preventDefault();
+        const nextIndex = event.key === 'Home' ? 0 : event.key === 'End' ? tabBtns.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : -1) + tabBtns.length) % tabBtns.length;
+        const next = tabBtns[nextIndex];
+        activateTab(next);
+        next.focus();
       });
     });
 
@@ -552,24 +574,27 @@ window.gtag('event', 'conversion', &#123;
       const gtmId = (data.google_tag_manager_id || '').trim();
       const adsId = (data.google_ads_conversion_id || '').trim();
       const adsLabel = (data.google_ads_conversion_label || '').trim();
+      const effectiveGtmId = (data.google_tag_manager_effective_id || '').trim();
+      const effectiveAdsId = (data.google_ads_conversion_effective_id || '').trim();
+      const effectiveAdsLabel = (data.google_ads_conversion_effective_label || '').trim();
 
       if (tagManagerInput) tagManagerInput.value = gtmId;
       if (idInput) idInput.value = adsId;
       if (labelInput) labelInput.value = adsLabel;
 
-      const tagManagerReady = Boolean(gtmId);
-      const adsReady = Boolean(adsId && adsLabel);
+      const tagManagerReady = Boolean(effectiveGtmId);
+      const adsReady = Boolean(effectiveAdsId && effectiveAdsLabel);
 
       // Update KPI
-      if (kpiGtmVal) kpiGtmVal.textContent = gtmId || 'Belum Set';
+      if (kpiGtmVal) kpiGtmVal.textContent = effectiveGtmId || 'Belum dikonfigurasi';
       if (kpiGtmStatus) kpiGtmStatus.className = `h-2 w-2 rounded-full ${tagManagerReady ? 'bg-emerald-500' : 'bg-slate-300'}`;
 
-      if (kpiAdsVal) kpiAdsVal.textContent = adsId ? `${adsId.substring(0, 10)}…` : 'Belum Set';
+      if (kpiAdsVal) kpiAdsVal.textContent = effectiveAdsId ? `${effectiveAdsId.substring(0, 10)}…` : 'Belum dikonfigurasi';
       if (kpiAdsStatus) kpiAdsStatus.className = `h-2 w-2 rounded-full ${adsReady ? 'bg-emerald-500' : 'bg-slate-300'}`;
 
       const badge = document.getElementById('googleBadge');
       if (badge) {
-        badge.textContent = tagManagerReady && adsReady ? 'GTM + Ads Aktif' : tagManagerReady || adsReady ? 'Sebagian Aktif' : 'Belum Dikonfigurasi';
+        badge.textContent = tagManagerReady && adsReady ? 'GTM + Ads terkonfigurasi' : tagManagerReady || adsReady ? 'Sebagian terkonfigurasi' : 'Belum dikonfigurasi';
         badge.className = tagManagerReady && adsReady
           ? 'inline-flex min-h-9 items-center rounded-full bg-blue-100 px-3 text-xs font-bold text-blue-800'
           : tagManagerReady || adsReady
@@ -598,6 +623,10 @@ window.gtag('event', 'conversion', &#123;
           box.textContent = error instanceof Error ? error.message : 'Gagal memuat Google tracking.';
           box.classList.remove('hidden');
         }
+        const badge = document.getElementById('googleBadge');
+        if (badge) badge.textContent = 'Gagal memuat';
+        if (kpiGtmVal) kpiGtmVal.textContent = 'Gagal memuat';
+        if (kpiAdsVal) kpiAdsVal.textContent = 'Gagal memuat';
       });
 
     form?.addEventListener('submit', async (event) => {

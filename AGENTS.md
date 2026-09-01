@@ -1,19 +1,21 @@
-# AGENTS.md — Working Agreement for AdsBookCMS
+# AGENTS.md — Working Agreement for ZvaraShop
 
-> Verified against disk: 2026-08-27 @ `679f577` + stock-unlimited working tree
+> Verified against disk: 2026-09-01 @ `e6b9fbe` + standalone/ad-signals working tree
 
 This file is the contract for any AI coding agent or contributor working in this repository. Read it before the first edit.
 
-**The product is AdsBookCMS (single):** a direct-response commerce CMS installed onto Cloudflare Workers, where **1 installer = 1 Worker = 1 store**. `permatamall.shop` is the reference instance, not the product name.
+**ZvaraShop is one standalone product and store:** one Cloudflare Worker, one D1,
+one KV namespace, one R2 bucket, and the `zvara.shop` domain. AdsBookCMS is
+historical lineage only; this repository is the source of truth.
 
 ---
 
 ## 1. First principles
 
-1. **The code wins.** When documentation and the tree disagree, the tree is right and the document is a bug to be fixed. This repository was forked from an upstream engine and its documentation described that other repository for months; assume nothing you have not verified.
+1. **The code wins.** When documentation and the tree disagree, the tree is right and the document is a bug to be fixed. Historical product/install documents are not evidence of current ZvaraShop behavior.
 2. **Never claim something works without running it.** `npm test`, `npm run check`, `npm run build`. For anything browser-visible, open the page — an unterminated `.astro` frontmatter block once produced a live 404 while every static check stayed green.
 3. **State what you did not do.** Skipped verification, deferred scope, and unproven assumptions get named explicitly.
-4. **This repository deploys nothing.** It is the product; CI runs check, test and build only. A live store deploys from its own install repository, against its own resources. Never add a deploy step or Cloudflare credentials here.
+4. **This repository owns production, but CI does not deploy it.** Remote D1 and `wrangler deploy` remain explicit production actions. Never add Cloudflare credentials or implicit auto-deploy to CI.
 
 ---
 
@@ -101,7 +103,7 @@ admin order list blank for a day.
 
 On a fresh clone, run `npm run check` rather than bare `npx tsc --noEmit`. `astro check` generates `.astro/types.d.ts` first; without it `tsc` reports phantom errors such as `Property 'env' does not exist on type 'ImportMeta'`.
 
-Current verified working-tree baseline: **592 passing**, 0 type errors, `astro check` 0 errors / 0 warnings / 0 hints. A change that reduces this baseline is not done.
+Current verified base-branch baseline: **604 passing, 1 skipped**, 0 type errors, `astro check` 0 errors / 0 warnings / 0 hints. A change that reduces this baseline is not done.
 
 New non-trivial logic — a branch, a parser, a money or auth path — leaves one runnable check behind. Trivial one-liners do not need a test.
 
@@ -113,7 +115,9 @@ New non-trivial logic — a branch, a parser, a money or auth path — leaves on
 
 Ask before: `wrangler deploy` or any `--remote` D1 command — both act on a real install and neither belongs to this repository; creating or deleting Cloudflare resources; anything that mutates provider state at Mengantar or AutoLaris; reading or printing secrets; deleting data; pushing to a branch that an install deploys from.
 
-Pushing to `main` **here** deploys nothing (ADR-012), so it is ordinary work — but adding a deploy step or Cloudflare credentials to this repository is not, and must never be done.
+Pushing to `main` **here** deploys nothing with the current CI. Adding a deploy
+step, adding Cloudflare credentials, running remote D1, or deploying the Worker
+is a production change and always requires explicit approval.
 
 Local work — tests, typecheck, build, local D1, reading code — needs no approval.
 

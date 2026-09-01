@@ -43,6 +43,32 @@ const shouldRenderPixel = /^\d{5,25}$/.test(String(pixelId || '').trim());
             .split('; ')
             .find((row) => row.startsWith(`${name}=`))
             ?.split('=')[1] || '';
+        const cookieSecurity = window.location.protocol === 'https:'
+          ? 'SameSite=None; Secure'
+          : 'SameSite=Lax';
+        const writeMetaCookie = (name, value) => {
+          document.cookie =
+            `${name}=${value}; Path=/; Max-Age=${90 * 24 * 60 * 60}; ${cookieSecurity}`;
+        };
+
+        // Meta's own Conversions API Parameter Builder creates `_fbp` before
+        // the Pixel library is available. Do the same at the first-party page
+        // boundary so the immediately posted PageView/ViewContent CAPI events
+        // carry the same browser ID that fbevents.js will later read. Waiting
+        // for the deferred 105 KB library left almost every first event without
+        // fbp even though the browser leg eventually had one.
+        let fbp = readCookieValue('_fbp');
+        if (!/^fb\.\d\.\d{10,20}\..+$/.test(fbp)) {
+          let randomPart = '';
+          try {
+            randomPart = Array.from(crypto.getRandomValues(new Uint32Array(2))).join('');
+          } catch {
+            randomPart = String(Math.floor(Math.random() * 1_000_000_000_000_000));
+          }
+          fbp = `fb.1.${Date.now()}.${randomPart}`;
+          writeMetaCookie('_fbp', fbp);
+        }
+
         let externalId = readCookieValue(metaExternalIdCookie);
         if (!/^[a-f0-9]{32}$/.test(externalId)) {
           externalId = '';
@@ -54,11 +80,7 @@ const shouldRenderPixel = /^\d{5,25}$/.test(String(pixelId || '').trim());
             // Pixel and CAPI still carry fbp/fbc when Web Crypto is unavailable.
           }
           if (externalId) {
-            const cookieSecurity = window.location.protocol === 'https:'
-              ? 'SameSite=None; Secure'
-              : 'SameSite=Lax';
-            document.cookie =
-              `${metaExternalIdCookie}=${externalId}; Path=/; Max-Age=${90 * 24 * 60 * 60}; ${cookieSecurity}`;
+            writeMetaCookie(metaExternalIdCookie, externalId);
           }
         }
 

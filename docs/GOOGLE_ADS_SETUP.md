@@ -2,7 +2,7 @@
 
 > Verified against disk: 2026-08-27 @ `3bb51a3` + payment-recovery working tree
 
-> **Product:** AdsBookCMS (single) — one installer, one Worker, one store.
+> **Product:** ZvaraShop — one repository, one Worker, one store.
 > **Repository role:** product. Examples below name `permatamall.shop`, the first install, which lives in its own repository (`ongkipro/permatamall`); substitute your own install's domain.
 > **Engine stack:** Astro SSR + Cloudflare Workers + Google Tag (`gtag.js`) + GTM + Enhanced Conversions + Consent Mode v2 + Merchant Center XML feed.
 
@@ -59,7 +59,7 @@ $$\text{Ad click (gclid, gbraid, wbraid)} \longrightarrow \text{Consent Mode v2 
 2. Check *UI label* **Turn on enhanced conversions**.
 3. Choose the implementation owner for this conversion action:
    - **Google tag** — enter the conversion ID and label in Ads & Tracking →
-     Google. AdsBookCMS emits the direct `gtag('event', 'conversion', …)`.
+     Google. ZvaraShop emits the direct `gtag('event', 'conversion', …)`.
    - **Google Tag Manager** — configure the conversion tag in GTM from the
      `purchase` dataLayer event, and leave the direct conversion ID/label empty.
      GTM may still run GA4 alongside the direct Google tag, but the same Google
@@ -114,6 +114,12 @@ The storefront pushes `page_view`, `view_item`, `add_to_cart`, `begin_checkout`,
 5. Name the feed after your own store.
 6. Feed URL: `https://<your-domain>/feed/google-catalog.xml` (served by `src/pages/feed/google-catalog.xml.ts`). A Meta catalog feed is served in parallel at `/feed/meta-catalog.xml`.
 7. Fetch frequency: **Daily**.
+
+Before submitting the feed, fill **Merek produk** and **Deskripsi katalog** in
+the product editor when the product has its own brand and factual catalog copy.
+A blank brand falls back to the store name. ZvaraShop does not publish merchant
+SKU as `mpn` and does not force `identifier_exists=no`; add a real GTIN or
+manufacturer-assigned MPN only when the catalog model explicitly supports it.
 
 #### Automatic taxonomy engine
 

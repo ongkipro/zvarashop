@@ -79,11 +79,13 @@ test("renders thanks page customer to admin WA redirect template correctly", () 
   const rendered = renderCrmMessage(defaultCrmTemplates.redirect, {
     customerName: "Bapak Demo",
     productName: "Asahan Portable",
+    orderNumber: "INV-10042",
+    totalAmount: 189_000,
   });
 
   assert.equal(
     rendered,
-    "Halo, saya sudah melakukan pemesanan Asahan Portable, atas nama Bapak Demo. Mohon segera diproses ya.",
+    "Halo, saya sudah melakukan pemesanan Asahan Portable atas nama Bapak Demo. Nomor pesanan INV-10042, total Rp 189.000. Mohon segera diproses ya.",
   );
 });
 

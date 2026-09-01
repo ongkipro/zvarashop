@@ -2,7 +2,9 @@ import { defineMiddleware } from 'astro:middleware';
 import {
   CLICK_ID_COOKIE,
   hasClickId,
+  mergeClickIds,
   parseClickIdsFromUrl,
+  readClickIdCookie,
   serializeClickIds,
 } from './lib/click-ids';
 import { canAccessAdminRoute, getDefaultAdminRoute } from './lib/auth';
@@ -389,8 +391,9 @@ export function createMiddleware(
 
   // Persist ad attribution click ids (Google, Meta, UTMs) from landing/embed URL.
   if (!isPrivate) {
-    const clickIds = parseClickIdsFromUrl(url);
-    if (hasClickId(clickIds)) {
+    const incoming = parseClickIdsFromUrl(url);
+    if (hasClickId(incoming)) {
+      const clickIds = mergeClickIds(readClickIdCookie(context.request), incoming);
       const sameSiteAttr = url.protocol === 'https:' ? ' SameSite=None; Secure;' : ' SameSite=Lax;';
       response.headers.append(
         'Set-Cookie',

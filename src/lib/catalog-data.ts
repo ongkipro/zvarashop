@@ -5,6 +5,8 @@ export interface CatalogProductRow {
   title: string;
   slug: string;
   category?: string | null;
+  brand?: string | null;
+  description?: string | null;
   image_url?: string | null;
   is_active?: number | null;
   created_at?: string | null;
@@ -150,6 +152,7 @@ export function mergeStorefrontCatalog(
         seoTitle: presentation?.seoTitle || productName,
         seoDescription:
           presentation?.seoDescription ||
+          product.description?.trim() ||
           `Lihat pilihan varian, harga, dan ketersediaan ${productName}. Detail mengikuti informasi katalog toko.`,
         price: firstVariant.price,
         ...(firstVariant.comparePrice
@@ -160,6 +163,7 @@ export function mergeStorefrontCatalog(
         images: [image],
         tag: presentation?.tag || categoryLabel,
         category: categoryLabel,
+        brand: product.brand?.trim() || undefined,
         relatedCategories:
           presentation?.relatedCategories?.length
             ? presentation.relatedCategories

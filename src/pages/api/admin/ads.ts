@@ -1,9 +1,11 @@
 import type { APIRoute } from 'astro';
-import { getEnvValue, getRuntimeEnv, maskSecretValue } from '../../../lib/env';
+import { getRuntimeEnv, maskSecretValue } from '../../../lib/env';
 import { sendMetaCapiEvent } from '../../../lib/meta-capi';
 import {
   GOOGLE_ADS_CONVERSION_ID_PATTERN,
   GOOGLE_ADS_CONVERSION_LABEL_PATTERN,
+  getStoreAdsConfig,
+  type StoreAdsConfig,
 } from '../../../lib/store-ads';
 
 export const prerender = false;
@@ -53,15 +55,22 @@ async function getAdsRow(database: D1Database) {
   `).first() as AdsRow | null;
 }
 
-function publicConfig(row: AdsRow, fallbackToken = '') {
-  const effectiveToken = row.meta_capi_token || fallbackToken;
+function publicConfig(row: AdsRow, effective: StoreAdsConfig) {
   return {
     meta_pixel_id: row.meta_pixel_id ?? '',
-    meta_capi_configured: Boolean(effectiveToken),
-    meta_capi_token_masked: maskSecretValue(effectiveToken),
+    meta_pixel_effective_id: effective.metaPixelId,
+    meta_pixel_source: effective.metaPixelSource,
+    meta_capi_configured: Boolean(effective.metaCapiToken),
+    meta_capi_source: effective.metaCapiSource,
+    meta_capi_token_masked: maskSecretValue(effective.metaCapiToken),
     google_tag_manager_id: row.google_tag_manager_id ?? '',
+    google_tag_manager_effective_id: effective.googleTagManagerId,
+    google_tag_manager_source: effective.googleTagManagerSource,
     google_ads_conversion_id: row.google_ads_conversion_id ?? '',
     google_ads_conversion_label: row.google_ads_conversion_label ?? '',
+    google_ads_conversion_effective_id: effective.googleAdsConversionId,
+    google_ads_conversion_effective_label: effective.googleAdsConversionLabel,
+    google_ads_conversion_source: effective.googleAdsConversionSource,
   };
 }
 
@@ -72,7 +81,7 @@ export const GET: APIRoute = async ({ locals }) => {
   try {
     const row = await getAdsRow(database);
     if (!row) return json({ success: false, error: 'Store belum tersedia.' }, 404);
-    return json({ success: true, data: publicConfig(row, getEnvValue('META_CAPI_ACCESS_TOKEN', getRuntimeEnv(locals))) });
+    return json({ success: true, data: publicConfig(row, await getStoreAdsConfig(locals)) });
   } catch (error) {
     console.error('ads-config-get', error);
     return json({ success: false, error: 'Gagal mengambil konfigurasi Ads & Tracking.' }, 500);
@@ -93,10 +102,11 @@ export const PUT: APIRoute = async ({ request, locals }) => {
     const submittedPixelId = clean(body.meta_pixel_id, 25);
     const submittedToken = clean(body.meta_capi_token, 4096);
     const testEventCode = clean(body.meta_test_event_code, 24).toUpperCase();
-    const storedToken = submittedToken || current.meta_capi_token || getEnvValue('META_CAPI_ACCESS_TOKEN', getRuntimeEnv(locals));
+    const effective = await getStoreAdsConfig(locals);
+    const storedToken = submittedToken || effective.metaCapiToken;
 
     if (body.action === 'test-capi') {
-      const pixelId = submittedPixelId || current.meta_pixel_id || '';
+      const pixelId = submittedPixelId || effective.metaPixelId;
       if (!PIXEL_ID_PATTERN.test(pixelId)) return json({ success: false, error: 'Meta Pixel ID hanya boleh berisi 5–25 digit.' }, 400);
       if (!storedToken) return json({ success: false, error: 'Meta CAPI Access Token belum dikonfigurasi.' }, 400);
       if (!META_TEST_CODE_PATTERN.test(testEventCode)) return json({ success: false, error: 'Meta Test Event Code harus berformat TEST diikuti 3–20 digit.' }, 400);
@@ -107,9 +117,9 @@ export const PUT: APIRoute = async ({ request, locals }) => {
         new URL(request.url).origin,
         {
           clientIp: request.headers.get('cf-connecting-ip') || '127.0.0.1',
-          userAgent: request.headers.get('user-agent') || 'AdsBookCMS-CAPI-Tester/1.0',
+          userAgent: request.headers.get('user-agent') || 'ZvaraShop-CAPI-Tester/1.0',
         },
-        { contentName: 'AdsBookCMS Meta CAPI connection test' },
+        { contentName: 'ZvaraShop Meta CAPI connection test' },
         pixelId,
         storedToken,
         testEventCode,
@@ -153,7 +163,7 @@ export const PUT: APIRoute = async ({ request, locals }) => {
     return json({
       success: true,
       message: 'Konfigurasi tracking berhasil disimpan.',
-      data: updated ? publicConfig(updated, getEnvValue('META_CAPI_ACCESS_TOKEN', getRuntimeEnv(locals))) : undefined,
+      data: updated ? publicConfig(updated, await getStoreAdsConfig(locals)) : undefined,
     });
   } catch (error) {
     console.error('ads-config-put', error);

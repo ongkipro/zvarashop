@@ -19,6 +19,7 @@ import type {
 const SIGNAL_TITLES: Record<HealthSignal["id"], string> = {
   "capi-outbox": "Antrean Meta CAPI",
   "meta-capi": "Pengiriman Meta CAPI terakhir",
+  "google-ads-outbox": "Antrean Google Ads offline",
   mengantar: "Kontak Mengantar terakhir",
   autolaris: "AutoLaris Create Order & verifikasi",
 };
@@ -79,7 +80,7 @@ function formatAge(minutes: number | null) {
 }
 
 function describeMetrics(signal: HealthSignal) {
-  if (signal.id === "capi-outbox") {
+  if (signal.id === "capi-outbox" || signal.id === "google-ads-outbox") {
     const { pending = 0, failed = 0, overdue = 0 } = signal.metrics;
     return `${pending} menunggu · ${overdue} lewat jadwal · ${failed} gagal permanen`;
   }
@@ -95,7 +96,9 @@ function ageLabel(signal: HealthSignal) {
       ? "Verifikasi terakhir"
       : "Create Order terakhir";
   }
-  return signal.id === "capi-outbox" ? "Antrean tertua" : "Terakhir sukses";
+  return signal.id === "capi-outbox" || signal.id === "google-ads-outbox"
+    ? "Antrean tertua"
+    : "Terakhir sukses";
 }
 
 export default function OperationalHealth() {

@@ -7,8 +7,9 @@ import { loadStoreCodDisabledProvinceCodes } from '../../../lib/form-mode';
 import { isProvinceExcluded, normalizeProvinceCode } from '../../../lib/province';
 import { persistOrder, DuplicateSubmissionError, OrderInputError } from '../../../lib/order-persistence';
 import { resolveEligibleShippingRates } from '../../../lib/shipping-quote';
-import { readClickIdCookie, hasClickId, serializeClickIds } from '../../../lib/click-ids';
+import { readOrderClickIds, hasClickId, serializeClickIds } from '../../../lib/click-ids';
 import { isShippingQuoteFailure, resolveTrustedHeadlessShipping } from '../../../lib/headless-checkout';
+import { captureMetaOrderContext, serializeMetaOrderContext } from '../../../lib/meta-order-context';
 
 export const prerender = false;
 
@@ -70,8 +71,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
       resolveEligibleShippingRates(database, locals, input),
     );
 
-    const clickIds = readClickIdCookie(request);
+    const clickIds = readOrderClickIds(request);
     const storedClickIds = hasClickId(clickIds) ? serializeClickIds(clickIds) : undefined;
+    const metaRequestContext = serializeMetaOrderContext(captureMetaOrderContext(request));
 
     const order = await persistOrder(database, {
       submitToken: data.submit_token,
@@ -93,6 +95,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       courierCode: shipping.courierCode,
       courierService: shipping.courierService,
       adClickIds: storedClickIds,
+      metaRequestContext,
     });
 
     return validation.finalize(headlessOk(

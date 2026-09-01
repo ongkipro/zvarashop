@@ -25,6 +25,7 @@ test("a page with a sellable variant points at its Product ID, or at nothing", (
   // worse than sending none: Meta reports it as a match the merchant cannot act on.
   assert.equal(defaultCatalogContentId({ productId: 7, variants: [] }), undefined);
   assert.equal(defaultCatalogContentId({ productId: 7 }), undefined);
+  assert.equal(defaultCatalogContentId({ productId: 7, variants: [{ id: 1 }] }), undefined);
 });
 
 test("Google feed emits one product-grain item with g:id matching Product ID", () => {
@@ -48,6 +49,47 @@ test("Google feed emits one product-grain item with g:id matching Product ID", (
   assert.ok(!xml.includes("<g:size>"));
   assert.ok(xml.includes("<g:link>https://toko-uji.example/produk/bibit-sirsak</g:link>"));
   assert.ok(xml.includes("<g:price>85000 IDR</g:price>"));
+  assert.ok(!xml.includes("<g:identifier_exists>"));
+  assert.ok(!xml.includes("<g:mpn>"));
+});
+
+test("catalog feeds prefer the product brand and fall back to the store name", () => {
+  const base: CatalogProduct = {
+    productId: 14002,
+    slug: "produk-merek",
+    productName: "Produk Merek",
+    brand: "Merek Produk",
+    heroImage: "/images/product.webp",
+    variants: [{ id: 1, label: "Standar", price: 50000 }],
+  };
+  assert.ok(generateGoogleCatalogXml([base], "https://example.com", "Nama Toko").includes("<g:brand>Merek Produk</g:brand>"));
+  assert.ok(generateMetaCatalogXml([{ ...base, brand: "" }], "https://example.com", "Nama Toko").includes("<g:brand>Nama Toko</g:brand>"));
+});
+
+test("one legacy short id does not take the aggregate feeds down", () => {
+  const products: CatalogProduct[] = [
+    {
+      productId: 7,
+      slug: "legacy",
+      productName: "Legacy",
+      heroImage: "/images/legacy.webp",
+      variants: [{ id: 1, label: "Standar", price: 10000 }],
+    },
+    {
+      productId: 14003,
+      slug: "valid",
+      productName: "Valid",
+      heroImage: "/images/valid.webp",
+      variants: [{ id: 2, label: "Standar", price: 20000 }],
+    },
+  ];
+  for (const xml of [
+    generateGoogleCatalogXml(products, "https://example.com"),
+    generateMetaCatalogXml(products, "https://example.com"),
+  ]) {
+    assert.ok(!xml.includes("<g:id>7</g:id>"));
+    assert.ok(xml.includes("<g:id>14003</g:id>"));
+  }
 });
 
 test("generateGoogleCatalogXml emits g:sale_price when comparePrice is greater than price", () => {

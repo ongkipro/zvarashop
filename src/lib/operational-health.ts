@@ -7,6 +7,11 @@ import {
 } from "./capi-outbox.ts";
 import { getSchemaVersionStatus } from "./schema-version.ts";
 import { CMS_VERSION } from "./version.ts";
+import {
+  GOOGLE_ADS_MAX_BACKOFF_MS,
+  readGoogleAdsOutboxDepth,
+  type GoogleAdsOutboxDepth,
+} from "./google-ads-offline.ts";
 
 /**
  * Operational health for `/admin`.
@@ -34,6 +39,7 @@ export type HealthState = "healthy" | "degraded" | "unknown";
 export type HealthSignalId =
   | "capi-outbox"
   | "meta-capi"
+  | "google-ads-outbox"
   | "mengantar"
   | "autolaris";
 
@@ -152,6 +158,25 @@ export function classifyCapiDelivery(
     return signal("meta-capi", "degraded", "failing", window.lastDeliveredAt, now, metrics);
   }
   return signal("meta-capi", "healthy", "delivered", window.lastDeliveredAt, now, metrics);
+}
+
+export function classifyGoogleAdsOutbox(
+  depth: GoogleAdsOutboxDepth | null,
+  now: number,
+): HealthSignal {
+  if (!depth) return signal("google-ads-outbox", "unknown", "unreadable", null, now);
+  const metrics = { pending: depth.pending, failed: depth.failed, overdue: depth.overdue };
+  if (depth.pending + depth.failed === 0) {
+    return signal("google-ads-outbox", "healthy", "empty", null, now, metrics);
+  }
+  if (depth.failed > 0) {
+    return signal("google-ads-outbox", "degraded", "terminal-failures", depth.oldestCreatedAt, now, metrics);
+  }
+  const oldestAge = depth.oldestCreatedAt ? now - Date.parse(depth.oldestCreatedAt) : 0;
+  if (depth.overdue > 0 && oldestAge > GOOGLE_ADS_MAX_BACKOFF_MS) {
+    return signal("google-ads-outbox", "degraded", "stalled", depth.oldestCreatedAt, now, metrics);
+  }
+  return signal("google-ads-outbox", "healthy", "draining", depth.oldestCreatedAt, now, metrics);
 }
 
 /**
@@ -336,9 +361,10 @@ export async function collectOperationalHealth(
   database: D1Database,
   locals?: App.Locals,
 ): Promise<OperationalHealth> {
-  const [depth, delivery, mengantar, autolaris, schema] = await Promise.all([
+  const [depth, delivery, googleAdsDepth, mengantar, autolaris, schema] = await Promise.all([
     readCapiOutboxDepth(database),
     readCapiDeliveryWindow(database),
+    readGoogleAdsOutboxDepth(database),
     readMengantarWindow(database),
     readAutoLarisWindow(database),
     getSchemaVersionStatus(locals),
@@ -348,6 +374,7 @@ export async function collectOperationalHealth(
   const signals = [
     classifyCapiOutbox(depth, now),
     classifyCapiDelivery(delivery, now),
+    classifyGoogleAdsOutbox(googleAdsDepth, now),
     classifyMengantar(mengantar, now),
     classifyAutoLaris(autolaris, now),
   ];

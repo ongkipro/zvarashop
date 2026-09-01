@@ -1,253 +1,89 @@
-# STATUS — AdsBookCMS
+# STATUS — ZvaraShop
 
-> Verified against disk: 2026-08-28 @ `25000de` + version-registry working tree
+> Verified against disk: 2026-09-01 @ `e6b9fbe` + standalone/ad-signals working tree
 
-> Last executed baseline: 2026-08-28 @ `25000de`.
-> `npm run check` 420 files / 0 errors / 0 warnings / 0 hints · `npm test`
-> 605 (604 pass, 1 skipped) · `npm run build` Cloudflare server bundle complete ·
-> local `astro dev` against a seeded store: `/thanks` rendered its own order and
-> the Meta Pixel's single `init` carried all eight advanced-matching keys, with
-> the browser `Purchase` and the CAPI leg quoting the same `INV-` event id ·
-> production `zvara.shop` verified after deploy: eight keys live, `fbevents.js`
-> requested at 244 ms, eight routes answering `200`.
->
-> `main` was re-founded as AdsBookCMS and its history rewritten (ADR-012), so
-> commit ranges older documents cite may not exist on this branch; the
-> previous 61 commits are preserved on `backup/pre-history-rewrite`.
+## Repository authority
 
-Current state of the system. Implemented behaviour lives here; history lives in `BUILD-LOG.md`; remaining work lives in `UNIMPLEMENTED_SPECS.md`; structure lives in `ARCHITECTURE.md`.
+`ongkipro/zvarashop` is the sole source repository for ZvaraShop. The checkout,
+admin, migrations, Cloudflare bindings, merchant assets, documentation, and
+release evidence are owned here. The former `product` remote and
+`scripts/sync-from-product.sh` workflow are retired; external changes must be
+ported as ordinary reviewed commits without replacing the tree.
 
-The previous version of this file described a different repository — it opened by declaring the project to be another merchant's preview deployment, listed that merchant's catalog as this store's, and cited a D1 database belonging to a different account. It has been rewritten from the tree rather than patched.
+## Runtime shape
 
----
+- One Cloudflare Worker: `zvarashop`.
+- One store/domain: `zvara.shop` and `www.zvara.shop`.
+- One D1 database, one KV namespace, one R2 bucket, and one Workers AI binding.
+- D1 migrations are bundled and applied as a validated forward suffix on the
+  first database-backed request after deployment.
+- CI verifies source only. Production deploy remains an explicit action.
 
-## 1. What this repository is
+Repository history records successful production deployments to `zvara.shop`,
+including the 2026-08-19 fleet handover. This audit did not contact production,
+inspect Cloudflare state, read secrets, run remote D1, or deploy; therefore the
+current live revision is deliberately not claimed here.
 
-| Field | Value |
-| --- | --- |
-| Product | AdsBookCMS (single) |
-| Repository role | **Product.** Deploys nothing; CI runs check, test and build only |
-| Install model | 1 installer = 1 Worker = 1 store (ADR-001) |
-| Version | `1.4.1` / `2026.08-meta-purchase-matching` (`src/lib/version.ts`) — product `1.4.0` plus this install's own tracking and release work; see `RELEASE.md` §4 |
-| Schema | 51 migration files, `0000`-`0050` |
-| Bindings | `OMS_DB` (D1), `SESSION` (KV, caches only since ADR-021), `ASSET_BUCKET` (R2), `AI`, `ASSETS` — names fixed across installs |
-| `wrangler.jsonc` | template of placeholders; each install supplies its own resources |
+## Verified baseline and current audit
 
-### Known installs
+Before the 2026-09-01 working-tree changes:
 
-**2026-08-27 incident.** Every install answered `500` on `/api/locations`
-(kecamatan search) and on the `/hello` login POST. Cause: `KV put() limit
-exceeded for the day` — the account-wide Free-plan KV write allowance, shared
-by twenty-one namespaces, was exhausted; each keystroke in the kecamatan field
-and each login was a KV write. Fixed in 1.3.2 by ADR-021 (sessions and counters
-in D1, KV writes best-effort, no counter on the local district search). The
-rollout was completed the same day.
+- 605 tests: 604 passed, 1 skipped, 0 failed.
+- `npm run check`: 0 errors, warnings, or hints.
+- `npm run build`: passed.
+- 51 ordered migrations, `0000` through `0050`.
 
-**2026-08-27 rollout of 1.3.2 (product `189ec2f`).** All six installs deployed
-from their own checkouts — carukesi, skincarebpom, taniniaga by merging
-`product/main`; permatamall, zanobyshop, zvarashop by applying the product
-diff (`wrangler.jsonc` and `RELEASE.md` untouched, dry-run confirmed each
-Worker's own bindings). Each passed `check`, `test` (579–580; the product
-carries 581) and `build` before `wrangler deploy`. Measured live afterwards on
-every host: `/` 200; `/api/locations?level=district` 200 with 94 results;
-provider-path search 200; wrong-password login **401** (was 500);
-unauthenticated `/api/admin/health` 401; `/api/order-status` 404 (was 500);
-sixth wrong password **429** — which proves `rate_limits` from migration
-`0049` is live on each D1. Operators must log in once more; KV sessions were
-not migrated.
+The current audit hardens ad signals and repository ownership:
 
-**2026-08-27 rollout of 1.3.3 (product `1acbd7e`).** Same six installs, same
-two update shapes; zanobyshop needed `git apply --3way` because it carries its
-own payment-page palette across `src/`, and taniniaga's merge conflicted only
-on a document stamp line. Each passed `check`, `test` (581–582) and `build`
-before deploy. Measured live afterwards on every host: a JSON POST to
-`/api/webhooks/autolaris` answers 200 — which proves `autolaris_callbacks`
-from migration `0050` is live on each D1 (one probe row per store, body
-`{"probe":"adsbook-audit-2026-08-27"}`); `/payment` ships the copy-link and
-retry controls; kecamatan search 200; wrong-password login 401;
-`/api/order-status` 404.
+- Meta public event ingestion is D1-rate-limited per client address.
+- Both first-party and headless Meta Purchase paths resolve canonical order
+  identity, merchandise value, and customer data from D1.
+- Paid click identifiers survive later UTM-only visits; a genuine new ad click
+  remains last-touch attribution without erasing the other ad network.
+- Meta `_fbp` is established before immediate CAPI page events, and checkout
+  retains validated `_fbp`, `_fbc`, external ID, IP, and user agent for a
+  Purchase emitted after a later payment confirmation.
+- Google Ads offline reconciliation filters unattributed orders before its
+  bounded queue window, preventing organic orders from blocking paid uploads.
+- Google Ads offline outbox depth/failure is part of operational health and
+  alert evaluation.
+- Admin Ads configuration distinguishes database, environment, and absent
+  sources without exposing tokens or presenting “configured” as “connected”.
+- Migration `0051` adds product-owned brand and catalog description. Google and
+  Meta feeds skip invalid legacy IDs, prefer the product brand, and do not
+  claim merchant SKU is a manufacturer MPN.
+- Meta and Google terminal outbox rows are retained for 30 days; CAPI retries
+  preserve the original event time and prioritize Purchase delivery.
+- `ZvaraShop` is the public/repository identity. Stable AdsBook compatibility
+  identifiers remain intentionally unchanged.
 
-Verified live 2026-08-25 after the Google server/offline release: every host
-answers `200` on `/`, `401` on unauthenticated `/api/admin/health`, and has zero
-page-level horizontal overflow. Every install applied migration `0048`
-atomically on its first database-backed request; all six report 49 migration
-claims and an empty `google_ads_conversion_outbox`.
+Final local evidence after the last source edit:
 
-All six run product `7b0a1ab`. The release retained each install's Worker,
-domain, D1/KV/R2 bindings, provider configuration, and merchant assets. No
-Google API credentials are configured, so reconciliation remains disabled and
-no conversion or historical order was uploaded. Zanobyshop and Permatamall
-GitHub Actions again failed before acquiring a runner because of the account
-billing/spending-limit blocker; both were recovered through verified manual
-Wrangler dry-run and deployment.
+- version candidate `1.5.0`, schema `53`, migrations `0000`–`0052`;
+- `npm test`: 624 total, 623 passed, 1 skipped, 0 failed;
+- `npm run check`: 412 files, 0 errors, warnings, or hints;
+- `npm run build`: passed with only expected missing-local-secret warnings;
+- `npm run docs:check`: 29 Markdown files and all local links passed;
+- a fresh local D1 applied all 53 migrations successfully;
+- Chromium at 390 × 844 rendered the first-run ZvaraShop installation page.
+- Chromium at 390 × 844 rendered a COD `/thanks` state and resolved the visible
+  WhatsApp confirmation button to the stored support number. Its message came
+  from the CMS `redirect` template and carried the order number, buyer name,
+  product, and total; page-level horizontal overflow was zero.
+- deployment preflight correctly refused the untracked feature branch and dirty
+  working tree; no release was attempted.
 
-The 2026-08-24 rollout (BUILD-LOG same date, PRs #84–#93) carried ten fixes to
-all six installs same-day, re-verified live after each deploy rather than
-assumed from the diff: `/payment` and `/thanks` redesigned onto the
-storefront's palette, an expired-payment state on `/thanks`, six colour-
-contrast failures cleared, a checkout redirect that had been dropping
-customers at the catalogue, the worker's icon set pruned to what templates
-actually name (620KB → 19.6KB), storefront LCP images made preloadable
-(homepage hero, its daily-rotation fallback, and the catalogue's first two
-rows), one shared image-compression rule for both admin upload paths, and
-`noindex` on five funnel/confirmation routes that were open to indexing.
-Official PageSpeed Insights mobile scores, run against all six same day:
-taniniaga 96, carukesi 95, permatamall 94, zanobyshop 92, skincarebpom 89,
-zvara 85 — CLS 0.00 on every one.
+Authenticated Meta, Google, and product-editor browser flows were not opened:
+the fresh local runtime has no operator session, and this audit did not read or
+create a password/session. Their source, TypeScript, test, and build checks pass,
+but rendered authenticated behavior remains a release gate.
 
-**Repository visibility and CI.** All seven repositories are public as of
-2026-08-23. That was not only a visibility change: the deploy workflows in
-`zanobyshop` and `permatamall` had been failing in under four seconds with an
-Actions **billing** error that stops the job before it starts — private
-repositories on this account were blocked. Public repositories get free Actions
-minutes, so both pipelines started working again and now deploy on push to
-`main`. The other four carry only the product's `ci.yml`, which deliberately
-deploys nothing, and are deployed by hand with `wrangler deploy`.
+## Known boundaries
 
-The **system surface is byte-identical across all six** — `components/admin`,
-`components/ui`, `pages/admin`, `pages/api`, `styles/admin.css`, `db`,
-`middleware.ts`, `worker.ts` and the non-visual half of `lib`. Storefront look
-is deliberately per store: `zanobyshop` carries a navy accent, `zvarashop` an
-orange one, and `zanobyshop` also owns its `landing.css`. `landing-safelist.html`
-is generated per store from that store's own D1.
-
-| Install | Repository | Adopts the product by | State |
-| --- | --- | --- | --- |
-| `zanobyshop.shop` | `ongkipro/zanobyshop` | `scripts/sync-from-product.sh` — **no shared history**, the sync replaces the tree and re-applies a store palette | on `46c6fea` (product `7b0a1ab`, manually deployed after Actions billing failure, 2026-08-25) |
-| `carukesi.com` | `ongkipro/carukesi` | `git merge product/main` on branch `install/carukesi` | on `47a4ca6` (product `7b0a1ab`, merged/manually deployed 2026-08-25) |
-| `skincarebpom.shop` | `ongkipro/skincarebpom` | `git merge product/main` on branch `install/skincarebpom` | on `77d672d` (product `7b0a1ab`, merged/manually deployed 2026-08-25) |
-| `taniniaga.shop` | `ongkipro/taniniaga` | `git merge product/main` | on `d813270` (product `7b0a1ab`, merged/manually deployed 2026-08-25) |
-| `zvara.shop` | `ongkipro/zvarashop` | `scripts/sync-from-product.sh` — its history diverged from the product, so it syncs rather than merges | on `21102d3` (product `7b0a1ab`, merchant native landing preserved, manually deployed 2026-08-25) |
-| `permatamall.shop` | `ongkipro/permatamall` | `scripts/sync-from-product.sh` — shares no history with the product (it is the codebase the product was extracted from) | on `a8b80d2` (product `7b0a1ab`, manually deployed after Actions billing failure, 2026-08-25) |
-
-Holding a catalogue is each install's own job; nothing is bundled here any more
-(ADR-016). Older installs keep legacy `cmsads-*` names on their Cloudflare
-resources.
-
-As of the split on 2026-08-16, the fixes recorded below live in this repository. Whether and when an install adopts them is that install's own deploy decision.
-
----
-
-## 2. Verification baseline
-
-| Gate | Result |
-| --- | --- |
-| `npm test` | **540 / 540 passing**, with zero notification writes failing open unnoticed (grepped for after the A19 review found four fixtures swallowing them) |
-| `npm run check` | 387 files · 0 errors · 0 warnings · 0 hints |
-| `npm run build` | Cloudflare server bundle complete; 48 bundled migrations |
-| PageSpeed Insights, mobile, official API (2026-08-24) | taniniaga 96 · carukesi 95 · permatamall 94 · zanobyshop 92 · skincarebpom 89 · zvara 85 — CLS 0.00 on every store |
-| Lighthouse accessibility, `/payment` & `/thanks` (2026-08-24) | 100, zero failed audits, on both pages on every install |
-| Browser smoke | A fresh isolated install exposed all ten default couriers through `/api/admin/expeditions`. `/admin/orders/abandoned` rendered its shadcn Card/Badge/Button/Dialog composition at 390, 768, and 1280 CSS px with zero overflow, no stuck busy state, no failed request, and no console error. A populated lead opened the conversion Dialog, focused the invalid address, and returned focus after `Escape`. A separate isolated owner session on `/admin/balance` rendered pending and locked AutoLaris rows, blocked blank manual-confirmation submission with focused inline errors, and an already-confirmed payment redirected `/payment` to `/thanks` with zero console errors. No live provider request, deployment, or remote D1 mutation occurred. |
-| Full-system screening | On 2026-08-22 every checkout path, the hybrid form decision, the payment gateway, and every admin surface and role gate were exercised against a running install (see `BUILD-LOG.md`). A real QRIS order reached AutoLaris and came back with a provider transaction id; every submit guard (honeypot, stale fare, bad phone, replayed token, COD to an excluded province, excluded-area address text) refused correctly; the order-status endpoint exposed no PII and refused a wrong token. One defect found and fixed: the public form-config endpoint served a stale COD-province policy for up to five minutes after an operator changed it. All rows created were removed and reserved stock restored. |
-| Live provider read | On 2026-08-19 the repository's own clients were exercised against the real providers. Mengantar: `searchAddress("Cihapit")` resolved one area and `estimateRates` returned ten couriers with real prices (JNE Rp11.000, SiCepat Rp8.500, SAP Rp10.500). Read-only; no order, pickup, or D1 write. AutoLaris: `createPayment` on the provider's **published development key** returned a real virtual account for a Rp118.400 order, and `inquirePayment` read it back as `PENDING`. No production AutoLaris credential was used, no deployment occurred, and no remote D1 was touched. |
-
----
-
-## 3. What is implemented
-
-**Storefront** — SSR home that remains available when optional homepage content is unpublished, product listing with progressive load-more, product detail with variant selection and sticky mobile CTA, custom 404 with related products, hand-authored `sitemap.xml`, Google and Meta catalog feeds, JSON-LD (Organization, WebSite, Product, ItemList, Breadcrumb). The public component and CSS boundaries are isolated under `components/storefront/` and `styles/storefront.css`. The homepage hero, its no-configured-hero daily-rotation fallback, and the catalogue's first two card rows are preloadable/eager rather than lazy, and the worker's icon set is a checked-in ~30-icon subset instead of the full lucide set (2026-08-24, BUILD-LOG). `/thanks`, `/middle-form`, `/full-form`, `/hybrid-form`, and `/geoipform` carry `noindex` alongside `/payment`, so a funnel render mode of a product page cannot rank against the canonical `/produk/[slug]`.
-
-**Landing pages** — D1-backed builder with ordered `html` and `form` sections, drag reorder, shortcode pills, 480px mobile canvas preview, rendered through the `/[slug]` catch-all with admin-gated `?preview=1`. Every landing page answers at `domain/<slug>` with no path prefix. One active landing page may take over its product's page: `/produk/<product-slug>` then renders it and is its canonical address while its own slug answers `308` there, so exactly one URL is live and neither sitemap advertises the redirecting one. Only owner and admin may claim or release a product page; `advertiser` builds landing pages but does not decide what the storefront serves. A partial unique index allows only one holder per product, and releasing or unpublishing the claim returns the product URL to the standard product template rather than 404ing it. Operator-authored HTML renders into `.lp-section`, whose rhythm, type contract, and overflow safety live in `styles/landing-pages/landing.css`. Native Astro landing pages are a second kind: the route file is the source of truth and `src/data/native-landing-pages.ts` records it, so the CMS lists, links, and can hand it a product page while refusing to edit or delete it. The register is reconciled into the same table on every list load, so a page deployed since the last load appears without a sync step and a removed entry takes its row — and any claim it held — with it. Registering also makes the slug unique across both kinds, closing the case where a route file silently shadowed a CMS page. The home page lists at most five landing pages and hands off to `/landing-page`, a read-only index shaped like `/produk` — ten initially, load-more in tens — whose links follow a product-page takeover rather than pointing at a slug that redirects.
-
-**Checkout** — three form modes (hybrid, middle, full) plus a geo-resolved variant and a cross-origin embed. One canonical Indonesian mobile check (`isValidWa62`) shared by checkout, the browser forms, lead capture and admin edits — 0-form 8–13 digits / 62-form 9–14, with an operator allowlist covering every carrier, so a real 13-digit number is no longer refused. Province-based COD gating from trusted Cloudflare geo, district autocomplete over a 7,285-district index served entirely from the local catalogue (no provider call per keystroke), with a separate KV-cached `level=resolve` step (24h) that maps the picked district to Mengantar's real destination id only once a candidate is selected, live Mengantar rate quotes that never request the provider COD fee, so the store's own COD service fee cannot be billed twice, honeypot and rate-limit guards, `submit_token` idempotency, atomic order + items + stock reservation, one atomic order-number allocator, and scheduled abandoned-order retention. Qualified unsubmitted leads retain a per-tab set of successful normalized identity/product fingerprints: identical combinations are suppressed across blur and reload, changed combinations may capture, and failed capture or unavailable storage fails open. Submitted non-COD checkouts remain real orders with pending shipping; successfully-created unpaid VA/QRIS and bank transfer remain payment-pending, while an explicit AutoLaris creation failure may be payment-failed.
-
-**Payments** — COD, manual bank transfer with seller bank accounts, and AutoLaris QRIS/VA with per-channel toggles enforced at listing and submit boundaries, fee-bearer policy (buyer or seller) for both payment and COD fees, and a dedicated instruction page with copy-to-clipboard, countdown, token-scoped CMS-status refresh, and automatic `/thanks` replacement after the server confirms payment. Since 1.3.2/1.3.3 a failed or expired instruction is regenerable from that page (`retry_payment`, 5 per 10 min), `expired` is derived from `expires_at` for buyers and written hourly by the scheduled sweeper for every operator reader, the admin order list flags a failed or expired instruction beside the payment badge, the page is reopenable elsewhere through a fragment link (`/payment#o=…&t=…`, copied from the page, never a query string), provider callbacks are recorded as evidence in `autolaris_callbacks`, and a manual paid confirmation enqueues the server Meta Purchase. `/payment` and `/thanks` render on the storefront's own palette rather than a separate one (2026-08-24); a QRIS payload renders as a scannable canvas QR on both pages, and `/thanks` reflects an `expired`/`failed` transaction by hiding the code and both pay links rather than continuing to present an instruction the provider no longer honours. Online checkout creates one AutoLaris payment through `POST /api/h2h/create_payment` — the gateway path, carrying buyer payment identity and the fee-policy amount only. No shipping data reaches AutoLaris; that is Mengantar's. Manual seller-bank transfers remain visible in analytics but are excluded from AutoLaris reconciliation. Because no settled `POST /api/h2h/advice` response has been observed, an owner/admin must still verify the provider dashboard and re-enter the exact recorded total and provider reference before the CMS marks the payment paid. Owner and admin can read one transaction's provider state on demand from the reconciliation queue; that read writes nothing, cannot mark a payment paid, and flags the case that matters — the provider reporting an unpaid transaction this store has already marked paid. Every accepted transition is atomic, idempotent, append-only audited, and blocked for released or incompatible orders. The legacy webhook is retired. Paid confirmation changes shipping eligibility only and never dispatches automatically.
-
-**Orders and shipping** — one shared lifecycle validates every single/bulk status transition, restores reserved stock exactly once on cancellation or deletion, and prevents destructive removal after provider dispatch. **Pesanan tertinggal** has a dedicated product-first lead workspace and is excluded from normal order lists, summaries, details, bulk actions, and shipping. CS can record follow-up and explicitly convert one ABN lead into one complete pending INV with a current server-side rate and exactly-once stock reservation. Checkout, conversion, and payment confirmation only persist or change eligibility. Mengantar dispatch runs solely after an explicit authenticated single/bulk operator action under a single-flight lease; provider acceptance rechecks the claim and dispatch-critical snapshot so concurrent cancellation or buyer edits cannot be overwritten. Accepted provider identifiers and provider-supplied waybills persist, duplicates are suppressed, and bounded failures remain pending and retryable. The Shipping workspace exposes exactly **Semua Pengiriman**, **Perlu Dibuatkan Resi**, **Perlu Pickup**, and **Sampai Tujuan**, with responsive state-valid actions and explicit sequential provider polling by waybill. `/order/pay-unpaid` recovery remains provider-blocked.
-
-**Admin** — 27 pages: dashboard analytics, orders and order detail, product CRUD, landing pages, content workbench with Workers AI drafting, shipping, expeditions, RTS/rate checker with an optional COD value that reveals the provider's own COD fee for comparison, payments, balance reconciliation ledger, ads configuration for Meta and Google, store/warehouse/CRM settings, operator access management, and developer API keys. The JSON/AI content workbench is off the main navigation (ADR-018); `/admin/content` itself stays reachable and unchanged — it is no longer gated behind the storefront's setup-required state, since the home page now always renders. Both admin image-upload paths (product photos, content/hero media) route through one shared client-side compression rule (`src/lib/client-image.ts`: 1280px max edge, WebP quality 0.8, reuse only under 100KB) rather than two that could disagree — forward-only, no backfill of what is already in R2 (2026-08-24). Warehouse settings create the required single-row origin on a fresh install and update it thereafter. Fresh installation also creates the neutral ten-courier policy; migration `0042` repairs only installed stores with no courier rows and never overwrites an existing policy. Navigation and route authorization share one deny-by-default role policy. Phones use role-aware bottom navigation and sheets, tablet starts with a 48 px rail, desktop uses a 256 px sidebar, and first-run sessions expose only password rotation and logout.
-
-**Dashboard figures** — "Omset" is the value of orders still in play: cancelled and returned shipments and released payments are excluded by one predicate shared with the trend query, so the chart's bars always sum to the card above them. A separate collected figure counts paid orders net of shipping and COD fees, so a store with no paid orders no longer reports a seven-figure "pendapatan". Payment success is measured over online orders only (COD is paid on delivery and cannot prepay) and RTS over shipments that reached an outcome; every card states its base, and "Pesanan" headlines active orders with the dropped ones in the note. The default reporting period is this month. The trend chart's axis scales per tick so labels stay distinct, the all-time view fills empty days rather than skipping them, and a payment provider that has accepted requests but awaits its first manual confirmation reads healthy, not "no data".
-
-**Reporting periods** — the dashboard, order list, and shipping workspace share one period control: a preset rail beside a custom two-month calendar grid (built without a date library), styled after Facebook Ads Manager, with the picked range shown as read-only date boxes and a Batal/Terapkan pair. On a phone it shows one month, navigated by arrows. A period the server cannot resolve is refused with a stated reason rather than silently answered as the 7-day default, which is what the order and shipping routes used to do with any unrecognised value. Each surface declares its own ceiling — 31 days on the dashboard, which charts every day in the period, against 180 on the lists — and the control states that ceiling and enforces it in the inputs. The order list's summary cards follow every active filter, and its status chips follow all of them except the status they select, so a one-day period no longer shows that day's rows beside an all-time total. The analytics range requires both ends, so no dated request escapes the ceiling through a half-open range.
-
-**Operator notifications** — a new order, a missed-order lead, and a cleared payment each record exactly one notification, enforced by a unique index on `(type, order_id)` rather than by the caller. Recording is fail-open and can never affect the commerce write that triggered it. The admin topbar carries an unread badge and a panel, newest first, with read state per operator so one person clearing the badge does not blind the team; `advertiser` is refused the endpoint entirely. A browser notification is raised while an admin page is open, at most once per event per browser. Delivery while no admin page is open needs Web Push and is specified (`REQ-153`) but unbuilt.
-
-**Headless API** — nine `/api/v1/*` routes authenticated by API key and independently origin-checked. Every operation has a minimum scope; origin denials occur before quota, minute denials do not spend daily quota, and D1 records the final handler status exactly once without request payloads. The order-status route requires the order number plus its public status token and returns no customer PII.
-
-Google Ads API offline delivery is now implemented but remains disabled until an
-install provides its own optional API/OAuth secrets, customer ID, UPLOAD_CLICKS
-conversion action, and explicit start timestamp. Hourly maintenance reconciles
-online paid and COD delivered orders into a D1 outbox, uploads only orders with
-stored Google click identity, and retries transient failures. No install has
-those credentials yet; no remote migration, historical backfill, or API upload
-has occurred.
-
-**Tracking** — Meta Pixel plus server-side CAPI through a durable outbox with retry and a shared, order-derived `event_id`. A valid Meta configuration now mints one 128-bit first-party `adsbook_meta_external_id`, retains it for 90 days, and SHA-256 hashes it independently on Pixel and CAPI; PageView through Purchase therefore keep one advertiser identity instead of changing `external_id` to phone only after checkout. `_fbp`/`_fbc` remain raw, phone/name/address matching remains normalized and hashed, and phone is only an upgrading-session fallback when the new cookie is absent. The native checkout deliberately remains email-free; CAPI accepts and hashes a real email from Headless callers or stored orders but never sends the synthetic address used only to satisfy an online payment provider. Google Tag and Ads conversion configuration retain region-scoped Consent Mode v2 and enhanced conversions (`gtag('set', 'user_data', ...)`, uppercase ISO country); click-id capture covers `gclid`/`gbraid`/`wbraid`/`fbclid`. **TikTok removed 2026-08-24** (BUILD-LOG same date, TRACKING_SPECS.md §8): no Pixel or Events API existed, so its stale click-id and traffic-source surfaces were deleted. Hosted and embedded checkout surfaces emit Purchase only after the order can be resolved and verified. Product ID remains the canonical advertising identity across API `content_id`, Meta `content_ids`, Google ecommerce `item_id`, and both catalog feeds.
-
-The 2026-08-25 Google configuration hardening now treats the direct `AW-…` conversion ID and label as one atomic validated pair across D1, environment fallback, and storefront render. Invalid/partial environment values disable the direct tag instead of emitting a malformed `send_to`; GTM can still consume ecommerce/GA4 data, but must not own the same Google Ads conversion action as the direct tag. Account-side Enhanced Conversions enablement, customer-data terms, consent policy, Google receipt, deduplication, and campaign effect remain operator evidence—not a code claim.
-
-
----
-
-## 4. Data state
-
-21 tables. `stores` is a single row carrying provider keys, tracking ids, fee policy, payment toggles, CRM templates, independent embed and Headless origin policies, AI instructions, and COD province exclusions. `order_number_counters` owns collision-free numbering; Headless usage/audits and runtime storefront definitions have dedicated tables.
-
-Catalog: **empty by default**. No dataset ships (ADR-016); an install starts with no products and the storefront renders an explicit setup state until the operator publishes home content and adds products.
-
-Known data issues, all tracked:
-
-- The local development D1 may hold a previously provisioned warehouse row with address, phone, and Mengantar identifiers. Remote state was not read and is explicitly unverified; any local or remote scrub is a separate destructive-data decision.
-- No seed ships. `scripts/seed-catalog.sql`, `public/images/products/` and `db:reset:demo:local` were removed on 2026-08-17 (ADR-016); whether to reintroduce sample data, and in what form, is deferred rather than decided against. The earlier `src/db/seed.sql`, which held two previous merchants' catalogs plus genuine-looking provider ids, a real address and a real phone number, was deleted on 2026-08-16.
-- Migration `0017` once aborted the chain on an empty database; that insert was removed 2026-08-16. All 44 migrations now apply from zero, and the Worker applies a valid missing suffix automatically before database-backed requests. Migration `0040` adds persisted provider status text, provider event time, and synchronization time to `orders`; migration `0041` adds persisted missed-order follow-up state; migration `0042` restores the neutral courier catalogue only for stores with an empty policy; migration `0043` adds immutable manual-payment reconciliation evidence.
-
----
-
-## 5. Work completed on 2026-08-16
-
-Content and identity cleanup, on branch `chore/adsbookcms-foundation`:
-
-- Legal pages templated on `{{store}}` and resolved at render, replacing hardcoded references to a previous merchant on `/syarat-ketentuan`, `/disclaimer`, and `/kontak`. `/kontak` now renders the support WhatsApp number from D1 instead of a foreign one, and the foreign operational address was removed rather than replaced with an invented one.
-- `/disclaimer` fixed — the page had an unterminated frontmatter block, so the route never compiled and returned 404 in production while remaining listed in `sitemap.xml`.
-- Page metadata on `/tentang`, `/testimoni`, `/sitemap`, and `/kebijakan-cookie` switched from a third merchant's brand to `resolveTenantConfig(...).name`.
-- Default home hero copy replaced with neutral text; the previous default described an agriculture and household catalog.
-- Fallback merchant name in CRM templates and the fallback product name on `/thanks` neutralised.
-- Deleted: five dead components carrying legacy campaign logic, the unreferenced `siteContact` block with a foreign email, WhatsApp, and address, and roughly 39 MB of another merchant's images and articles that were publicly fetchable on this domain (`public/` went from 67 MB to 28 MB).
-- Documentation re-founded: `ARCHITECTURE.md`, `DECISIONS.md`, `RELEASE.md`, and `OBSERVABILITY.md` created; `README.md`, `INSTALLATION.md`, `AGENTS.md`, and this file rewritten; `CLOUDFLARE_MULTI_TENANT.md`, `AUTO_UPDATE_DEPLOY.md`, `design-tokens.md`, and the `doc/` preview site deleted as upstream-engine material.
-
-System-wide security, correctness, documentation, navigation, and UX audit:
-
-- Hardened admin bootstrap, JWT verification, KV-backed session validation, password rotation invalidation, exact role routing, and deny-by-default API/page access. **Correction (2026-08-17):** this said the built-in default password "fails
-  closed unless a strong bootstrap secret is explicitly configured". It does not,
-  and deliberately so — that behaviour shipped, made a fresh install unopenable,
-  and was reverted (PRD.md REQ, `PRD-ADMIN-LOGIN.md` LOGIN-1/LOGIN-2). A new
-  install opens with `admin` / `admin`, and a session on that credential reaches
-  nothing but its own password change. Anyone believing this line either ships an
-  install they cannot enter, or leaves a live default they think is disabled.
-- Converted public order status to token-scoped `POST` JSON; completion routes keep identifiers in same-origin `sessionStorage`, strip query strings before subresources load, and send `Cache-Control: no-store`. Checkout, payment, thanks, Meta browser tracking, and CAPI now share the same order-derived event identity.
-- Separated iframe embed origins from Headless API origins. Migration `0035` persists the Headless allowlist; Developer settings validates and saves it; all `/api/v1/*` routes still require an active API key.
-- Closed inactive-product exposure, landing-preview cache, custom-HTML preview injection, legacy embed redirect, catalog identity, and public cache-control defects. Removed dead completion-query builders after the safe navigation boundary made them redundant.
-- Centralised admin navigation contracts, aligned menu visibility with authorization, repaired nested `<main>` landmarks, and made public/admin skip links target the actual main content.
-- Reconciled repository specifications, architecture, installation notes, storefront integration guidance, remaining-gap register, and migration `0034` behaviour with the executable tree.
-- Published the authenticated OpenAPI 3.1 contract and framework-neutral server adapter for the complete Headless commerce journey. External tracking now preserves the allowlisted storefront origin instead of replacing it with the CMS origin, while the developer key remains server-side.
-- The 2026-08-17 repository audit found open correctness and abuse-control defects. They are recorded in §6 and `UNIMPLEMENTED_SPECS.md`; the earlier statement that no exploitable finding remained is superseded.
-
----
-
-## 6. Known issues
-
-| Severity | Current fact |
-| --- | --- |
-| Release blocker | Automatic AutoLaris paid marking stays disabled. The inquiry endpoint `POST /api/h2h/advice` exists and is implemented, but only its **pending** response has been observed; capturing a settled one means paying a real virtual account. Owner/admin manual confirmation remains the sole path that marks a payment paid. Since 1.3.3 provider callbacks are recorded in `autolaris_callbacks`, so the settled shape can be read from evidence once one arrives. |
-| Release blocker | AutoLaris production access requires an IP allowlist of at most five addresses. Cloudflare Workers have no fixed egress address, so no install is AutoLaris-production-ready on current evidence. |
-| Medium | Product-grain feeds still need a truthful standard-identifier policy and stable out-of-stock publication contract. |
-| Medium | Theme colour, locale, and admin display name resolve from D1 but still lack complete admin editors. |
-| Medium | External uptime checks and a cross-install operational view do not exist; per-install schema/CAPI alerting does. |
-| Blocked | Mengantar tracking, pickup, insufficient-wallet recovery, and wallet balance still require canonical provider contracts or explicitly approved sandbox/live evidence. |
-| Release evidence | Commit `09812c7` plus the A17 working tree has local test/check/build and isolated browser evidence, but no hosted CI result, production-D1 preflight, or install-specific provider smoke. |
-| Data note | Local/remote D1 may still contain a previously provisioned warehouse address, phone, and provider ObjectIds; scrubbing it is a separate destructive/remote-data action |
-
----
-
-## 7. Distance to the product goal
-
-AdsBookCMS is intended to install like WordPress: point a domain at it, open the
-site, fill in a form. That path now exists end to end — an empty database
-redirects to `/install`, the wizard writes the store and the operator's own
-credential, and the wizard locks itself afterwards. It has been exercised against
-a real Worker on a real empty D1, not only in tests.
-
-All ten structural gaps in `ARCHITECTURE.md` §10 are closed. Remaining audited
-defects, documentation debt, integration deliverables, and provider-blocked work
-are tracked only in `UNIMPLEMENTED_SPECS.md`.
+- Provider credentials and live account acceptance cannot be proven without
+  operator-controlled secrets and external test consoles.
+- AutoLaris callback rows remain evidence only; they never transition payment.
+- Stock is bookkeeping and never gates a sale (ADR-023).
+- `theme_color`, `locale`, and `admin_name` remain stored but have no admin
+  editor.
+- Production release is not automatic and is not authorized by this document.

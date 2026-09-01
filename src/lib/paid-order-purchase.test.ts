@@ -30,6 +30,17 @@ function createDatabase(options: { paymentStatus: string; pixel: boolean; alread
               city: "Bogor",
               postal_code: "16111",
               payment_status: options.paymentStatus,
+              ad_click_ids: JSON.stringify({
+                _fbp: "fb.1.1700000000.legacy-browser",
+                _fbc: "fb.1.1700000000.legacy-click",
+              }),
+              meta_request_context: JSON.stringify({
+                externalId: "0123456789abcdef0123456789abcdef",
+                fbp: "fb.1.1700000000.checkout-browser",
+                fbc: "fb.1.1700000000.checkout-click",
+                clientIp: "203.0.113.7",
+                userAgent: "Checkout Browser/1.0",
+              }),
               product_value: 150_000,
             };
           }
@@ -79,9 +90,12 @@ test("a paid order enqueues one Purchase keyed on its order number", async (cont
   // Goods only, the same figure the browser leg sends.
   assert.equal(payload.customData.value, 150_000);
   assert.deepEqual(payload.customData.contentIds, ["100001"]);
-  assert.equal(payload.userData.externalId, "6281234567890");
-  // No browser identifiers can exist server-side; none are invented.
-  assert.equal("fbp" in payload.userData, false);
+  assert.equal(payload.userData.externalId, "0123456789abcdef0123456789abcdef");
+  assert.equal(payload.userData.fbp, "fb.1.1700000000.checkout-browser");
+  assert.equal(payload.userData.fbc, "fb.1.1700000000.checkout-click");
+  assert.equal(payload.userData.clientIp, "203.0.113.7");
+  assert.equal(payload.userData.userAgent, "Checkout Browser/1.0");
+  assert.equal(payload.userData.country, "id");
 });
 
 test("an unpaid order, an unconfigured pixel, and an already-sent Purchase are all no-ops", async () => {

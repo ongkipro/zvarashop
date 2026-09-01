@@ -1,12 +1,60 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  CLICK_ID_COOKIE,
+  hasAdClickId,
   hasClickId,
+  mergeClickIds,
   parseClickIds,
   parseClickIdsFromUrl,
   readClickIdCookie,
   readMetaBrowserIds,
+  readOrderClickIds,
+  serializeClickIds,
 } from "./click-ids.ts";
+
+test("a UTM-only follow-up never erases the paid click identity", () => {
+  const paid = parseClickIdsFromUrl(
+    new URL("https://shop.example/?gclid=Cj0_paid&utm_source=google"),
+  );
+  const followUp = parseClickIdsFromUrl(
+    new URL("https://shop.example/?utm_source=whatsapp&utm_campaign=followup"),
+  );
+  assert.equal(hasAdClickId(paid), true);
+  assert.equal(hasAdClickId(followUp), false);
+  assert.deepEqual(mergeClickIds(paid, followUp), {
+    gclid: "Cj0_paid",
+    utm_source: "whatsapp",
+    utm_campaign: "followup",
+  });
+
+  const newPaidClick = parseClickIdsFromUrl(
+    new URL("https://shop.example/?fbclid=IwAR_new"),
+  );
+  const crossNetwork = mergeClickIds(paid, newPaidClick);
+  assert.equal(crossNetwork.gclid, "Cj0_paid");
+  assert.equal(crossNetwork.fbclid, "IwAR_new");
+  assert.match(crossNetwork._fbc || "", /^fb\.1\./);
+});
+
+test("a later browser ID enriches order attribution without erasing click IDs", () => {
+  const fbp = "fb.1.1788230000000.1234567890";
+  const fbc = "fb.1.1788230000000.IwARcurrent";
+  const request = new Request("https://shop.example/api/submit-order", {
+    headers: {
+      cookie:
+        `adsbook_click_ids=${encodeURIComponent(JSON.stringify({ gclid: "Cj0_paid", fbclid: "IwARold", _fbc: "fb.1.1788220000000.IwARold" }))}; ` +
+        `_fbp=${fbp}; _fbc=${fbc}`,
+    },
+  });
+
+  assert.deepEqual(readOrderClickIds(request), {
+    gclid: "Cj0_paid",
+    fbclid: "IwARold",
+    _fbp: fbp,
+    _fbc: fbc,
+  });
+});
 
 test("captures the click id Google attached to the landing URL", () => {
   assert.deepEqual(
@@ -139,4 +187,15 @@ test("Meta's browser ids are read from the request, so a CAPI event is never ano
 
   // No cookies at all is an empty result, never a throw inside the event path.
   assert.deepEqual(readMetaBrowserIds(new Request("https://permatamall.shop/api/meta-event")), {});
+});
+
+test("a generic click cookie cannot smuggle a malformed Meta browser id", () => {
+  const request = new Request("https://shop.example/api/meta-event", {
+    headers: {
+      cookie: `${CLICK_ID_COOKIE}=${encodeURIComponent(
+        serializeClickIds({ _fbc: "not-a-meta-browser-id" }),
+      )}`,
+    },
+  });
+  assert.equal(readMetaBrowserIds(request).fbc, undefined);
 });

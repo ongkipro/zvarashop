@@ -1,10 +1,16 @@
-# AdsBookCMS Meta Pixel, CAPI, GTM, and Google Ads Specification
+# ZvaraShop Meta Pixel, CAPI, GTM, and Google Ads Specification
 
-> Verified against disk: 2026-08-28 @ `aea1a7b` + meta-browser-purchase-matching working tree
+> Verified against disk: 2026-09-01 @ `e6b9fbe` + standalone/ad-signals working tree
 
-This document owns the technical tracking contract for AdsBookCMS-rendered and headless storefronts. It covers event semantics, identity, browser/server boundaries, deduplication, durable delivery, store configuration, and verification. It does not claim attribution certainty, legal compliance, consent applicability, or live provider acceptance.
+This document owns the technical tracking contract for ZvaraShop-rendered and
+headless storefronts. It covers event semantics, identity, browser/server
+boundaries, deduplication, durable delivery, store configuration, and
+verification. It does not claim attribution certainty, legal compliance,
+consent applicability, or live provider acceptance.
 
-AdsBookCMS installs as **one Worker = one store** ([`ARCHITECTURE.md`](./ARCHITECTURE.md), [`DECISIONS.md`](./DECISIONS.md) ADR-001/ADR-002), so "store configuration" below always means the single `stores` row of this install, resolved at request time from D1 with environment fallback.
+ZvaraShop is **one Worker = one store** ([`ARCHITECTURE.md`](./ARCHITECTURE.md),
+[`DECISIONS.md`](./DECISIONS.md) ADR-001/ADR-024), so “store configuration”
+below means the single `stores` row, resolved D1-first with environment fallback.
 
 ## 1. Architecture
 
@@ -14,7 +20,7 @@ flowchart LR
     F --> PX[Meta Pixel]
     F --> GTM[GTM dataLayer]
     F --> GA[Google gtag]
-    F --> API[AdsBookCMS API]
+    F --> API[ZvaraShop API]
     API --> OB[(capi_event_outbox)]
     OB --> CAPI[Meta CAPI]
     API --> D1[(D1 OMS_DB)]
@@ -22,13 +28,13 @@ flowchart LR
     O --> API
 ```
 
-The storefront owns browser tag loading and event presentation. AdsBookCMS owns tracking configuration, public payload validation, canonical catalog/order identity, Purchase qualification, durable CAPI delivery, and server CAPI credentials.
+The storefront owns browser tag loading and event presentation. ZvaraShop owns tracking configuration, public payload validation, canonical catalog/order identity, Purchase qualification, durable CAPI delivery, and server CAPI credentials.
 
 A headless storefront may use a different framework and design, but it must not fork event meaning, product identity, or Purchase qualification.
 
 ## 2. Current Implementation Boundary
 
-### Implemented in AdsBookCMS-rendered routes
+### Implemented in ZvaraShop-rendered routes
 
 - `MetaPixelBase.astro` resolves a valid Pixel ID from D1 with environment fallback, and owns the **single** `fbq('init')` (§4a) plus `window.__PS_LOAD_META_PIXEL__`.
 - `GtmBase.astro` resolves and validates the GTM container ID.
@@ -161,6 +167,15 @@ against what the trackers send — the two halves against each other, never each
 against its own fixture, because separate fixtures are exactly how three
 different values passed CI once before.
 
+Catalog copy is merchant-owned. `products.brand` is emitted as `g:brand`; a
+blank value falls back to the store name. `products.description` supplies feed
+copy after published product presentation content and before the generic
+fallback. Google output deliberately omits `identifier_exists` and does not map
+merchant-editable SKU to `g:mpn`: a bundle label such as `BELI_1_PCS` is not a
+manufacturer part number. A legacy product whose ID cannot satisfy the catalog
+identity contract is omitted from the aggregate feed instead of returning a
+500 for every valid product.
+
 Two corrections are worth remembering, because both were invisible while live:
 
 - Until 2026-08-17 the Pixel sent the bare row id (`1`) while both feeds
@@ -230,7 +245,7 @@ A local duplicate guard proves only the browser and database paths. CAPI accepta
 ### Hash before CAPI
 
 Normalize and SHA-256 hash every supported customer identifier before it leaves
-AdsBookCMS:
+ZvaraShop:
 
 - phone after Indonesian international normalization;
 - a real email after trim and lowercase — never the synthetic payment-provider
@@ -240,7 +255,7 @@ AdsBookCMS:
 
 Meta's current documentation is internally inconsistent: the customer-parameter
 index calls `external_id` hashing recommended while the live Payload Helper calls
-it required. AdsBookCMS takes the privacy-safe intersection and always hashes it
+it required. ZvaraShop takes the privacy-safe intersection and always hashes it
 on both Pixel and CAPI legs. A dashboard label that says “no hash required” is
 not permission to expose the raw identifier.
 
@@ -290,8 +305,10 @@ the outbound CAPI payload each contain its SHA-256 hash. `PageView`,
 one advertiser-issued identity instead of changing `external_id` to a phone
 number only after checkout. An upgrading session without the cookie temporarily
 falls back to normalized phone; the next Pixel bootstrap creates the stable key.
-The identifier is never accepted from a URL, never written to the order's
-click-ID JSON, and never used as `event_id`.
+The identifier is never accepted from a URL and never used as `event_id`. At
+checkout, its validated raw first-party value is retained in the private
+`orders.meta_request_context` snapshot so a paid-later Purchase can hash and
+reuse the same identity after the browser request has ended.
 
 ### Request-derived context
 
@@ -315,6 +332,21 @@ blocked by an extension, or simply not loaded when the event fires. For `fbc`
 specifically it falls back to the `_fbc` synthesized into the click-ID cookie by
 the middleware at landing, which exists on ad traffic before the pixel runs.
 
+`MetaPixelBase.astro` creates a valid first-party `_fbp` synchronously before
+the immediate PageView/ViewContent CAPI trackers run, following the same early
+parameter-builder behavior used by Meta's official integrations. The deferred
+`fbevents.js` then reads that same cookie. This closes the race where the Pixel
+event eventually had `fbp` but its paired server event had already been queued
+without one.
+
+Checkout also serializes the validated `external_id`, `_fbp`, `_fbc`, original
+client IP, and user agent into `orders.meta_request_context` (migration `0052`).
+The three native/headless order routes share this boundary. A Purchase emitted
+after a later payment confirmation uses the checkout snapshot, not the
+operator's IP or browser. Malformed and oversized values fail closed. Existing
+orders remain valid but cannot be retroactively enriched with request data that
+was never stored.
+
 ### Click identifier capture and persistence
 
 Click-ID preservation is owned by `src/lib/click-ids.ts`, `src/middleware.ts`, and the `orders.ad_click_ids` column — **not** by `src/lib/order-schema.ts`, which carries no click-ID fields.
@@ -331,8 +363,8 @@ Flow:
 
 1. **Capture.** `src/middleware.ts` runs `parseClickIdsFromUrl(url)` on every non-private request. Values must match `/^[A-Za-z0-9._-]{1,256}$/` or they are dropped. When `fbclid` arrives without `_fbc`, the library synthesizes `_fbc` as `fb.1.<timestamp>.<fbclid>`.
 2. **Store.** Matching values are JSON-serialized into the cookie named by `CLICK_ID_COOKIE` — currently `adsbook_click_ids` — with `Max-Age` of 90 days, `Path=/`, and `SameSite=None; Secure` on HTTPS (`SameSite=Lax` otherwise). `_fbp` and `_fbc` are additionally re-issued as their own first-party cookies so Meta's own readers find them.
-3. **Read back.** `readClickIdCookie(request)` is called by `src/pages/api/submit-order.ts`, `src/pages/api/submit-middle-order.ts`, and `src/pages/api/v1/checkout.ts`; `readMetaBrowserIds(request)` wraps it for `src/pages/api/meta-event.ts`. Cookies ride along with the submit request, so no hidden form fields are needed. Malformed or hand-edited cookie values parse to `{}` rather than throwing inside the order path.
-4. **Persist.** The serialized value is written to `orders.ad_click_ids` (migration `0024_daily_typhoid_mary.sql`).
+3. **Read back.** `readOrderClickIds(request)` is called by `src/pages/api/submit-order.ts`, `src/pages/api/submit-middle-order.ts`, and `src/pages/api/v1/checkout.ts`; it merges the landing cookie with newer direct `_fbp`/`_fbc` cookies. `readMetaBrowserIds(request)` provides the same validated values to `src/pages/api/meta-event.ts`. Cookies ride along with the submit request, so no hidden form fields are needed. Malformed or hand-edited cookie values parse to `{}` rather than throwing inside the order path.
+4. **Persist.** The serialized attribution value is written to `orders.ad_click_ids` (migration `0024_daily_typhoid_mary.sql`), while the bounded paid-later identity/request snapshot is written to `orders.meta_request_context` (migration `0052_meta_order_context.sql`). A new Google click replaces only Google identifiers and a new Meta click replaces only Meta click identifiers; neither platform erases the other's last attributable identity.
 5. **Classify.** `src/lib/traffic-source.ts` reads that stored JSON and derives a `TrafficSourceType` of `meta`, `google`, `organic`, or `custom`, precedence Meta → Google → UTM heuristics. The admin surfaces it through `TrafficSourceBadge` in `OrdersTable.tsx` and `OrderDetail.tsx`.
 
 The cookie is `adsbook_click_ids`, renamed from `zanoby_click_ids` on 2026-08-16. `readClickIdCookie()` still **reads** the legacy name when the current one is absent, so attribution captured before the rename survives; nothing writes the legacy name, so it ages out with its own 90-day expiry.
@@ -498,7 +530,7 @@ refresh token, and `GOOGLE_ADS_OFFLINE_START_AT`. The start timestamp prevents
 an install from uploading historical orders merely because credentials were
 added. Only orders with a stored `gclid`, `gbraid`, or `wbraid` are queued.
 
-No customer identity is uploaded through this server path yet because AdsBookCMS
+No customer identity is uploaded through this server path yet because ZvaraShop
 does not persist the user's Google consent decision with the order. The offline
 payload contains click identity, merchandise value, currency, canonical order
 number, and observed qualification time. Adding hashed user identifiers requires

@@ -45,7 +45,7 @@ export interface StoreIdentityRow {
  */
 const defaults = {
   slug: "adsbook",
-  name: "AdsBookCMS Store",
+  name: "ZvaraShop",
   siteUrl: "https://example.com",
   // Deliberately empty, for the reason PUBLIC_SITE_TAGLINE is: a placeholder
   // sentence here does not stay in the config file. It becomes the meta
@@ -63,7 +63,7 @@ const defaults = {
   themeColor: "#111111",
   locale: "id-ID",
   storefrontTemplate: "compact-market" as StorefrontTemplateId,
-  adminName: "AdsBookCMS Admin",
+  adminName: "ZvaraShop Admin",
 } as const;
 
 function text(value: unknown): string {

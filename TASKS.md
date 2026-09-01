@@ -1,6 +1,20 @@
-# Tasks: AdsBookCMS
+# Tasks: ZvaraShop
 
-> Verified against disk: 2026-08-27 @ `679f577` + stock-unlimited working tree
+> Verified against disk: 2026-09-01 @ `e6b9fbe` + standalone/ad-signals working tree
+
+## A27 — Standalone repository and ad-signal hardening
+
+- [x] **A-174** — Make ZvaraShop the sole repository authority and retire blind product sync.
+      -> REQ: REQ-173, REQ-174, REQ-176 · Evidence: ADR-024, `README.md`, `PLAN.md`, `docs/UPDATE-PATH-OWNERSHIP.md`, and the fail-closed legacy sync script.
+- [x] **A-175** — Preserve paid attribution across visits and make every Meta Purchase server-authoritative.
+      -> REQ: REQ-173 · Evidence: `click-ids.test.ts`, `meta-purchase-order.test.ts`, public endpoint rate-limit test, and the first-party/headless route diff.
+- [x] **A-176** — Prevent Google offline queue head-of-line blocking and expose its outbox health.
+      -> REQ: REQ-173 · Evidence: `google-ads-offline.test.ts`, operational-health classification tests, dashboard signal, and alert mapping.
+- [x] **A-178** — Raise truthful Meta customer-information coverage across immediate and paid-later CAPI events.
+      -> REQ: REQ-173 · Evidence: early first-party `_fbp`, cross-network click-ID retention, migration `0052`, `meta-order-context.test.ts`, and paid-order Purchase assertions for external ID, `_fbp`, `_fbc`, client IP, and user agent. Email and Facebook Login ID remain absent when the checkout does not genuinely know them.
+- [ ] **A-177** — Complete standalone verification and browser evidence.
+      -> REQ: REQ-175 · Done when: docs/local links, full tests, check, build, local migration/preflight as applicable, and affected admin pages in a local browser all pass after the last edit.
+      -> **Partial 2026-09-01:** docs passed for 29 files; 623/624 tests passed with 1 intentional skip; check passed across 412 files; build passed; all 53 migrations applied to fresh local D1; the real inline Pixel bootstrap proved `_fbp` and stable external-ID coexist before Purchase/PageView dispatch; Chromium rendered `/install` and the COD `/thanks` state at 390 × 844. The confirmation button resolved the stored support number and the CMS `redirect` template with order number, buyer name, product, and total, with zero horizontal overflow. Deployment preflight correctly refused the untracked dirty feature branch. Authenticated Meta, Google, and product-editor rendering remains open because no local password/session was read or created.
 
 ## A21 — A landing page may become the product page
 

@@ -5,6 +5,11 @@ import { getStoreAdsConfig } from '../../../../lib/store-ads';
 import { getRuntimeEnv } from '../../../../lib/env';
 import { getClientIp } from '../../../../lib/rate-limit';
 import { enqueueCapiEvent, deliverCapiEvent, drainCapiOutbox } from '../../../../lib/capi-outbox';
+import { findPurchaseOrderForApiKeyCaller } from '../../../../lib/meta-purchase-order';
+import { toE164Digits } from '../../../../lib/meta-capi';
+import { isSyntheticBuyerEmail } from '../../../../lib/meta-identity';
+import { parseClickIds } from '../../../../lib/click-ids';
+import { parseMetaOrderContext } from '../../../../lib/meta-order-context';
 
 export const prerender = false;
 
@@ -45,29 +50,51 @@ export const POST: APIRoute = async ({ request, locals }) => {
       }, validation.corsHeaders));
     }
 
+    const purchaseOrder = payload.eventName === 'Purchase'
+      ? await findPurchaseOrderForApiKeyCaller(database, payload.eventId)
+      : null;
+    if (payload.eventName === 'Purchase' && !purchaseOrder) {
+      return validation.finalize(headlessError(
+        'Purchase event_id harus berupa order_number yang tercatat.',
+        404,
+        { code: 'PURCHASE_ORDER_NOT_FOUND' },
+        validation.corsHeaders,
+      ));
+    }
+
+    const eventId = purchaseOrder?.order_number || payload.eventId;
+    const resolvedPhone = purchaseOrder?.customer_phone || payload.phone;
+    const resolvedEmail = purchaseOrder?.customer_email || payload.email;
+    const storedContext = parseMetaOrderContext(purchaseOrder?.meta_request_context);
+    const storedClickIds = parseClickIds(purchaseOrder?.ad_click_ids);
     const event = {
       eventName: payload.eventName,
-      eventId: payload.eventId,
+      eventId,
       eventSourceUrl: payload.eventSourceUrl,
       userData: {
-        phone: payload.phone,
-        name: payload.name,
-        email: payload.email,
-        city: payload.city,
-        province: payload.province,
-        postalCode: payload.postalCode,
+        phone: resolvedPhone,
+        name: purchaseOrder?.customer_name || payload.name,
+        email: isSyntheticBuyerEmail(resolvedEmail, resolvedPhone)
+          ? undefined
+          : resolvedEmail,
+        city: purchaseOrder?.city || payload.city,
+        province: purchaseOrder?.province || payload.province,
+        postalCode: purchaseOrder?.postal_code || payload.postalCode,
         country: payload.country,
-        externalId: payload.externalId,
-        fbp: payload.fbp,
-        fbc: payload.fbc,
-        clientIp: getClientIp(request.headers),
-        userAgent: request.headers.get('user-agent') || '',
+        externalId: payload.externalId || storedContext.externalId || (purchaseOrder
+          ? toE164Digits(purchaseOrder.customer_phone)
+          : undefined),
+        fbp: payload.fbp || storedContext.fbp || storedClickIds._fbp,
+        fbc: payload.fbc || storedContext.fbc || storedClickIds._fbc,
+        clientIp: storedContext.clientIp || getClientIp(request.headers),
+        userAgent: storedContext.userAgent || request.headers.get('user-agent') || '',
       },
       customData: {
         contentName: payload.contentName,
         contentIds: payload.contentIds,
-        value: payload.value,
+        value: purchaseOrder?.product_value ?? payload.value,
         currency: payload.currency,
+        orderNumber: purchaseOrder?.order_number,
       },
     };
 
@@ -76,7 +103,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return validation.finalize(headlessOk(
         {
           deduplicated: true,
-          event_id: payload.eventId,
+          event_id: eventId,
         },
         200,
         validation.corsHeaders
@@ -85,7 +112,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     const delivered = await deliverCapiEvent(
       database,
-      payload.eventId,
+      eventId,
       adsConfig.metaPixelId,
       adsConfig.metaCapiToken
     );
@@ -97,7 +124,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     return validation.finalize(headlessOk(
       {
-        event_id: payload.eventId,
+        event_id: eventId,
         event_name: payload.eventName,
         delivered,
         queued: !delivered,

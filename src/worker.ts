@@ -13,10 +13,11 @@ import {
   expirePendingPaymentTransactions,
   purgeExpiredAutoLarisCallbacks,
 } from "./lib/autolaris-payment.ts";
-import { drainCapiOutbox } from "./lib/capi-outbox.ts";
+import { drainCapiOutbox, purgeExpiredCapiOutboxEvents } from "./lib/capi-outbox.ts";
 import { getStoreAdsConfig } from "./lib/store-ads.ts";
 import {
   drainGoogleAdsConversionOutbox,
+  purgeExpiredGoogleAdsOutboxEvents,
   readGoogleAdsOfflineConfig,
   reconcileGoogleAdsConversions,
 } from "./lib/google-ads-offline.ts";
@@ -52,6 +53,14 @@ async function runScheduledMaintenance(
   const purgedProviderCallbacks = await housekeeping(
     "scheduled-callback-purge-failed",
     () => purgeExpiredAutoLarisCallbacks(env.OMS_DB, new Date(scheduledTime)),
+  );
+  const purgedCapiOutboxEvents = await housekeeping(
+    "scheduled-capi-outbox-purge-failed",
+    () => purgeExpiredCapiOutboxEvents(env.OMS_DB, new Date(scheduledTime)),
+  );
+  const purgedGoogleAdsOutboxEvents = await housekeeping(
+    "scheduled-google-ads-outbox-purge-failed",
+    () => purgeExpiredGoogleAdsOutboxEvents(env.OMS_DB, new Date(scheduledTime)),
   );
   // The outbox had no clock of its own: `drainCapiOutbox` was reachable only
   // from `/api/meta-event` and `/api/v1/tracking/events`, so a delivery that
@@ -95,6 +104,8 @@ async function runScheduledMaintenance(
     purgedRateLimitWindows,
     expiredPaymentInstructions,
     purgedProviderCallbacks,
+    purgedCapiOutboxEvents,
+    purgedGoogleAdsOutboxEvents,
     drainedCapiEvents,
     queuedGoogleAdsConversions,
     drainedGoogleAdsConversions,

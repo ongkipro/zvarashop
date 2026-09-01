@@ -1,17 +1,18 @@
-# Observability — AdsBookCMS
+# Observability — ZvaraShop
 
-> Verified against disk: 2026-08-27 @ `1acbd7e` + review-hardening working tree
+> Verified against disk: 2026-09-01 @ `e6b9fbe` + standalone/ad-signals working tree
 
-This document describes what an operator can observe and what AdsBookCMS now alerts on for one running install. Cross-install aggregation and an external uptime probe remain separate decisions.
+This document describes what an operator can observe and what ZvaraShop alerts
+on for its one Worker. External uptime probing remains a separate decision.
 
 ---
 
-## 1. Current state: retained logs plus actionable per-install alerts
+## 1. Current state: retained logs plus actionable store alerts
 
 `wrangler.jsonc` enables Workers Logs at full sampling, so labelled application
 errors and scheduled-maintenance events are retained and queryable after the fact.
-The Worker also owns one scheduled maintenance trigger (`*/5 * * * *`). It checks
-schema history and CAPI outbox age, persists signal transition state under
+The Worker also owns one hourly scheduled maintenance trigger (`7 * * * *`). It checks
+schema history plus Meta and Google Ads outbox age/failure, persists signal transition state under
 `adsbookcms:operational-alert:v1:*` in the `SESSION` KV binding, and sends
 deduplicated firing/recovery events to `OPS_ALERT_WEBHOOK_URL` when that
 HTTPS URL is configured. Missing notification configuration is explicit

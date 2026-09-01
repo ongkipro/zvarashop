@@ -4,6 +4,7 @@ import {
   classifyAutoLaris,
   classifyCapiDelivery,
   classifyCapiOutbox,
+  classifyGoogleAdsOutbox,
   classifyMengantar,
   summarizeHealth,
   type HealthSignal,
@@ -65,6 +66,23 @@ test("an unreadable outbox is unknown, never a depth of zero", () => {
   assert.equal(health.state, "unknown");
   assert.equal(health.reason, "unreadable");
   assert.deepEqual(health.metrics, {});
+});
+
+test("Google Ads terminal failures and a stalled queue are visible", () => {
+  assert.equal(classifyGoogleAdsOutbox({
+    pending: 0,
+    failed: 2,
+    overdue: 0,
+    oldestCreatedAt: minutesAgo(90),
+  }, NOW).reason, "terminal-failures");
+  const stalled = classifyGoogleAdsOutbox({
+    pending: 3,
+    failed: 0,
+    overdue: 3,
+    oldestCreatedAt: minutesAgo(120),
+  }, NOW);
+  assert.equal(stalled.state, "degraded");
+  assert.equal(stalled.reason, "stalled");
 });
 
 test("a pipeline nobody has used is unknown, not degraded", () => {

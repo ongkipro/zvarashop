@@ -1,9 +1,8 @@
 {
-  // AdsBookCMS — product template.
+  // ZvaraShop — standalone production Worker configuration.
   //
-  // This file is a TEMPLATE, not a deployment. One install = one Worker = one
-  // store, so every install fills this in with its own Cloudflare resources and
-  // its own identity. Nothing here should ever point at somebody else's store.
+  // This repository owns this store's Worker, D1, KV, R2, routes, and public
+  // identity. Resource identifiers are configuration, not reusable templates.
   //
   // Setup, in order, is documented in INSTALLATION.md:
   //   npx wrangler d1 create <store>-d1
@@ -117,7 +116,7 @@
     // every unconfigured store's <title>, which is how a fresh install came to
     // announce itself as "Toko Anda — Belum Dikonfigurasi".
     "PUBLIC_SITE_TAGLINE": "",
-    "PUBLIC_ADMIN_NAME": "AdsBookCMS Admin",
+    "PUBLIC_ADMIN_NAME": "ZvaraShop Admin",
     "PUBLIC_EMBED_ALLOWED_ORIGINS": "https://zvara.shop",
 
     // Root-relative or absolute. Replace the placeholder wordmark in

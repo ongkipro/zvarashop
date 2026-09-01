@@ -58,29 +58,30 @@ const feedUrl = `${origin}/feed/meta-catalog.xml`;
       <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
         <div class="flex items-center justify-between">
           <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Advanced Match</span>
-          <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+          <span class="h-2 w-2 rounded-full bg-slate-300"></span>
         </div>
-        <div class="mt-2 text-sm font-extrabold text-emerald-700">SHA-256 Active</div>
-        <p class="mt-1 text-[11px] text-slate-500">Phone E.164 + Name + City</p>
+        <div class="mt-2 text-sm font-extrabold text-slate-700">Didukung sistem</div>
+        <p class="mt-1 text-[11px] text-slate-500">E.164 + SHA-256 saat data tersedia</p>
       </div>
 
       <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
         <div class="flex items-center justify-between">
           <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Deduplication</span>
-          <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+          <span class="h-2 w-2 rounded-full bg-slate-300"></span>
         </div>
-        <div class="mt-2 text-sm font-extrabold text-sky-700">event_id Sync</div>
-        <p class="mt-1 text-[11px] text-slate-500">Browser & Server 1:1 Match</p>
+        <div class="mt-2 text-sm font-extrabold text-slate-700">Didukung sistem</div>
+        <p class="mt-1 text-[11px] text-slate-500">Satu event_id pada Pixel dan CAPI</p>
       </div>
     </div>
 
     <!-- Navigation Tabs -->
-    <div class="flex overflow-x-auto border-b border-slate-200 text-sm font-bold [&>button]:shrink-0 [&>button]:whitespace-nowrap">
+    <div class="flex overflow-x-auto border-b border-slate-200 text-sm font-bold [&>button]:shrink-0 [&>button]:whitespace-nowrap" role="tablist" aria-label="Pengaturan Meta">
       <button
         id="tabBtnConfig"
         type="button"
         class="tab-btn border-b-2 border-sky-600 px-4 py-2.5 text-sky-600 focus:outline-none"
         data-target="tabConfig"
+        role="tab" aria-selected="true" aria-controls="tabConfig" tabindex="0"
       >
         ⚙️ Konfigurasi ID
       </button>
@@ -89,6 +90,7 @@ const feedUrl = `${origin}/feed/meta-catalog.xml`;
         type="button"
         class="tab-btn border-b-2 border-transparent px-4 py-2.5 text-slate-500 hover:text-slate-900 focus:outline-none"
         data-target="tabTutorial"
+        role="tab" aria-selected="false" aria-controls="tabTutorial" tabindex="-1"
       >
         📘 Tutorial Step-by-Step
       </button>
@@ -97,6 +99,7 @@ const feedUrl = `${origin}/feed/meta-catalog.xml`;
         type="button"
         class="tab-btn border-b-2 border-transparent px-4 py-2.5 text-slate-500 hover:text-slate-900 focus:outline-none"
         data-target="tabFeed"
+        role="tab" aria-selected="false" aria-controls="tabFeed" tabindex="-1"
       >
         🛒 Catalog XML Feed
       </button>
@@ -105,13 +108,14 @@ const feedUrl = `${origin}/feed/meta-catalog.xml`;
         type="button"
         class="tab-btn border-b-2 border-transparent px-4 py-2.5 text-slate-500 hover:text-slate-900 focus:outline-none"
         data-target="tabSpecs"
+        role="tab" aria-selected="false" aria-controls="tabSpecs" tabindex="-1"
       >
         ⚡ Signal & Payload Inspector
       </button>
     </div>
 
     <!-- TAB 1: KONFIGURASI ID -->
-    <div id="tabConfig" class="tab-content space-y-6">
+    <div id="tabConfig" class="tab-content space-y-6" role="tabpanel" aria-labelledby="tabBtnConfig">
       <div id="metaLoading" class="h-64 animate-pulse rounded-xl bg-slate-100 text-slate-950 shadow-sm" role="status" aria-live="polite" aria-busy="true" aria-atomic="true">
         <span class="sr-only">Memuat konfigurasi Meta.</span>
       </div>
@@ -159,7 +163,7 @@ const feedUrl = `${origin}/feed/meta-catalog.xml`;
                 Lihat
               </button>
             </span>
-            <span class="mt-1.5 block text-[11px] text-slate-500">Token tersimpan di enkripsi KV server-side dan tidak pernah dikirim ke browser.</span>
+            <span class="mt-1.5 block text-[11px] text-slate-500">Nilai tersimpan tidak ditampilkan kembali ke browser. Sumber aktif ditunjukkan di atas.</span>
           </label>
         </div>
 
@@ -188,7 +192,7 @@ const feedUrl = `${origin}/feed/meta-catalog.xml`;
     </div>
 
     <!-- TAB 2: TUTORIAL STEP-BY-STEP -->
-    <div id="tabTutorial" class="tab-content hidden space-y-6">
+    <div id="tabTutorial" class="tab-content hidden space-y-6" role="tabpanel" aria-labelledby="tabBtnTutorial">
       <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
         <h3 class="text-base font-extrabold text-slate-900">📘 Panduan Setup Meta Pixel & Conversions API (CAPI)</h3>
         <p class="mt-1 text-xs text-slate-500">Ikuti 5 langkah mudah di bawah ini untuk menghubungkan Meta Pixel browser & server-side Conversions API ke {storeName}.</p>
@@ -222,7 +226,7 @@ const feedUrl = `${origin}/feed/meta-catalog.xml`;
             <div class="space-y-1">
               <h4 class="text-sm font-bold text-slate-900">Verifikasi Advanced Matching & Deduplikasi</h4>
               <p class="text-xs text-slate-600 leading-relaxed">
-                Sistem {storeName} secara otomatis meng-hash data sensitif pelanggan (Nomor Telepon format E.164 Indonesia <code>+62...</code>, Nama, Kota) menggunakan <strong>SHA-256</strong> server-side sebelum dikirim ke Meta CAPI. Selain itu, setiap checkout memasangkan pasangan ID unik <code>event_id</code> antara Browser Pixel (<code>fbq('track', 'Purchase', ..., &#123;eventID&#125;)</code>) dan CAPI Server agar Meta mengeliminasi data ganda 100%.
+                Sistem {storeName} menormalisasi dan meng-hash data pelanggan yang tersedia sebelum dikirim ke Meta. Setiap checkout memakai <code>event_id</code> yang sama pada Pixel dan CAPI agar Meta dapat melakukan deduplikasi; hasil akhirnya tetap harus diverifikasi di Events Manager.
               </p>
             </div>
           </div>
@@ -233,7 +237,7 @@ const feedUrl = `${origin}/feed/meta-catalog.xml`;
             <div class="space-y-1">
               <h4 class="text-sm font-bold text-slate-900">Uji Coba dengan Test Event Code</h4>
               <p class="text-xs text-slate-600 leading-relaxed">
-                Buka tab <strong>Test Events</strong> di Meta Events Manager → Salin kode uji coba (contoh: <code>TEST12345</code>) → Tempel di field Test Event Code di Tab 1 → Klik tombol <strong>Kirim Test Event</strong>. Lihat status event <code>PageView</code> & <code>Purchase</code> muncul secara real-time di layar Meta!
+                Buka tab <strong>Test Events</strong> di Meta Events Manager → Salin kode uji coba (contoh: <code>TEST12345</code>) → Tempel di field Test Event Code di Tab 1 → Klik tombol <strong>Kirim Test Event</strong>. Endpoint ini mengirim satu event <code>PageView</code> untuk menguji koneksi CAPI.
               </p>
             </div>
           </div>
@@ -253,7 +257,7 @@ const feedUrl = `${origin}/feed/meta-catalog.xml`;
     </div>
 
     <!-- TAB 3: CATALOG XML FEED -->
-    <div id="tabFeed" class="tab-content hidden space-y-6">
+    <div id="tabFeed" class="tab-content hidden space-y-6" role="tabpanel" aria-labelledby="tabBtnFeed">
       <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -274,7 +278,7 @@ const feedUrl = `${origin}/feed/meta-catalog.xml`;
     </div>
 
     <!-- TAB 4: SIGNAL & PAYLOAD INSPECTOR -->
-    <div id="tabSpecs" class="tab-content hidden space-y-6">
+    <div id="tabSpecs" class="tab-content hidden space-y-6" role="tabpanel" aria-labelledby="tabBtnSpecs">
       <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
         <h3 class="text-sm font-black text-slate-900">Struktur Payload Meta Conversions API (CAPI {META_GRAPH_API_VERSION})</h3>
         <p class="mt-1 text-xs text-slate-500">Contoh data server-authoritative Purchase event yang dikirimkan oleh {storeName} ke <code>graph.facebook.com</code>:</p>
@@ -311,15 +315,18 @@ const feedUrl = `${origin}/feed/meta-catalog.xml`;
     const tabBtns = document.querySelectorAll('.tab-btn');
     const tabContents = document.querySelectorAll('.tab-content');
 
-    tabBtns.forEach((btn) => {
-      btn.addEventListener('click', () => {
+    const activateTab = (btn: Element) => {
         const targetId = btn.getAttribute('data-target');
         tabBtns.forEach((b) => {
           b.classList.remove('border-sky-600', 'text-sky-600');
           b.classList.add('border-transparent', 'text-slate-500');
+          b.setAttribute('aria-selected', 'false');
+          b.setAttribute('tabindex', '-1');
         });
         btn.classList.remove('border-transparent', 'text-slate-500');
         btn.classList.add('border-sky-600', 'text-sky-600');
+        btn.setAttribute('aria-selected', 'true');
+        btn.setAttribute('tabindex', '0');
 
         tabContents.forEach((content) => {
           if (content.id === targetId) {
@@ -328,6 +335,16 @@ const feedUrl = `${origin}/feed/meta-catalog.xml`;
             content.classList.add('hidden');
           }
         });
+    };
+    tabBtns.forEach((btn, index) => {
+      btn.addEventListener('click', () => activateTab(btn));
+      btn.addEventListener('keydown', (event) => {
+        if (!(event instanceof KeyboardEvent) || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+        event.preventDefault();
+        const nextIndex = event.key === 'Home' ? 0 : event.key === 'End' ? tabBtns.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : -1) + tabBtns.length) % tabBtns.length;
+        const next = tabBtns[nextIndex] as HTMLElement;
+        activateTab(next);
+        next.focus();
       });
     });
 
@@ -342,7 +359,9 @@ const feedUrl = `${origin}/feed/meta-catalog.xml`;
     const testCodeInput = document.getElementById('metaTestCode') as HTMLInputElement;
     const toggleToken = document.getElementById('toggleToken');
     const tokenHint = document.getElementById('tokenHint');
-    const testButton = document.getElementById('testMeta');
+    const testButton = document.getElementById('testMeta') as HTMLButtonElement | null;
+    const saveButton = document.getElementById('saveMeta') as HTMLButtonElement | null;
+    let pending = false;
 
     const kpiPixelStatus = document.getElementById('kpiPixelStatus');
     const kpiPixelVal = document.getElementById('kpiPixelVal');
@@ -351,7 +370,7 @@ const feedUrl = `${origin}/feed/meta-catalog.xml`;
 
     const updateBadge = (ready: boolean) => {
       if (!badge) return;
-      badge.textContent = ready ? 'Terhubung' : 'Belum lengkap';
+      badge.textContent = ready ? 'Terkonfigurasi' : 'Belum lengkap';
       badge.className = ready
         ? 'inline-flex min-h-9 items-center rounded-full bg-emerald-100 px-3 text-xs font-bold text-emerald-800'
         : 'inline-flex min-h-9 items-center rounded-full bg-amber-100 px-3 text-xs font-bold text-amber-800';
@@ -361,7 +380,44 @@ const feedUrl = `${origin}/feed/meta-catalog.xml`;
       const isPassword = tokenInput.type === 'password';
       tokenInput.type = isPassword ? 'text' : 'password';
       toggleToken.textContent = isPassword ? 'Sembunyikan' : 'Lihat';
+      toggleToken.setAttribute('aria-pressed', String(isPassword));
+      toggleToken.setAttribute('aria-label', isPassword
+        ? 'Sembunyikan CAPI access token'
+        : 'Tampilkan CAPI access token');
     });
+
+    const render = (data: Record<string, string | boolean | undefined>) => {
+      pixelInput.value = String(data.meta_pixel_id || '');
+      const effectivePixel = String(data.meta_pixel_effective_id || '');
+      const pixelSource = data.meta_pixel_source === 'environment' ? 'environment' : 'database';
+      const capiSource = data.meta_capi_source === 'environment' ? 'environment' : 'database';
+      if (tokenHint) tokenHint.textContent = data.meta_capi_configured
+        ? `Terkonfigurasi (${capiSource})`
+        : 'Belum dikonfigurasi';
+      if (kpiPixelVal) kpiPixelVal.textContent = effectivePixel || 'Belum dikonfigurasi';
+      if (kpiPixelStatus) kpiPixelStatus.className = effectivePixel
+        ? 'h-2 w-2 rounded-full bg-emerald-500'
+        : 'h-2 w-2 rounded-full bg-slate-300';
+      if (kpiCapiVal) kpiCapiVal.textContent = data.meta_capi_configured
+        ? `Terkonfigurasi · ${capiSource}`
+        : 'Belum dikonfigurasi';
+      if (kpiCapiStatus) kpiCapiStatus.className = data.meta_capi_configured
+        ? 'h-2 w-2 rounded-full bg-emerald-500'
+        : 'h-2 w-2 rounded-full bg-slate-300';
+      updateBadge(Boolean(effectivePixel && data.meta_capi_configured));
+      if (effectivePixel && pixelSource === 'environment' && statusText) {
+        statusText.textContent = 'Pixel aktif dari environment; field database masih kosong.';
+      }
+    };
+
+    const setPending = (next: boolean) => {
+      pending = next;
+      if (saveButton) {
+        saveButton.disabled = next;
+        saveButton.textContent = next ? 'Menyimpan…' : 'Simpan Meta';
+      }
+      form?.setAttribute('aria-busy', String(next));
+    };
 
     fetch('/api/admin/ads', { headers: { Accept: 'application/json' } })
       .then(async (res) => {
@@ -370,16 +426,7 @@ const feedUrl = `${origin}/feed/meta-catalog.xml`;
         return payload.data;
       })
       .then((data) => {
-        pixelInput.value = data.meta_pixel_id || '';
-        if (tokenHint) tokenHint.textContent = data.meta_capi_configured ? 'Tersimpan (Enkripsi Server)' : 'Belum diisi';
-
-        if (kpiPixelVal) kpiPixelVal.textContent = data.meta_pixel_id || 'Belum diisi';
-        if (kpiPixelStatus) kpiPixelStatus.className = data.meta_pixel_id ? 'h-2 w-2 rounded-full bg-emerald-500' : 'h-2 w-2 rounded-full bg-slate-300';
-
-        if (kpiCapiVal) kpiCapiVal.textContent = data.meta_capi_configured ? 'Tersimpan' : 'Belum diisi';
-        if (kpiCapiStatus) kpiCapiStatus.className = data.meta_capi_configured ? 'h-2 w-2 rounded-full bg-emerald-500' : 'h-2 w-2 rounded-full bg-slate-300';
-
-        updateBadge(Boolean(data.meta_pixel_id && data.meta_capi_configured));
+        render(data);
         loading?.classList.add('hidden');
         form?.classList.remove('hidden');
       })
@@ -389,10 +436,15 @@ const feedUrl = `${origin}/feed/meta-catalog.xml`;
           errorBox.textContent = err instanceof Error ? err.message : 'Gagal memuat status Meta Ads.';
           errorBox.classList.remove('hidden');
         }
+        if (badge) badge.textContent = 'Gagal memuat';
+        if (kpiPixelVal) kpiPixelVal.textContent = 'Gagal memuat';
+        if (kpiCapiVal) kpiCapiVal.textContent = 'Gagal memuat';
       });
 
     form?.addEventListener('submit', async (e) => {
       e.preventDefault();
+      if (pending || !form.reportValidity()) return;
+      setPending(true);
       if (statusText) statusText.textContent = 'Menyimpan konfigurasi Meta...';
 
       try {
@@ -410,16 +462,20 @@ const feedUrl = `${origin}/feed/meta-catalog.xml`;
         if (!res.ok || !payload.success) throw new Error(payload.error || 'Gagal menyimpan konfigurasi.');
 
         if (statusText) statusText.textContent = 'Konfigurasi Meta berhasil disimpan!';
-        updateBadge(Boolean(payload.data.meta_pixel_id && payload.data.meta_capi_configured));
+        render(payload.data);
+        tokenInput.value = '';
       } catch (err) {
         if (statusText) statusText.textContent = err instanceof Error ? err.message : 'Gagal menyimpan.';
+      } finally {
+        setPending(false);
       }
     });
 
     testButton?.addEventListener('click', async () => {
       const code = testCodeInput.value.trim();
       if (!code) {
-        alert('Masukkan Meta Test Event Code terlebih dahulu (contoh: TEST12345).');
+        if (statusText) statusText.textContent = 'Masukkan Meta Test Event Code terlebih dahulu.';
+        testCodeInput.focus();
         return;
       }
 
@@ -440,9 +496,9 @@ const feedUrl = `${origin}/feed/meta-catalog.xml`;
         const payload = await res.json().catch(() => ({}));
         if (!res.ok || !payload.success) throw new Error(payload.error || 'Test event ditolak oleh Meta API.');
 
-        alert('✅ Test Event berhasil dikirim ke Meta! Cek tab Test Events di Meta Events Manager.');
+        if (statusText) statusText.textContent = payload.message || 'PageView test diterima Meta.';
       } catch (err) {
-        alert('❌ Gagal mengirim test event: ' + (err instanceof Error ? err.message : 'Unknown error'));
+        if (statusText) statusText.textContent = err instanceof Error ? err.message : 'Gagal mengirim test event.';
       } finally {
         testButton.removeAttribute('disabled');
         testButton.textContent = 'Kirim test event';

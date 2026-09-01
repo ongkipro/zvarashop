@@ -1,6 +1,6 @@
-# BUILD LOG: AdsBookCMS
+# BUILD LOG: ZvaraShop
 
-> Verified against disk: 2026-08-27 @ `679f577` + stock-unlimited working tree
+> Verified against disk: 2026-09-01 @ `e6b9fbe` + standalone/ad-signals working tree
 
 Author & Curator: **[ongki.pro](https://ongki.pro)**
 
@@ -4790,3 +4790,58 @@ most of the day's evidence was empirical rather than documentary.
 - **Evidence.** 605 tests (604 pass, 1 skipped), `npm run check` 420 files clean.
   `schema-version.test.ts` compares `CMS_VERSION.schemaVersion` against the
   migration files on disk, so the unchanged `51` is asserted rather than assumed.
+# 2026-09-01 — ZvaraShop standalone authority and ad-signal hardening
+
+- Re-founded repository authority around ZvaraShop: package, CI wording,
+  configuration, first-run/login identity, release/install docs, ADR-024, and
+  the retired sync script now describe one standalone project. Compatibility
+  identifiers that protect live cookies, API keys, and migration history were
+  intentionally retained.
+- Made Meta Purchase ingestion server-authoritative for public and Headless
+  callers, added D1-backed public rate limiting, preserved paid click identity
+  across UTM-only visits, and hardened CAPI retries against stalled attempt
+  budgets while preserving original event time.
+- Prevented Google offline head-of-line blocking, exposed Google queue health
+  and alerts, and bounded terminal Meta/Google outbox retention to 30 days.
+- Added migration `0051_product_catalog_fields.sql` for merchant-owned product
+  brand and catalog description. Both feeds skip legacy invalid IDs, prefer the
+  real product brand, and no longer label merchant SKU as manufacturer MPN or
+  contradict it with `identifier_exists=no`.
+- Corrected Ads configuration UI claims and source attribution, added honest
+  pending/error states, and implemented keyboard/ARIA tab behavior. The product
+  editor now exposes bounded brand and catalog-description fields.
+- Connected the `/thanks` WhatsApp confirmation button to the CMS-owned
+  `redirect` CRM template instead of a hardcoded message. The default now
+  includes the order number and total so an operator can identify the order
+  immediately; the configured support number remains the destination.
+- Evidence after the last source edit: 619 tests (618 pass, 1 skip), 410 checked
+  files with zero diagnostics, successful build, 29-document link validation,
+  and all 52 migrations applied from a fresh local D1. Chromium at 390 × 844
+  rendered the ZvaraShop first-run page and a COD confirmation state; the
+  WhatsApp button used the CMS template and stored support number with zero
+  horizontal overflow. Deployment preflight correctly refused the untracked
+  dirty feature branch. Authenticated Ads/Product pages were
+  not opened because no password or session was read or created. No production,
+  remote D1, provider call, secret read, deploy, commit, or push occurred.
+
+## 2026-09-01 — Meta CAPI customer-information coverage repair
+
+- Confirmed `fbc` capture from `fbclid`, first-party cookie persistence, raw
+  CAPI transmission, and Purchase deduplication. Fixed cross-network merging so
+  a later Google click no longer erases Meta `_fbc`/`_fbp`, and the inverse.
+- Established a valid first-party `_fbp` synchronously before immediate CAPI
+  PageView/ViewContent trackers run, closing the deferred-Pixel race behind the
+  observed low Browser ID coverage.
+- Added migration `0052_meta_order_context.sql`. All three checkout routes now
+  retain validated external ID, `_fbp`, `_fbc`, original client IP, and user
+  agent. A Purchase emitted after later payment confirmation reuses that
+  checkout context instead of losing browser identifiers or using operator
+  request metadata.
+- Kept signal quality truthful: phone and real email are normalized/hashed by
+  the sender when known; synthetic payment email is rejected; no Facebook Login
+  ID or organic `fbc` is fabricated.
+- Evidence after the last source edit: 624 tests (623 pass, 1 intentional skip),
+  412 checked files with zero diagnostics, successful build, 29-document link
+  validation, and all 53 migrations applied to a fresh isolated local D1. No
+  production, remote D1, Meta provider, secret, deploy, commit, or push action
+  occurred.

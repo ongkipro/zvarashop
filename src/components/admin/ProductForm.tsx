@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type SyntheticEvent } from "react";
 import { Input } from "../ui/input";
-import { catalogProductId } from "../../lib/catalog-feed";
+import { catalogProductIdOrNull } from "../../lib/catalog-feed";
 import {
   CARD_IMAGE_EDGE,
   MAX_ENCODED_BYTES,
@@ -21,6 +21,8 @@ type ProductPayload = {
   title: string;
   slug: string;
   category: string;
+  brand: string;
+  description: string;
   image_url: string;
   is_active: boolean;
   variants: Array<{
@@ -47,6 +49,8 @@ type ProductResponse = {
   title: string;
   slug: string;
   category: string | null;
+  brand: string | null;
+  description: string | null;
   image_url: string | null;
   is_active: number | boolean;
   variants: ProductVariantResponse[];
@@ -74,6 +78,8 @@ export function ProductForm({ productId }: { productId?: string }) {
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
   const category = "Umum";
+  const [brand, setBrand] = useState("");
+  const [description, setDescription] = useState("");
   const [active, setActive] = useState(!editing);
   const [imageUrl, setImageUrl] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -104,6 +110,8 @@ export function ProductForm({ productId }: { productId?: string }) {
       .then((product) => {
         setTitle(product.title || "");
         setSlug(product.slug || "");
+        setBrand(product.brand || "");
+        setDescription(product.description || "");
         setImageUrl(product.image_url || "");
         setActive(product.is_active !== undefined ? Boolean(product.is_active) : true);
         setVariants(
@@ -240,6 +248,8 @@ export function ProductForm({ productId }: { productId?: string }) {
       title: title.trim(),
       slug: slug.trim(),
       category: category.trim(),
+      brand: brand.trim(),
+      description: description.trim(),
       image_url: imageUrl,
       is_active: active,
       variants: payloadVariants,
@@ -269,6 +279,7 @@ export function ProductForm({ productId }: { productId?: string }) {
     return (
       <div
         className="h-96 animate-pulse rounded-xl bg-slate-100"
+        role="status"
         aria-label="Memuat formulir produk"
         aria-busy="true"
       />
@@ -339,6 +350,46 @@ export function ProductForm({ productId }: { productId?: string }) {
                 Huruf kecil, angka, dan tanda hubung.
               </span>
             </label>
+            <label htmlFor="product-brand">
+              <span className="mb-1.5 block text-xs font-black text-slate-700">
+                Merek produk
+              </span>
+              <Input
+                id="product-brand"
+                aria-describedby="product-brand-hint"
+                maxLength={70}
+                value={brand}
+                onChange={(event) => setBrand(event.target.value)}
+                className="admin-input-flat h-11 border-slate-300 bg-slate-50 text-base shadow-none focus-visible:border-emerald-700 focus-visible:ring-emerald-700/20 md:text-sm"
+              />
+              <span id="product-brand-hint" className="mt-1 block text-[11px] text-slate-500">
+                Dipakai di feed Google dan Meta. Jika kosong, sistem memakai nama toko.
+              </span>
+            </label>
+            <div className="md:col-span-2">
+              <label htmlFor="product-catalog-description">
+                <span className="mb-1.5 block text-xs font-black text-slate-700">
+                  Deskripsi katalog
+                </span>
+              </label>
+              <textarea
+                id="product-catalog-description"
+                aria-describedby="product-catalog-description-hint product-catalog-description-count"
+                maxLength={320}
+                rows={3}
+                value={description}
+                onChange={(event) => setDescription(event.target.value)}
+                className="admin-input-flat w-full resize-y rounded-md border border-slate-300 bg-slate-50 p-3 text-base shadow-none focus-visible:border-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700/20 md:text-sm"
+              />
+              <div className="mt-1 flex items-start justify-between gap-3 text-[11px] text-slate-500">
+                <span id="product-catalog-description-hint">
+                  Dipakai khusus feed Google dan Meta. Tulis fakta produk tanpa CTA.
+                </span>
+                <span id="product-catalog-description-count" className="shrink-0">
+                  {description.length}/320
+                </span>
+              </div>
+            </div>
             <div className="md:col-span-2">
               <label
                 htmlFor="product-image"
@@ -579,7 +630,7 @@ export function ProductForm({ productId }: { productId?: string }) {
               <div className="rounded-lg bg-slate-50 p-3">
                 <dt className="text-slate-500">Product / Content ID</dt>
                 <dd className="mt-1 font-mono font-black text-slate-900">
-                  {productId ? catalogProductId(productId) : "Otomatis"}
+                  {productId ? catalogProductIdOrNull(productId) ?? "—" : "Otomatis"}
                 </dd>
               </div>
               <div className="rounded-lg bg-slate-50 p-3">

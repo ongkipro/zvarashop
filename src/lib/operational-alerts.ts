@@ -4,7 +4,7 @@ import {
   type SchemaUpgradeError,
 } from "./schema-version.ts";
 
-export type OperationalAlertId = "schema" | "capi-outbox";
+export type OperationalAlertId = "schema" | "capi-outbox" | "google-ads-outbox";
 export type OperationalAlertState = "healthy" | "firing" | "unknown";
 
 export type OperationalAlertSignal = {
@@ -129,7 +129,16 @@ export function alertsFromOperationalHealth(
         ? { id: "capi-outbox", state: "healthy", reason: outbox.reason }
         : { id: "capi-outbox", state: "unknown", reason: outbox.reason };
 
-  return [schema, capi];
+  const googleOutbox = health.signals.find((signal) => signal.id === "google-ads-outbox");
+  const google: OperationalAlertSignal = !googleOutbox
+    ? { id: "google-ads-outbox", state: "unknown", reason: "unreadable" }
+    : googleOutbox.state === "degraded"
+      ? { id: "google-ads-outbox", state: "firing", reason: googleOutbox.reason }
+      : googleOutbox.state === "healthy"
+        ? { id: "google-ads-outbox", state: "healthy", reason: googleOutbox.reason }
+        : { id: "google-ads-outbox", state: "unknown", reason: googleOutbox.reason };
+
+  return [schema, capi, google];
 }
 
 export function schemaAlertFromError(

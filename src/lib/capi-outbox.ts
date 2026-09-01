@@ -16,6 +16,8 @@ export type OutboxEvent = {
   eventSourceUrl: string;
   userData: MetaUserData;
   customData: MetaCustomData;
+  /** Unix seconds stamped at enqueue; optional for older stored payloads. */
+  eventTime?: number;
 };
 
 type OutboxRow = {
@@ -25,6 +27,7 @@ type OutboxRow = {
   payload: string;
   attempts: number;
   max_attempts: number;
+  created_at: string;
 };
 
 /** Meta error codes: 4/17/613 are rate limits, 190 means the token is dead. */
@@ -74,13 +77,17 @@ export async function enqueueCapiEvent(
   event: OutboxEvent,
 ): Promise<boolean> {
   const now = new Date().toISOString();
+  const stamped: OutboxEvent = {
+    ...event,
+    eventTime: event.eventTime ?? Math.floor(Date.now() / 1000),
+  };
   const result = await database
     .prepare(
       `INSERT OR IGNORE INTO capi_event_outbox
          (event_id, event_name, payload, status, next_retry_at, created_at, updated_at)
        VALUES (?, ?, ?, 'pending', ?, ?, ?)`,
     )
-    .bind(event.eventId, event.eventName, JSON.stringify(event), now, now, now)
+    .bind(event.eventId, event.eventName, JSON.stringify(stamped), now, now, now)
     .run();
   return Boolean(result.meta?.changes);
 }
@@ -115,6 +122,8 @@ async function transmit(
     event.customData,
     pixelId,
     accessToken,
+    undefined,
+    event.eventTime ?? Math.floor(new Date(row.created_at).getTime() / 1000),
   );
 
   const decision = decideRetry(
@@ -127,10 +136,16 @@ async function transmit(
   await database
     .prepare(
       `UPDATE capi_event_outbox
-       SET status = ?, attempts = attempts + ?, last_error = ?, next_retry_at = ?, updated_at = ?
+       SET status = CASE
+             WHEN ? = 'sent' THEN 'sent'
+             WHEN attempts + 1 >= max_attempts THEN 'failed'
+             ELSE ?
+           END,
+           attempts = attempts + ?, last_error = ?, next_retry_at = ?, updated_at = ?
        WHERE id = ?`,
     )
     .bind(
+      decision.status,
       decision.status,
       decision.status === "sent" ? 0 : 1,
       decision.status === "sent" ? null : (result.reason ?? "unknown"),
@@ -271,7 +286,7 @@ export async function deliverCapiEvent(
 ) {
   const row = await database
     .prepare(
-      `SELECT id, event_id, event_name, payload, attempts, max_attempts
+      `SELECT id, event_id, event_name, payload, attempts, max_attempts, created_at
        FROM capi_event_outbox WHERE event_id = ? AND status = 'pending' LIMIT 1`,
     )
     .bind(eventId)
@@ -291,10 +306,11 @@ export async function drainCapiOutbox(
 ): Promise<number> {
   const due = await database
     .prepare(
-      `SELECT id, event_id, event_name, payload, attempts, max_attempts
+      `SELECT id, event_id, event_name, payload, attempts, max_attempts, created_at
        FROM capi_event_outbox
-       WHERE status = 'pending' AND next_retry_at <= ? AND attempts < max_attempts
-       ORDER BY id ASC LIMIT ?`,
+       WHERE status = 'pending' AND next_retry_at <= ?
+       ORDER BY CASE WHEN event_name = 'Purchase' THEN 0 ELSE 1 END, id ASC
+       LIMIT ?`,
     )
     .bind(new Date().toISOString(), MAX_DRAIN_BATCH)
     .all<OutboxRow>();
@@ -304,4 +320,18 @@ export async function drainCapiOutbox(
     if (await transmit(database, row, pixelId, accessToken)) sent += 1;
   }
   return sent;
+}
+
+const OUTBOX_RETENTION_DAYS = 30;
+
+export async function purgeExpiredCapiOutboxEvents(
+  database: D1Database,
+  now = new Date(),
+) {
+  const result = await database.prepare(
+    `DELETE FROM capi_event_outbox
+      WHERE status IN ('sent', 'failed')
+        AND unixepoch(updated_at) < unixepoch(?, '-${OUTBOX_RETENTION_DAYS} days')`,
+  ).bind(now.toISOString()).run();
+  return result.meta.changes;
 }

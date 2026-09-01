@@ -17,11 +17,11 @@ const authenticatedErrors = {
 export const headlessOpenApiDocument = {
   openapi: "3.1.0",
   info: {
-    title: "AdsBookCMS Headless API",
+    title: "ZvaraShop Headless API",
     version: "1.0.0",
     description: "Authenticated storefront catalog, shipping quote, checkout, order status, and tracking API.",
   },
-  servers: [{ url: "/api/v1", description: "Current AdsBookCMS install" }],
+  servers: [{ url: "/api/v1", description: "Current ZvaraShop deployment" }],
   security: [{ appKeyAuth: [] }, { bearerAuth: [] }],
   tags: [
     { name: "Storefront" },

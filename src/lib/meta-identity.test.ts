@@ -87,13 +87,15 @@ test("the Pixel bootstrap mints and hashes one stable first-party external ID", 
   );
   assert.ok(match, "MetaPixelBase must keep its inline bootstrap");
 
-  let cookie = "";
+  const cookies = new Map<string, string>();
   const documentStub = {
     get cookie() {
-      return cookie;
+      return [...cookies].map(([name, value]) => `${name}=${value}`).join("; ");
     },
     set cookie(value: string) {
-      cookie = value.split(";")[0];
+      const [pair] = value.split(";");
+      const separator = pair.indexOf("=");
+      cookies.set(pair.slice(0, separator), pair.slice(separator + 1));
     },
     createElement: () => ({}),
     head: { appendChild: () => undefined },
@@ -131,8 +133,9 @@ test("the Pixel bootstrap mints and hashes one stable first-party external ID", 
   );
   await tracked.promise;
 
-  const externalId = cookie.split("=")[1];
+  const externalId = cookies.get("adsbook_meta_external_id") || "";
   assert.match(externalId, /^[a-f0-9]{32}$/);
+  assert.match(cookies.get("_fbp") || "", /^fb\.1\.\d{10,20}\..+$/);
   const init = calls.find((args: unknown[]) => args[0] === "init");
   const pageView = calls.find((args: unknown[]) => args[0] === "track");
   const initData = init?.[2] as Record<string, unknown> | undefined;
@@ -140,6 +143,19 @@ test("the Pixel bootstrap mints and hashes one stable first-party external ID", 
   assert.match(String(initData?.external_id ?? ""), /^[a-f0-9]{64}$/);
   assert.equal(initData?.external_id, await sha256Hex(externalId));
   assert.equal(pageViewOptions?.eventID, windowStub.__META_PAGEVIEW_EVENT_ID__);
+});
+
+test("the Pixel bootstrap establishes fbp before an immediate CAPI tracker runs", () => {
+  const readIndex = PIXEL_BASE.indexOf("let fbp = readCookieValue('_fbp')");
+  const writeIndex = PIXEL_BASE.indexOf("writeMetaCookie('_fbp', fbp)");
+  const initHookIndex = PIXEL_BASE.indexOf("window.__PS_META_INIT__ =");
+  assert.ok(readIndex >= 0, "MetaPixelBase must read an existing first-party fbp");
+  assert.ok(writeIndex > readIndex, "MetaPixelBase must mint a missing fbp");
+  assert.ok(
+    initHookIndex > writeIndex,
+    "fbp must exist before page trackers can post the matching CAPI event",
+  );
+  assert.match(PIXEL_BASE, /fbp = `fb\.1\.\$\{Date\.now\(\)\}\.\$\{randomPart\}`/);
 });
 
 test("the payment provider's minted address never becomes a match key", () => {

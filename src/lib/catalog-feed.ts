@@ -16,6 +16,7 @@ export type CatalogProduct = {
   category?: string;
   headline?: string;
   description?: string;
+  brand?: string;
   seoDescription?: string;
   heroImage: string;
   variants: CatalogProductVariant[];
@@ -40,7 +41,7 @@ export function escapeXml(value: string): string {
  * id; the admin screen showed the operator that same `10001`; and the Pixel
  * sent the raw row id, `1`. Three values for one product.
  *
- * AdsBookCMS uses one catalog item per product. The immutable D1 Product ID is
+ * ZvaraShop uses one catalog item per product. The immutable D1 Product ID is
  * generated as a five-digit number, so product_id, content_id and feed <g:id>
  * are the same value. Variants remain checkout choices and do not create
  * separate catalog identities.
@@ -96,7 +97,7 @@ export function defaultCatalogContentId(product: {
 }): string | undefined {
   const first = product.variants?.[0];
   if (!first) return undefined;
-  return catalogProductId(product.productId);
+  return catalogProductIdOrNull(product.productId) ?? undefined;
 }
 
 export function generateGoogleCatalogXml(
@@ -106,7 +107,7 @@ export function generateGoogleCatalogXml(
   description?: string,
 ): string {
   const origin = siteOrigin.replace(/\/$/, "");
-  const siteTitle = title || "AdsBookCMS Merchant Store";
+  const siteTitle = title || "ZvaraShop";
   const siteDescription = description || "Solusi Produk Berkualitas";
 
   let itemsXml = "";
@@ -119,7 +120,8 @@ export function generateGoogleCatalogXml(
     const imageLink = product.heroImage.startsWith("http") ? product.heroImage : `${origin}${product.heroImage}`;
 
     const variant = product.variants[0];
-    const itemId = catalogProductId(product.productId);
+    const itemId = catalogProductIdOrNull(product.productId);
+    if (!itemId) continue;
     // Omitted when no taxonomy rule was confident. Both platforms treat the
     // category as optional; a wrong one can cause feed disapproval.
     const googleCategoryXml = taxonomy.googleCategoryId
@@ -144,9 +146,8 @@ export function generateGoogleCatalogXml(
       <g:price>${escapeXml(basePriceFormatted)}</g:price>${salePriceXml}
 ${googleCategoryXml}
       <g:product_type>${escapeXml(taxonomy.productType)}</g:product_type>
-      <g:brand>${escapeXml(siteTitle)}</g:brand>
+      <g:brand>${escapeXml(product.brand?.trim() || siteTitle)}</g:brand>
       <g:condition>new</g:condition>
-      <g:identifier_exists>no</g:identifier_exists>${variant.sku ? `\n      <g:mpn>${escapeXml(variant.sku)}</g:mpn>` : ""}
     </item>`;
   }
 
@@ -167,7 +168,7 @@ export function generateMetaCatalogXml(
   description?: string,
 ): string {
   const origin = siteOrigin.replace(/\/$/, "");
-  const siteTitle = title || "AdsBookCMS Merchant Store";
+  const siteTitle = title || "ZvaraShop";
   const siteDescription = description || "Solusi Produk Berkualitas";
 
   let itemsXml = "";
@@ -180,7 +181,8 @@ export function generateMetaCatalogXml(
     const imageLink = product.heroImage.startsWith("http") ? product.heroImage : `${origin}${product.heroImage}`;
 
     const variant = product.variants[0];
-    const itemId = catalogProductId(product.productId);
+    const itemId = catalogProductIdOrNull(product.productId);
+    if (!itemId) continue;
     const googleCategoryXml = taxonomy.googleCategoryId
       ? `\n      <g:google_product_category>${taxonomy.googleCategoryId}</g:google_product_category>`
       : "";
@@ -206,7 +208,7 @@ export function generateMetaCatalogXml(
       <g:price>${escapeXml(basePriceFormatted)}</g:price>${salePriceXml}
 ${metaCategoryXml}${googleCategoryXml}
       <g:product_type>${escapeXml(taxonomy.productType)}</g:product_type>
-      <g:brand>${escapeXml(siteTitle)}</g:brand>
+      <g:brand>${escapeXml(product.brand?.trim() || siteTitle)}</g:brand>
       <g:condition>new</g:condition>
     </item>`;
   }

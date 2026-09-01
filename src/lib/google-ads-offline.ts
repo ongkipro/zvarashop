@@ -2,6 +2,14 @@ const GOOGLE_ADS_API_VERSION = "v25";
 const PAID_STATUSES = ["paid", "settled", "success"] as const;
 const MAX_RECONCILE_BATCH = 50;
 const MAX_DRAIN_BATCH = 10;
+export const GOOGLE_ADS_MAX_BACKOFF_MS = 60 * 60_000;
+
+export type GoogleAdsOutboxDepth = {
+  pending: number;
+  failed: number;
+  overdue: number;
+  oldestCreatedAt: string | null;
+};
 
 export type GoogleAdsOfflineConfig = {
   customerId: string;
@@ -232,6 +240,11 @@ export async function reconcileGoogleAdsConversions(
      LEFT JOIN google_ads_conversion_outbox g ON g.order_id = o.id
      WHERE g.order_id IS NULL
        AND o.created_at >= ?
+       AND (
+         o.ad_click_ids LIKE '%"gclid":"%'
+         OR o.ad_click_ids LIKE '%"gbraid":"%'
+         OR o.ad_click_ids LIKE '%"wbraid":"%'
+       )
        AND ((o.payment_method = 'cod' AND o.shipping_status = 'delivered')
          OR (o.payment_method <> 'cod' AND o.payment_status IN (${paid})))
      ORDER BY o.id
@@ -309,4 +322,46 @@ export async function drainGoogleAdsConversionOutbox(
     if (decision.status === "sent") sent += 1;
   }
   return sent;
+}
+
+export async function readGoogleAdsOutboxDepth(
+  database: D1Database,
+  now = new Date(),
+): Promise<GoogleAdsOutboxDepth | null> {
+  try {
+    const row = await database.prepare(
+      `SELECT
+         SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pending,
+         SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) AS failed,
+         SUM(CASE WHEN status = 'pending' AND next_retry_at <= ? THEN 1 ELSE 0 END) AS overdue,
+         MIN(CASE WHEN status IN ('pending', 'failed') THEN created_at END) AS oldest_created_at
+       FROM google_ads_conversion_outbox`,
+    ).bind(now.toISOString()).first<{
+      pending: number | null;
+      failed: number | null;
+      overdue: number | null;
+      oldest_created_at: string | null;
+    }>();
+    return {
+      pending: Number(row?.pending ?? 0),
+      failed: Number(row?.failed ?? 0),
+      overdue: Number(row?.overdue ?? 0),
+      oldestCreatedAt: row?.oldest_created_at ?? null,
+    };
+  } catch (error) {
+    console.error("google-ads-outbox-health-unreadable", error);
+    return null;
+  }
+}
+
+export async function purgeExpiredGoogleAdsOutboxEvents(
+  database: D1Database,
+  now = new Date(),
+) {
+  const result = await database.prepare(
+    `DELETE FROM google_ads_conversion_outbox
+      WHERE status IN ('sent', 'failed')
+        AND unixepoch(updated_at) < unixepoch(?, '-30 days')`,
+  ).bind(now.toISOString()).run();
+  return result.meta.changes;
 }

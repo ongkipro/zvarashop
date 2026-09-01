@@ -1,10 +1,14 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { DatabaseSync } from "node:sqlite";
 import test from "node:test";
 import {
   buildGoogleClickConversion,
   decideGoogleRetry,
   readGoogleAdsOfflineConfig,
+  reconcileGoogleAdsConversions,
   uploadGoogleClickConversion,
+  purgeExpiredGoogleAdsOutboxEvents,
 } from "./google-ads-offline.ts";
 
 const CONFIG = {
@@ -86,6 +90,84 @@ test("retry policy retries rate limits and network failures but stops permanent 
   assert.equal(decideGoogleRetry(false, 500, 4, 5).status, "failed");
 });
 
+class ReconcileStatement {
+  private sqlite: DatabaseSync;
+  private sql: string;
+  private values: unknown[];
+
+  constructor(sqlite: DatabaseSync, sql: string, values: unknown[] = []) {
+    this.sqlite = sqlite;
+    this.sql = sql;
+    this.values = values;
+  }
+
+  bind(...values: unknown[]) {
+    return new ReconcileStatement(this.sqlite, this.sql, values);
+  }
+
+  async all<T>() {
+    return {
+      success: true,
+      results: this.sqlite.prepare(this.sql).all(...(this.values as never[])) as T[],
+      meta: { changes: 0, last_row_id: 0 },
+    };
+  }
+
+  async run() {
+    const result = this.sqlite.prepare(this.sql).run(...(this.values as never[]));
+    return {
+      success: true,
+      meta: {
+        changes: Number(result.changes),
+        last_row_id: Number(result.lastInsertRowid),
+      },
+    };
+  }
+}
+
+test("Google reconciliation advances past organic orders without click IDs", async () => {
+  const sqlite = new DatabaseSync(":memory:");
+  sqlite.exec(`
+    CREATE TABLE orders (
+      id INTEGER PRIMARY KEY, order_number TEXT NOT NULL, payment_method TEXT NOT NULL,
+      payment_status TEXT NOT NULL, shipping_status TEXT NOT NULL,
+      created_at TEXT NOT NULL, ad_click_ids TEXT
+    );
+    CREATE TABLE order_items (
+      id INTEGER PRIMARY KEY, order_id INTEGER NOT NULL,
+      unit_price INTEGER NOT NULL, quantity INTEGER NOT NULL
+    );
+  `);
+  sqlite.exec(
+    readFileSync(
+      new URL("../db/migrations/0048_google_ads_conversion_outbox.sql", import.meta.url),
+      "utf8",
+    ).replaceAll("--> statement-breakpoint", ""),
+  );
+
+  const insertOrder = (id: number, clickIds: string | null) => {
+    sqlite.prepare(
+      `INSERT INTO orders VALUES (?, ?, 'cod', 'unpaid', 'delivered', '2026-08-26T00:00:00.000Z', ?)`,
+    ).run(id, `INV-${10000 + id}`, clickIds);
+    sqlite.prepare(`INSERT INTO order_items VALUES (?, ?, 100000, 1)`).run(id, id);
+  };
+  for (let id = 1; id <= 60; id += 1) insertOrder(id, null);
+  insertOrder(61, JSON.stringify({ utm_source: "instagram" }));
+  insertOrder(62, JSON.stringify({ gclid: "Cj0KCQ_real-click" }));
+
+  const database = {
+    prepare: (sql: string) => new ReconcileStatement(sqlite, sql),
+  } as unknown as D1Database;
+  assert.equal(
+    await reconcileGoogleAdsConversions(database, CONFIG, new Date("2026-08-27T00:00:00.000Z")),
+    1,
+  );
+  const rows = sqlite.prepare(
+    `SELECT order_number FROM google_ads_conversion_outbox`,
+  ).all() as { order_number: string }[];
+  assert.deepEqual(rows.map((row) => row.order_number), ["INV-10062"]);
+});
+
 test("sender refreshes OAuth and uploads through the pinned Google Ads API contract", async (context) => {
   const originalFetch = globalThis.fetch;
   context.after(() => { globalThis.fetch = originalFetch; });
@@ -108,4 +190,33 @@ test("sender refreshes OAuth and uploads through the pinned Google Ads API contr
   assert.equal(headers.get("authorization"), "Bearer access-token");
   const body = JSON.parse(String(requests[1].init?.body));
   assert.deepEqual(body, { conversions: [built.conversion], partialFailure: true });
+});
+
+test("terminal Google Ads outbox rows have bounded retention", async () => {
+  let statementSql = "";
+  let bound: unknown[] = [];
+  const database = {
+    prepare(sql: string) {
+      statementSql = sql;
+      return {
+        bind(...values: unknown[]) {
+          bound = values;
+          return this;
+        },
+        async run() {
+          return { success: true, meta: { changes: 4 } };
+        },
+      };
+    },
+  } as unknown as D1Database;
+  assert.equal(
+    await purgeExpiredGoogleAdsOutboxEvents(
+      database,
+      new Date("2026-09-01T00:00:00.000Z"),
+    ),
+    4,
+  );
+  assert.match(statementSql, /status IN \('sent', 'failed'\)/);
+  assert.match(statementSql, /'-30 days'/);
+  assert.deepEqual(bound, ["2026-09-01T00:00:00.000Z"]);
 });
