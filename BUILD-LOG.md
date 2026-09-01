@@ -1,6 +1,6 @@
 # BUILD LOG: ZvaraShop
 
-> Verified against disk: 2026-09-01 @ `f5be51b` + WhatsApp same-context working tree
+> Verified against disk: 2026-09-01 @ `e7c9ee7` + WhatsApp production evidence
 
 Author & Curator: **[ongki.pro](https://ongki.pro)**
 
@@ -15,7 +15,13 @@ Author & Curator: **[ongki.pro](https://ongki.pro)**
 - Evidence: 629 tests (628 passed, one intentional skip), 412 checked files
   with zero diagnostics, successful build, 29-document validation, and local
   Chrome at 390 px showing one page target before and after the click while the
-  current page navigated to WhatsApp. No production action occurred.
+  current page navigated to WhatsApp.
+- Commit `e7c9ee7` was pushed to `install/zvarashop`. The first upload exposed
+  a stale canonical `dist/` despite the source gate being green; uncached live
+  HTML caught `_blank` still present. Rebuilding from the canonical commit and
+  redeploying produced Worker version `813c2ac3-a761-45a9-8d00-211aa4733f00`.
+  Uncached live home and `/thanks` return `200`, and the rendered WhatsApp
+  action has `rel="nofollow"` with no `target`.
 
 
 ## 2026-09-01 — Canonical checkout replay and Purchase protection

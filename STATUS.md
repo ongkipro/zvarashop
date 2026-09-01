@@ -1,6 +1,6 @@
 # STATUS — ZvaraShop
 
-> Verified against disk: 2026-09-01 @ `f5be51b` + WhatsApp same-context working tree
+> Verified against disk: 2026-09-01 @ `e7c9ee7` + WhatsApp production evidence
 
 ## Repository authority
 
@@ -63,6 +63,9 @@ The current audit hardens ad signals and repository ownership:
 - The `/thanks` WhatsApp action uses the official HTTPS universal link in the
   current browsing context. A capable mobile OS may hand it to the installed
   app; otherwise WhatsApp's web/interstitial fallback replaces the same tab.
+  Commit `e7c9ee7` is live as Worker version
+  `813c2ac3-a761-45a9-8d00-211aa4733f00`; an uncached production response
+  contains the action with `rel="nofollow"` and no browsing-context target.
 
 Final local evidence after the last source edit:
 
