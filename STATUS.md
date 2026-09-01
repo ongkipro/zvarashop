@@ -1,6 +1,6 @@
 # STATUS — ZvaraShop
 
-> Verified against disk: 2026-09-01 @ `e7c9ee7` + WhatsApp production evidence
+> Verified against disk: 2026-09-02 @ `03a16ea` + Meta token recovery production evidence
 
 ## Repository authority
 
@@ -89,6 +89,22 @@ Final local evidence after the last source edit:
   `dc7a16d6-60ee-4676-adb1-024ecb6861b7`; live home, sitemap, Google feed, and
   Meta feed returned `200`, while unauthenticated health correctly returned
   `401`.
+
+Production Meta acceptance was re-verified after the operator saved the Pixel
+ID and access token again through the CMS:
+
+- an organic PageView was accepted on its first attempt at
+  `2026-09-01T17:25:09Z`;
+- an organic product ViewContent was accepted on its first attempt at
+  `2026-09-01T17:25:33Z` with one canonical catalog Product ID and value;
+- both events carried external ID, `_fbp`, client IP, and user agent; `_fbc`
+  was correctly absent because the smoke visit had no valid Meta click;
+- no secret values or customer data were read during verification; remote D1
+  inspection was limited to event status and parameter-presence metadata;
+- 33 historical invalid-token terminal rows remain retained: 17 PageView and
+  16 ViewContent, with no Purchase among them. They were not requeued because
+  resending them is a separate production-data mutation requiring explicit
+  approval.
 
 Authenticated Meta, Google, and product-editor browser flows were not opened:
 the fresh local runtime has no operator session, and this audit did not read or

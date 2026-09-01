@@ -4900,3 +4900,19 @@ most of the day's evidence was empirical rather than documentary.
   outbox, and feed-alignment tests.
 - Evidence: 625 tests (624 pass, 1 intentional skip), 430 checked files with
   zero diagnostics, successful build, and 29-document link validation.
+
+## 2026-09-02 — Meta CAPI token recovery accepted in production
+
+- Re-verified the live storefront after the operator saved the Pixel ID and
+  access token again through the CMS. Organic PageView and product ViewContent
+  events reached Meta on their first outbox attempt; the latter carried one
+  canonical catalog Product ID and value.
+- Confirmed the live PageView and ViewContent parameter presence includes
+  external ID, `_fbp`, client IP, and user agent. The organic smoke visit had no
+  `_fbc`, as required when no valid Meta click exists.
+- Queried only delivery state and parameter-presence metadata. No provider
+  credential value, event payload value, or customer data was read.
+- Retained 33 historical terminal failures caused by the former invalid token:
+  17 PageView and 16 ViewContent, with zero Purchase failures. Requeue was not
+  performed because it is a separate production D1 mutation and provider
+  resend that requires explicit approval.
