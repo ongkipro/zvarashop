@@ -1,10 +1,22 @@
 # BUILD LOG: ZvaraShop
 
-> Verified against disk: 2026-09-01 @ `373e90b` + production release evidence
+> Verified against disk: 2026-09-01 @ `f5be51b` + WhatsApp same-context working tree
 
 Author & Curator: **[ongki.pro](https://ongki.pro)**
 
 ---
+
+## 2026-09-01 — WhatsApp confirmation stays in the current tab
+
+- Removed `_blank` only from the buyer-facing `/thanks` WhatsApp action. The
+  official `https://wa.me` URL and CMS-owned message remain unchanged, giving
+  mobile OS universal-link handling an app-handoff opportunity and retaining a
+  same-context web fallback when the app cannot take it.
+- Evidence: 629 tests (628 passed, one intentional skip), 412 checked files
+  with zero diagnostics, successful build, 29-document validation, and local
+  Chrome at 390 px showing one page target before and after the click while the
+  current page navigated to WhatsApp. No production action occurred.
+
 
 ## 2026-09-01 — Canonical checkout replay and Purchase protection
 

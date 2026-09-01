@@ -1,6 +1,6 @@
 # STATUS — ZvaraShop
 
-> Verified against disk: 2026-09-01 @ `373e90b` + production release evidence
+> Verified against disk: 2026-09-01 @ `f5be51b` + WhatsApp same-context working tree
 
 ## Repository authority
 
@@ -60,6 +60,9 @@ The current audit hardens ad signals and repository ownership:
   order even when the browser supplies different submit tokens. Notification,
   receiver scoring, payment creation, Pixel Purchase, and CAPI Purchase all
   reuse that order; expired or terminal claims permit a genuine later reorder.
+- The `/thanks` WhatsApp action uses the official HTTPS universal link in the
+  current browsing context. A capable mobile OS may hand it to the installed
+  app; otherwise WhatsApp's web/interstitial fallback replaces the same tab.
 
 Final local evidence after the last source edit:
 

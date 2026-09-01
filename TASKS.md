@@ -1,6 +1,18 @@
 # Tasks: ZvaraShop
 
-> Verified against disk: 2026-09-01 @ `a99e7eb` + order/Purchase dedupe working tree
+> Verified against disk: 2026-09-01 @ `f5be51b` + WhatsApp same-context working tree
+
+## A29 — Same-context WhatsApp handoff
+
+- [x] **A-181** — Keep the `/thanks` WhatsApp action in the current browsing
+  context while retaining the official HTTPS universal-link fallback.
+      -> REQ: REQ-179 · Done when: the anchor has no `_blank` target, its
+      resolved URL remains `https://wa.me`, focused/full tests and checks pass,
+      and a local browser click produces no new page or popup.
+      -> Evidence: regression source check; 629-test full suite; clean 412-file
+      check; build and 29-document validation; Chrome at 390 px resolved the
+      configured `wa.me` message, kept one page target before/after click, and
+      navigated that page to WhatsApp with zero horizontal overflow.
 
 ## A28 — Canonical checkout replay
 

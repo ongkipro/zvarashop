@@ -357,8 +357,7 @@ const productCatalog = products.map((item) => ({
         href="#"
         data-support-phone={csPhone}
         data-message-template={thanksRedirectTemplate}
-        target="_blank"
-        rel="nofollow noopener noreferrer"
+        rel="nofollow"
         title={`Konfirmasi pesanan ${Astro.locals.tenant.name} melalui WhatsApp`}
         class={cn('mt-4 flex w-full', buttonVariants({ variant: 'primary', size: 'lg' }))}
       >

@@ -14,6 +14,10 @@ const TRACKER_SOURCE = readFileSync(
   new URL("../components/storefront/tracking/MetaThanksTracker.astro", import.meta.url),
   "utf8",
 );
+const THANKS_SOURCE = readFileSync(
+  new URL("../pages/thanks.astro", import.meta.url),
+  "utf8",
+);
 const PIXEL_BASE_SOURCE = readFileSync(
   new URL("../components/storefront/tracking/MetaPixelBase.astro", import.meta.url),
   "utf8",
@@ -385,6 +389,17 @@ test("the confirmation page pulls the deferred pixel library forward instead of 
     run.trackedEvents,
     ["PageView", "Purchase"],
     "the deferred init must still emit PageView, and it must precede the Purchase",
+  );
+});
+
+test("the thanks WhatsApp action keeps app handoff in the current browsing context", () => {
+  const whatsappAnchor = THANKS_SOURCE.match(/<a\s+id="wa-confirm"[\s\S]*?<\/a>/)?.[0] ?? "";
+
+  assert.ok(whatsappAnchor, "the thanks page must render its WhatsApp confirmation action");
+  assert.doesNotMatch(
+    whatsappAnchor,
+    /target\s*=\s*["']_blank["']/,
+    "wa.me must receive the current context so mobile can hand off without opening another tab",
   );
 });
 
