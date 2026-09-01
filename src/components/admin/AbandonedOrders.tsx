@@ -114,6 +114,11 @@ const followUpVariants: Record<
   not_interested: "destructive",
 };
 
+const followUpClassNames: Partial<Record<FollowUpStatus, string>> = {
+  contacted:
+    "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300",
+};
+
 const followUpIcons = {
   new: CircleDashed,
   contacted: MessageCircle,
@@ -736,7 +741,13 @@ export function AbandonedOrders() {
                     <p className="truncate font-mono text-xs text-muted-foreground">{lead.customerPhone}</p>
                   </div>
                   <div className="min-w-0">
-                    <Badge variant={followUpVariants[lead.followUpStatus]}><FollowUpIcon aria-hidden="true" />{followUpLabels[lead.followUpStatus]}</Badge>
+                    <Badge
+                      variant={followUpVariants[lead.followUpStatus]}
+                      className={followUpClassNames[lead.followUpStatus]}
+                    >
+                      <FollowUpIcon aria-hidden="true" />
+                      {followUpLabels[lead.followUpStatus]}
+                    </Badge>
                     {/* Only when there is something to report. "Belum ada follow-up
                         tercatat" repeated on every untouched lead, restating the
                         badge beside it. */}
