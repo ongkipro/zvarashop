@@ -1,6 +1,6 @@
 # BUILD LOG: ZvaraShop
 
-> Verified against disk: 2026-09-01 @ `a99e7eb` + order/Purchase dedupe working tree
+> Verified against disk: 2026-09-01 @ `373e90b` + production release evidence
 
 Author & Curator: **[ongki.pro](https://ongki.pro)**
 
@@ -18,11 +18,14 @@ Author & Curator: **[ongki.pro](https://ongki.pro)**
 - COD remains `Purchase`. Thanks-page Pixel, GTM, and CAPI continue to share the
   canonical order number as event/transaction identity and use D1 Product IDs,
   order value, currency, and retained advanced-matching context.
-- Evidence: sequential and concurrent replay coverage, 628 tests (627 passed,
+- Evidence before release: sequential and concurrent replay coverage, 628 tests (627 passed,
   one intentional skip), 412 files with zero diagnostics, successful build,
   29-document link validation, all 54 migrations on a fresh local D1, and a
   390 × 844 `/thanks` inspection proving one Pixel/GTM Purchase plus reload
-  suppression. No live provider call, remote mutation, deploy, commit, or push.
+  suppression. Commit `373e90b` was pushed to `install/zvarashop` and deployed
+  as Worker version `dc7a16d6-60ee-4676-adb1-024ecb6861b7`. Live home,
+  sitemap, Google feed, and Meta feed returned `200`; protected health returned
+  `401`. No provider test event, dummy order, or explicit remote D1 command ran.
 
 
 ## Provenance — read before citing any entry

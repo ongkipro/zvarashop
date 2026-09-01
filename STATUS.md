@@ -1,6 +1,6 @@
 # STATUS — ZvaraShop
 
-> Verified against disk: 2026-09-01 @ `a99e7eb` + order/Purchase dedupe working tree
+> Verified against disk: 2026-09-01 @ `373e90b` + production release evidence
 
 ## Repository authority
 
@@ -78,8 +78,11 @@ Final local evidence after the last source edit:
   canonical order number, catalog Product ID in `content_ids`, and the order
   value/currency; GTM used the same `transaction_id`. Reload emitted neither a
   second Pixel nor a second GTM Purchase.
-- deployment preflight correctly refused the untracked feature branch and dirty
-  working tree; no release was attempted.
+- deployment preflight accepted clean `install/zvarashop` at `373e90b` after
+  the branch was pushed. Wrangler deployed Worker version
+  `dc7a16d6-60ee-4676-adb1-024ecb6861b7`; live home, sitemap, Google feed, and
+  Meta feed returned `200`, while unauthenticated health correctly returned
+  `401`.
 
 Authenticated Meta, Google, and product-editor browser flows were not opened:
 the fresh local runtime has no operator session, and this audit did not read or
