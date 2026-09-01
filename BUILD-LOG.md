@@ -4845,3 +4845,18 @@ most of the day's evidence was empirical rather than documentary.
   validation, and all 53 migrations applied to a fresh isolated local D1. No
   production, remote D1, Meta provider, secret, deploy, commit, or push action
   occurred.
+
+## 2026-09-01 — Server-authoritative Purchase catalog identity
+
+- Closed the remaining browser-authority gap in Purchase: both public and
+  headless CAPI now derive `content_ids` from persisted order items through the
+  immutable D1 Product ID relationship, never from submitted JSON.
+- `/api/order-status` returns the token-authorized order `content_ids`; the
+  thanks tracker replaces its initial browser state before firing Pixel or CAPI.
+  Missing or invalid order product identity fails closed instead of fabricating
+  a catalog match.
+- Added a regression check proving a forged submitted Product ID loses to the
+  order's D1 IDs, alongside the existing event-id, value, customer matching,
+  outbox, and feed-alignment tests.
+- Evidence: 625 tests (624 pass, 1 intentional skip), 430 checked files with
+  zero diagnostics, successful build, and 29-document link validation.

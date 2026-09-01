@@ -37,7 +37,7 @@ The current audit hardens ad signals and repository ownership:
 
 - Meta public event ingestion is D1-rate-limited per client address.
 - Both first-party and headless Meta Purchase paths resolve canonical order
-  identity, merchandise value, and customer data from D1.
+  identity, catalog `content_ids`, merchandise value, and customer data from D1.
 - Paid click identifiers survive later UTM-only visits; a genuine new ad click
   remains last-touch attribution without erasing the other ad network.
 - Meta `_fbp` is established before immediate CAPI page events, and checkout
@@ -60,8 +60,8 @@ The current audit hardens ad signals and repository ownership:
 Final local evidence after the last source edit:
 
 - version candidate `1.5.0`, schema `53`, migrations `0000`–`0052`;
-- `npm test`: 624 total, 623 passed, 1 skipped, 0 failed;
-- `npm run check`: 412 files, 0 errors, warnings, or hints;
+- `npm test`: 625 total, 624 passed, 1 skipped, 0 failed;
+- `npm run check`: 430 files, 0 errors, warnings, or hints;
 - `npm run build`: passed with only expected missing-local-secret warnings;
 - `npm run docs:check`: 29 Markdown files and all local links passed;
 - a fresh local D1 applied all 53 migrations successfully;

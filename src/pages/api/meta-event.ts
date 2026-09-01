@@ -9,6 +9,7 @@ import { checkRateLimit, getClientIp, rateLimitHeaders } from '../../lib/rate-li
 import { readMetaBrowserIds } from '../../lib/click-ids';
 import {
   findPurchaseOrderByStatusToken,
+  resolveMetaPurchaseContentIds,
   type MetaPurchaseOrder,
 } from '../../lib/meta-purchase-order';
 
@@ -173,7 +174,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       },
       customData: {
         contentName: payload.contentName,
-        contentIds: payload.contentIds,
+        contentIds: resolveMetaPurchaseContentIds(purchaseOrder, payload.contentIds),
         // The goods, not the invoice — the same figure the browser leg sends,
         // read the same way, so the two legs of one Purchase never disagree on
         // revenue. Shipping, the COD service fee and its VAT, and the payment

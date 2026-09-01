@@ -140,7 +140,11 @@ async function runTracker(
     if (input.startsWith("/api/order-status")) {
       return Promise.resolve({
         ok: true,
-        json: () => Promise.resolve(orderStatus),
+        json: () => Promise.resolve({
+          content_ids: ["434683"],
+          product_name: "Asahan Portable",
+          ...orderStatus,
+        }),
       });
     }
     if (input.startsWith("/api/meta-event")) {

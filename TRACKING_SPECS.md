@@ -158,6 +158,13 @@ checkout choice and never a separate catalog identity. `ViewContent`,
 `AddToCart`, `InitiateCheckout` and both Purchase legs therefore all send the
 same product id, whether or not a variant has been picked. The variant id stays
 on the order for fulfilment and reporting and is never folded into `content_ids`.
+For Purchase, this identity is re-read from the persisted order relationship
+(`order_items → product_variants → products`) after the order token is verified.
+The browser's stored product id is only initial state; both the Pixel payload
+and CAPI payload are replaced by the D1-derived `content_ids` before dispatch.
+An order whose product relationship cannot be resolved emits no browser
+Purchase and the server omits `content_ids` rather than trusting or guessing a
+caller-supplied value.
 
 `catalogProductId()` in `src/lib/catalog-feed.ts` is the single implementation,
 and it **fails closed**: an id that is not `^[1-9]\d{4,15}$` throws rather than
@@ -231,6 +238,11 @@ All six guards hold as of 2026-08-16. Both legs key Purchase on the `INV-` order
 | --- | --- | --- |
 | Browser `fbq('track', 'Purchase', …, { eventID })` | the `INV-` order number | `MetaThanksTracker.astro` derives it from `order_number` in the `/api/order-status` response — the same D1 column the server leg uses — and fires nothing at all if it cannot be resolved |
 | Server CAPI | the `INV-` order number | `src/pages/api/meta-event.ts` sets `eventId` from `purchaseOrder.order_number` for every `Purchase` |
+
+The same lookup owns Purchase merchandise data: `product_value` is summed from
+the stored order items and `content_ids` is derived from their immutable Product
+IDs. A modified `sessionStorage`, public JSON payload, invoice total, shipping
+charge, or later catalog price cannot restate either field.
 
 Until 2026-08-16 the browser minted `purchase_<productSlug>_<random>` instead, which the server discarded — so the two legs never matched and Meta counted each Purchase twice. The fix aligned the browser onto the server's key rather than weakening the server gate, because the order-number key is what makes the server leg idempotent per order. **The correction is forward-only:** Meta deduplicates at ingestion inside a 48-hour window and offers no retroactive merge, so historical Purchase counts and values remain inflated and historical ROAS remains understated. Treat the deploy date as a reporting break, not a performance drop.
 

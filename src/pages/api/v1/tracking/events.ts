@@ -5,7 +5,7 @@ import { getStoreAdsConfig } from '../../../../lib/store-ads';
 import { getRuntimeEnv } from '../../../../lib/env';
 import { getClientIp } from '../../../../lib/rate-limit';
 import { enqueueCapiEvent, deliverCapiEvent, drainCapiOutbox } from '../../../../lib/capi-outbox';
-import { findPurchaseOrderForApiKeyCaller } from '../../../../lib/meta-purchase-order';
+import { findPurchaseOrderForApiKeyCaller, resolveMetaPurchaseContentIds } from '../../../../lib/meta-purchase-order';
 import { toE164Digits } from '../../../../lib/meta-capi';
 import { isSyntheticBuyerEmail } from '../../../../lib/meta-identity';
 import { parseClickIds } from '../../../../lib/click-ids';
@@ -91,7 +91,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       },
       customData: {
         contentName: payload.contentName,
-        contentIds: payload.contentIds,
+        contentIds: resolveMetaPurchaseContentIds(purchaseOrder, payload.contentIds),
         value: purchaseOrder?.product_value ?? payload.value,
         currency: payload.currency,
         orderNumber: purchaseOrder?.order_number,

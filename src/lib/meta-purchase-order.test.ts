@@ -5,6 +5,7 @@ import test from "node:test";
 import {
   findPurchaseOrderByStatusToken,
   findPurchaseOrderForApiKeyCaller,
+  resolveMetaPurchaseContentIds,
 } from "./meta-purchase-order.ts";
 import { sendMetaCapiEvent } from "./meta-capi.ts";
 import { checkRateLimit } from "./rate-limit.ts";
@@ -42,15 +43,19 @@ function purchaseDatabase() {
     );
     CREATE TABLE order_items (
       id INTEGER PRIMARY KEY, order_id INTEGER NOT NULL,
-      unit_price INTEGER NOT NULL, quantity INTEGER NOT NULL
+      variant_id INTEGER NOT NULL, unit_price INTEGER NOT NULL, quantity INTEGER NOT NULL
     );
+    CREATE TABLE products (id INTEGER PRIMARY KEY, title TEXT NOT NULL);
+    CREATE TABLE product_variants (id INTEGER PRIMARY KEY, product_id INTEGER NOT NULL);
     INSERT INTO orders VALUES (
       41, 'INV-10041', 'Nur Aisyah', '081234567890', NULL,
       'Jawa Barat', 'Bandung', '40111', 214000, 'cod', 'unpaid', 'tok-41',
       '{"_fbp":"fb.1.1700000000.browser"}',
       '{"clientIp":"203.0.113.7"}'
     );
-    INSERT INTO order_items VALUES (1, 41, 45000, 3);
+    INSERT INTO products VALUES (10041, 'Produk Uji');
+    INSERT INTO product_variants VALUES (501, 10041);
+    INSERT INTO order_items VALUES (1, 41, 501, 45000, 3);
   `);
   return {
     sqlite,
@@ -69,6 +74,17 @@ test("public Purchase requires its status token while an API key still resolves 
   const resolved = await findPurchaseOrderForApiKeyCaller(database, "INV-10041");
   assert.equal(resolved?.product_value, 135000);
   assert.equal(resolved?.total_amount, 214000);
+  assert.equal(resolved?.product_ids, "10041");
+});
+
+test("Purchase content IDs come from order items, never the submitted browser value", () => {
+  const order = { product_ids: "10041,10042,invalid,10041" };
+  assert.deepEqual(resolveMetaPurchaseContentIds(order as never, ["99999"]), [
+    "10041",
+    "10042",
+  ]);
+  assert.equal(resolveMetaPurchaseContentIds({ product_ids: null } as never, ["99999"]), undefined);
+  assert.deepEqual(resolveMetaPurchaseContentIds(null, ["99999"]), ["99999"]);
 });
 
 test("a Meta Purchase without canonical order_number is rejected before fetch", async () => {

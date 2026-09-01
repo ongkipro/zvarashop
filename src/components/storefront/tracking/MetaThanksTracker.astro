@@ -109,7 +109,7 @@ const { tenantName, tenantSlug } = Astro.props;
     // Product ID is the catalog identity published by both feeds. Variant ID is
     // retained separately for checkout and reporting, never folded into it.
     const productId = pick('product_id', '');
-    const contentId = productId;
+    let contentIds = productId ? [productId] : [];
     const phone = pick('phone', '');
     const name = pick('name', '');
     const province = pick('province', '');
@@ -127,7 +127,7 @@ const { tenantName, tenantSlug } = Astro.props;
 
     const data = {
       content_name: productName,
-      content_ids: contentId ? [contentId] : undefined,
+      content_ids: contentIds.length ? contentIds : undefined,
       content_type: 'product',
       value: Number(conversionValue || 1),
       currency: 'IDR',
@@ -246,6 +246,12 @@ const { tenantName, tenantSlug } = Astro.props;
           // corrected too or the two legs would report different revenue.
           data.value = serverProductValue;
         }
+        const serverContentIds = Array.isArray(statusData.content_ids)
+          ? statusData.content_ids.filter((id) => typeof id === 'string' && /^\d{5,16}$/.test(id))
+          : [];
+        if (!serverContentIds.length) return;
+        contentIds = serverContentIds;
+        data.content_ids = serverContentIds;
       } catch {
         return;
       }
@@ -268,7 +274,7 @@ const { tenantName, tenantSlug } = Astro.props;
         pushGtmEcomEvent('purchase', {
           currency: 'IDR',
           value: Number(conversionValue || 1),
-          item_id: productId,
+          item_id: contentIds[0] || productId,
           item_name: productName,
           item_variant: pick('variant_unique_id', '') || undefined,
           transaction_id: orderId || undefined,
@@ -327,7 +333,7 @@ const { tenantName, tenantSlug } = Astro.props;
         order_number: finalEventId,
         status_token: statusToken,
         lp_name: pick('lp_name', ''),
-        product_id: productId || undefined,
+        content_ids: contentIds.length ? contentIds : undefined,
         content_name: productName,
         value: Number(conversionValue || 1),
         currency: 'IDR',

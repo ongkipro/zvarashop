@@ -112,6 +112,8 @@ test("headless order status requires the checkout-issued identity and token with
     // whose items cannot be read reports 0, never the invoice total, so a
     // missing join can never inflate reported ad revenue with shipping and fees.
     product_value: 0,
+    content_ids: [],
+    product_name: "",
     payment: null,
   });
   assert.deepEqual(auditStatuses, [404, 200]);

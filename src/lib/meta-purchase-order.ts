@@ -17,7 +17,27 @@ export type MetaPurchaseOrder = {
   payment_status: string;
   ad_click_ids: string | null;
   meta_request_context: string | null;
+  product_ids: string | null;
 };
+
+export function parseMetaPurchaseContentIds(raw: string | null | undefined): string[] {
+  if (!raw) return [];
+  const seen = new Set<string>();
+  for (const value of raw.split(",")) {
+    const id = value.trim();
+    if (/^[1-9]\d{4,15}$/.test(id) && Number.isSafeInteger(Number(id))) seen.add(id);
+  }
+  return [...seen];
+}
+
+export function resolveMetaPurchaseContentIds(
+  order: Pick<MetaPurchaseOrder, "product_ids"> | null,
+  submitted: string[] | undefined,
+): string[] | undefined {
+  if (!order) return submitted;
+  const authoritative = parseMetaPurchaseContentIds(order.product_ids);
+  return authoritative.length ? authoritative : undefined;
+}
 
 const PURCHASE_ORDER_SELECT = `
   SELECT
@@ -28,7 +48,14 @@ const PURCHASE_ORDER_SELECT = `
       SELECT COALESCE(SUM(oi.unit_price * oi.quantity), 0)
       FROM order_items oi
       WHERE oi.order_id = o.id
-    ) AS product_value
+    ) AS product_value,
+    (
+      SELECT GROUP_CONCAT(DISTINCT p.id)
+      FROM order_items oi
+      INNER JOIN product_variants pv ON pv.id = oi.variant_id
+      INNER JOIN products p ON p.id = pv.product_id
+      WHERE oi.order_id = o.id
+    ) AS product_ids
   FROM orders o
   WHERE (CAST(o.id AS TEXT) = ? OR o.order_number = ?)
 `;
