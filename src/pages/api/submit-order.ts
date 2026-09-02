@@ -29,7 +29,7 @@ import {
   ShippingQuoteError,
 } from "../../lib/shipping-quote";
 import {
-  createAutoLarisPaymentForOrder,
+  createAutoLarisDigitalOrderForPayment,
   recordFailedPaymentAttempt,
   type AutoLarisPaymentRecord,
 } from "../../lib/autolaris-payment";
@@ -308,7 +308,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       // its failed transaction row, which `/api/order-status` can regenerate
       // on the buyer's request and the operator can see in the order detail.
       try {
-        payment = await createAutoLarisPaymentForOrder(database, locals, {
+        payment = await createAutoLarisDigitalOrderForPayment(database, locals, {
           orderId: order.id,
           channelCode: data.payment_channel!,
         });

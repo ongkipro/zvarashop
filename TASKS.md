@@ -1,6 +1,21 @@
 # Tasks: ZvaraShop
 
-> Verified against disk: 2026-09-01 @ `f5be51b` + WhatsApp same-context working tree
+> Verified against disk: 2026-09-02 @ `a1509c8` + AutoLaris digital-order reconciliation working tree
+
+## A30 — AutoLaris non-physical Create Order and Advice cron
+
+- [x] **A-182** — Replace the stale `/create_payment` checkout path with one
+  `/submit` request classified as digital/subscription/non-physical by the
+  account-specific `courir_id: 1`. Required address and parcel fields remain
+  provider metadata only; no AWB, pickup, booking, or dispatch is created.
+- [x] **A-183** — Poll stored provider transaction IDs through `/advice` in the
+  existing hourly Worker. The transition is bounded and idempotent; PENDING,
+  DELIVERED, and unknown vocabulary are no-ops; explicit settlement enqueues
+  the already-deduplicated server Purchase and never dispatches shipment.
+- [x] **A-184** — Complete full test/check/build and final diff review before
+  any commit, push, or production deployment.
+  -> Evidence: 630 tests (629 pass, 1 intentional skip), 412-file check with
+  zero diagnostics, successful Cloudflare build, and 29-document link check.
 
 ## A29 — Same-context WhatsApp handoff
 
@@ -1544,7 +1559,7 @@ genuinely unmanageable.
 - [x] **A-162** — Take admin sessions and rate-limit counters off the account-shared KV write allowance. **Done 2026-08-27 (ADR-021, migration `0049`).**
   -> Done when: a fleet-wide `KV put() limit exceeded` no longer fails login or kecamatan search; sessions revoke on rotation/logout from D1; the pair brake is exact; every remaining KV write is best-effort and labelled. Evidence: BUILD-LOG entry 84.
 - [x] **A-163** — A failed or expired AutoLaris instruction is regenerable, not a dead order. **Done 2026-08-27.**
-  -> Done when: `create_payment` failure leaves the order `pending` with a `failed` transaction; `expired` is derived from `expires_at`; `/api/order-status` regenerates on `retry_payment` under a 5/10 min limit; `/payment` offers the retry and stops polling a dead instruction. Evidence: `autolaris-payment.test.ts` (+3), local `wrangler dev` limits observed.
+  -> Done when: provider order creation failure leaves the order `pending` with a `failed` transaction; `expired` is derived from `expires_at`; `/api/order-status` regenerates on `retry_payment` under a 5/10 min limit; `/payment` offers the retry and stops polling a dead instruction. Evidence: `autolaris-payment.test.ts` (+3), local `wrangler dev` limits observed.
 - [x] **A-164** — Stop sending the retired webhook as `callbackUrl`. **Done 2026-08-27 (ADR-022, migration `0050`).**
   -> The URL stays; the endpoint now records every callback in `autolaris_callbacks` and answers 200, moving no payment state. Evidence: BUILD-LOG entry 85.
 - [x] **A-165** — `/payment` survives losing `sessionStorage`. **Done 2026-08-27.**
@@ -1558,7 +1573,7 @@ genuinely unmanageable.
 - [x] **A-169** — Decide the lifecycle of an online order whose instruction was never paid. **Closed 2026-08-27 by ADR-023.**
   -> The harm this tracked was stock held hostage by an order nobody would pay. Stock is no longer reserved by anything, so an unpaid instruction now costs only list clutter, and the admin list flags it as *Instruksi gagal/kedaluwarsa*. An auto-cancel policy would be a merchant decision with no engineering pressure behind it; reopen only if one is wanted.
 - [x] **A-170** — A provider failure before the instruction row exists leaves no retry handle. **Done 2026-08-27 (1.4.0).**
-  -> `recordFailedPaymentAttempt` writes the `failed` row from the committed order when `createAutoLarisPaymentForOrder` throws before its INSERT, so `/payment` can offer the retry. Evidence: BUILD-LOG entry 88.
+  -> `recordFailedPaymentAttempt` writes the `failed` row from the committed order when `createAutoLarisDigitalOrderForPayment` throws before its INSERT, so `/payment` can offer the retry. Evidence: BUILD-LOG entry 88.
 
 ## A25 — The blank admin order list
 

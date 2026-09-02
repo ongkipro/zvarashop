@@ -119,6 +119,12 @@
     "PUBLIC_ADMIN_NAME": "ZvaraShop Admin",
     "PUBLIC_EMBED_ALLOWED_ORIGINS": "https://zvara.shop",
 
+    // AutoLaris requires numeric area metadata even though this `/submit` flow
+    // is classified as digital/non-physical (`courir_id: 1`) and dispatches no
+    // shipment. Physical fulfilment remains an explicit Mengantar action.
+    "AUTOLARIS_ORDER_ORIGIN_ID": "3517100",
+    "AUTOLARIS_ORDER_DESTINATION_ID": "3518010",
+
     // Root-relative or absolute. Replace the placeholder wordmark in
     // public/images/ with the store's own brand assets.
     "PUBLIC_SITE_LOGO": "/images/adsbook-mark.webp",

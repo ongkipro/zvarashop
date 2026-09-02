@@ -5,7 +5,6 @@ import {
   autoLarisChannelLockReason,
   buildAutoLarisCreateOrderPayload,
   type AutoLarisCreateOrderInput,
-  type AutoLarisCreatePaymentInput,
   resolveDisabledAutoLarisChannels,
 } from "./autolaris-client.ts";
 import { POST as updateSettings } from "../pages/api/admin/settings.ts";
@@ -28,19 +27,6 @@ const PROVIDER_CONFIG_ROW = {
   autolaris_api_key: "autolaris-secret-must-not-leak",
   autolaris_base_url: "https://autolaris.example.test",
 } as const;
-
-const CREATE_PAYMENT_INPUT = {
-  reffId: "10001",
-  channelCode: "QRIS",
-  customerId: "42",
-  customerName: "QA Customer",
-  customerPhone: "081331000000",
-  customerEmail: "qa@example.test",
-  // 10:00 WIB, so the provider-facing `expired` proves the timezone shift.
-  expiresAt: new Date("2026-08-20T03:00:00.000Z"),
-  amount: 118_400,
-  callbackUrl: "https://store.example.test/api/webhooks/autolaris",
-} as const satisfies AutoLarisCreatePaymentInput;
 
 test("AutoLaris credential verification reads the provider channel catalogue", async (context) => {
   const originalFetch = globalThis.fetch;
@@ -106,28 +92,7 @@ test("provider-locked AutoLaris channels cannot be removed from the disabled pol
   ]);
 });
 
-test("provider-locked AutoLaris channels fail before an outbound payment request", async (context) => {
-  const originalFetch = globalThis.fetch;
-  context.after(() => {
-    globalThis.fetch = originalFetch;
-  });
-  let providerCalls = 0;
-  globalThis.fetch = async () => {
-    providerCalls += 1;
-    return new Response(null, { status: 500 });
-  };
-
-  await assert.rejects(
-    new AutoLarisClient("qa-key").createPayment({
-      ...CREATE_PAYMENT_INPUT,
-      channelCode: "VABSI",
-    }),
-    /tidak aktif di provider/i,
-  );
-  assert.equal(providerCalls, 0);
-});
-
-test("AutoLaris online checkout creates a payment and never a shipment", async (context) => {
+test("AutoLaris online checkout creates one digital order without dispatch", async (context) => {
   const originalFetch = globalThis.fetch;
   context.after(() => {
     globalThis.fetch = originalFetch;
@@ -142,14 +107,15 @@ test("AutoLaris online checkout creates a payment and never a shipment", async (
       rc: "00",
       ket: "Sukses",
       data: {
-        trx_id: "874546",
-        virtual_account: "",
-        qr: "000201010212...",
-        payment_code: "",
-        url: "",
-        amount: 118_400,
-        admin: 84,
-        total: 118_484,
+        transaction_id: "874546",
+        biaya_admin: 84,
+        total: 12_084,
+        payment_info: {
+          expired: "2026-09-03 16:42:00",
+          va: "",
+          qr: "000201010212...",
+          url: "",
+        },
       },
     });
   };
@@ -157,38 +123,29 @@ test("AutoLaris online checkout creates a payment and never a shipment", async (
   const payment = await new AutoLarisClient(
     "qa-key",
     "https://autolaris.example.test",
-  ).createPayment(CREATE_PAYMENT_INPUT);
+  ).createOrder(digitalOrderInput());
 
   assert.equal(
     requestedUrl,
-    "https://autolaris.example.test/api/h2h/create_payment",
+    "https://autolaris.example.test/api/h2h/submit",
   );
-  // No origin, destination, courier or parcel field may reach the gateway:
-  // shipping is Mengantar's, and /submit would register a shipment nobody ships.
-  assert.deepEqual(requestedBody, {
-    reff_id: "10001",
-    channel_code: "QRIS",
-    customer_id: "42",
-    customer_name: "QA Customer",
-    customer_phone: "081331000000",
-    customer_email: "qa@example.test",
-    expired: "20260820100000",
-    amount: "118400",
-    callback_url: "https://store.example.test/api/webhooks/autolaris",
-  });
+  assert.equal(requestedBody?.courir_id, 1);
+  assert.equal(requestedBody?.channel_code, "QRIS");
+  assert.equal(requestedBody?.callback_url, "");
   assert.deepEqual(payment, {
     transactionId: "874546",
     virtualAccount: undefined,
     qr: "000201010212...",
     paymentCode: undefined,
     url: undefined,
-    amount: 118_400,
+    amount: 12_000,
     admin: 84,
-    total: 118_484,
+    total: 12_084,
+    expiresAt: "2026-09-03T09:42:00.000Z",
   });
 });
 
-test("AutoLaris rejects the store order number, so the payload fails before fetch", async (context) => {
+test("provider-locked AutoLaris channels and invalid references fail before fetch", async (context) => {
   const originalFetch = globalThis.fetch;
   context.after(() => {
     globalThis.fetch = originalFetch;
@@ -202,25 +159,18 @@ test("AutoLaris rejects the store order number, so the payload fails before fetc
   // The provider answers `rc: "01" / Invalid parameter` for each of these, with
   // no field named, so a customer must never be the one who discovers them.
   await assert.rejects(
-    new AutoLarisClient("qa-key").createPayment({
-      ...CREATE_PAYMENT_INPUT,
+    new AutoLarisClient("qa-key").createOrder({
+      ...digitalOrderInput(),
+      channelCode: "VABSI",
+    }),
+    /tidak aktif di provider/i,
+  );
+  await assert.rejects(
+    new AutoLarisClient("qa-key").createOrder({
+      ...digitalOrderInput(),
       reffId: "INV-10001",
     }),
     /referensi AutoLaris harus berupa angka/i,
-  );
-  await assert.rejects(
-    new AutoLarisClient("qa-key").createPayment({
-      ...CREATE_PAYMENT_INPUT,
-      customerId: "",
-    }),
-    /id pembeli AutoLaris tidak lengkap/i,
-  );
-  await assert.rejects(
-    new AutoLarisClient("qa-key").createPayment({
-      ...CREATE_PAYMENT_INPUT,
-      callbackUrl: "",
-    }),
-    /callback AutoLaris tidak lengkap/i,
   );
   assert.equal(providerCalls, 0);
 });
@@ -254,19 +204,27 @@ test("an unpaid AutoLaris transaction reads back as pending and nothing else", a
   });
 });
 
-test("an unobserved AutoLaris settlement code is never read as paid", async (context) => {
+test("Advice accepts explicit settlement but never treats DELIVERED as paid", async (context) => {
   const originalFetch = globalThis.fetch;
   context.after(() => {
     globalThis.fetch = originalFetch;
   });
   globalThis.fetch = async () =>
-    Response.json({ rc: "00", ket: "SUCCESS", data: { awb: "" } });
+    Response.json({ rc: "00", ket: "PAID", data: { awb: "" } });
 
   const inquiry = await new AutoLarisClient("qa-key").inquirePayment("956123");
 
-  // `00` plausibly means settled, but no settled transaction has been observed.
-  // Until one is, it stays unproven and cannot move money-bearing state.
-  assert.equal(inquiry.settlement, "unproven");
+  assert.equal(inquiry.settlement, "paid");
+
+  globalThis.fetch = async () =>
+    Response.json({ rc: "00", ket: "DELIVERED", data: { awb: "" } });
+  const delivered = await new AutoLarisClient("qa-key").inquirePayment("956124");
+  assert.equal(delivered.settlement, "unproven");
+
+  globalThis.fetch = async () =>
+    Response.json({ rc: "00", ket: "SUCCESS", data: { awb: "" } });
+  const genericSuccess = await new AutoLarisClient("qa-key").inquirePayment("956125");
+  assert.equal(genericSuccess.settlement, "unproven");
 });
 
 test("test-autolaris verifies the stored key against the provider without leaking it", async (context) => {
@@ -541,7 +499,7 @@ function digitalOrderInput(
 ): AutoLarisCreateOrderInput {
   return {
     reffId: "10041",
-    channelCode: "COD",
+    channelCode: "QRIS",
     origin: "3517100",
     destination: "3517100",
     shipperName: "Toko Testing",

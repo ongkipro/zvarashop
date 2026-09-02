@@ -1,4 +1,7 @@
-import type { ExportedHandler } from "@cloudflare/workers-types";
+import type {
+  ExecutionContext,
+  ExportedHandler,
+} from "@cloudflare/workers-types";
 import { handle } from "@astrojs/cloudflare/handler";
 import { purgeExpiredAbandonedOrders } from "./lib/order-persistence.ts";
 import { getEnvValue } from "./lib/env.ts";
@@ -12,6 +15,7 @@ import { purgeExpiredRateLimits } from "./lib/rate-limit.ts";
 import {
   expirePendingPaymentTransactions,
   purgeExpiredAutoLarisCallbacks,
+  reconcileAutoLarisPaymentStatuses,
 } from "./lib/autolaris-payment.ts";
 import { drainCapiOutbox, purgeExpiredCapiOutboxEvents } from "./lib/capi-outbox.ts";
 import { getStoreAdsConfig } from "./lib/store-ads.ts";
@@ -21,11 +25,14 @@ import {
   readGoogleAdsOfflineConfig,
   reconcileGoogleAdsConversions,
 } from "./lib/google-ads-offline.ts";
+import { enqueuePurchaseForPaidOrder } from "./lib/paid-order-purchase.ts";
+import { envTenantConfig } from "./lib/tenant.ts";
 type AstroRequest = Parameters<typeof handle>[0];
 
 async function runScheduledMaintenance(
   env: CloudflareRuntimeEnv,
   scheduledTime: number,
+  context: ExecutionContext,
 ) {
   await ensureSchemaUpgraded(env.OMS_DB);
   const purgedAbandonedOrders = await purgeExpiredAbandonedOrders(
@@ -54,6 +61,34 @@ async function runScheduledMaintenance(
     "scheduled-callback-purge-failed",
     () => purgeExpiredAutoLarisCallbacks(env.OMS_DB, new Date(scheduledTime)),
   );
+  const scheduledLocals = {
+    runtimeEnv: env,
+    tenant: envTenantConfig,
+    cfContext: context,
+  } satisfies App.Locals;
+  let autoLarisReconciliation = {
+    checked: 0,
+    pending: 0,
+    unproven: 0,
+    failed: 0,
+    paidOrderIds: [] as number[],
+  };
+  try {
+    autoLarisReconciliation = await reconcileAutoLarisPaymentStatuses(
+      env.OMS_DB,
+      scheduledLocals,
+      new Date(scheduledTime),
+    );
+  } catch (error) {
+    console.error("scheduled-autolaris-advice-failed", error);
+  }
+  for (const orderId of autoLarisReconciliation.paidOrderIds) {
+    try {
+      await enqueuePurchaseForPaidOrder(env.OMS_DB, scheduledLocals, orderId);
+    } catch (error) {
+      console.error("scheduled-paid-order-purchase-failed", { orderId, error });
+    }
+  }
   const purgedCapiOutboxEvents = await housekeeping(
     "scheduled-capi-outbox-purge-failed",
     () => purgeExpiredCapiOutboxEvents(env.OMS_DB, new Date(scheduledTime)),
@@ -104,6 +139,7 @@ async function runScheduledMaintenance(
     purgedRateLimitWindows,
     expiredPaymentInstructions,
     purgedProviderCallbacks,
+    autoLarisReconciliation,
     purgedCapiOutboxEvents,
     purgedGoogleAdsOutboxEvents,
     drainedCapiEvents,
@@ -126,7 +162,7 @@ export default {
     return handle(request as unknown as AstroRequest, env, ctx);
   },
 
-  async scheduled(controller, env) {
-    await runScheduledMaintenance(env, controller.scheduledTime);
+  async scheduled(controller, env, ctx) {
+    await runScheduledMaintenance(env, controller.scheduledTime, ctx);
   },
 } satisfies ExportedHandler<CloudflareRuntimeEnv>;

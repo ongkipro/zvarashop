@@ -1,6 +1,6 @@
 # STATUS — ZvaraShop
 
-> Verified against disk: 2026-09-02 @ `03a16ea` + Meta token recovery production evidence
+> Verified against disk: 2026-09-02 @ `a1509c8` + AutoLaris digital-order reconciliation working tree
 
 ## Repository authority
 
@@ -116,6 +116,8 @@ but rendered authenticated behavior remains a release gate.
 - Provider credentials and live account acceptance cannot be proven without
   operator-controlled secrets and external test consoles.
 - AutoLaris callback rows remain evidence only; they never transition payment.
+- AutoLaris checkout creates one `/submit` record classified as digital/non-physical with `courir_id: 1`; it never creates or dispatches a shipment.
+- Hourly Advice checks use the stored provider transaction ID. `PENDING`, `DELIVERED`, and unknown statuses remain unchanged; explicit settlement is guarded and idempotent.
 - Stock is bookkeeping and never gates a sale (ADR-023).
 - `theme_color`, `locale`, and `admin_name` remain stored but have no admin
   editor.

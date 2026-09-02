@@ -1,6 +1,6 @@
 # Observability — ZvaraShop
 
-> Verified against disk: 2026-09-01 @ `e6b9fbe` + standalone/ad-signals working tree
+> Verified against disk: 2026-09-02 @ `a1509c8` + AutoLaris digital-order reconciliation working tree
 
 This document describes what an operator can observe and what ZvaraShop alerts
 on for its one Worker. External uptime probing remains a separate decision.
@@ -65,7 +65,7 @@ These are the paths where the system degrades without telling anyone. Each is a 
 | Meta CAPI delivery failure | Retried through `capi_event_outbox` with attempt counting | Good design — but nothing surfaces an outbox that has stopped draining |
 | Mengantar dispatch failure | Order stays `pending` and remains retryable | Correct, but an operator must notice manually |
 | Mengantar tracking poll failure | The affected row fails independently, remains at its prior lifecycle state, and returns an operator-visible error in the Shipping workspace | Correct interactive behavior; no automatic retry or alert is claimed |
-| AutoLaris paid transaction with no operator confirmation yet | Order remains pending/unpaid until an owner/admin confirms the exact billed amount and provider reference from the provider dashboard | Correct current contract, but there is no automatic provider-side inquiry yet |
+| AutoLaris Advice returns pending or unproven vocabulary | Cron records aggregate `pending`, `unproven`, and `failed` counts; D1 remains unchanged and manual reconciliation stays available | Prevents `DELIVERED` or another shipping status from becoming a false paid transition |
 | Stock trigger rejection | `INSUFFICIENT_STOCK` raised by D1 | Surfaces to the caller, but is not counted |
 | Landing pages fail to load on the homepage | `catch {}` swallowed it; the solutions grid silently loses every CMS landing page | Now logged as `home-landing-pages-load` |
 | Support WhatsApp lookup finds no store row | returned `""`, identical to "number simply not saved" | Now logged as `storefront-support-whatsapp-no-store-row`, which distinguishes an unseeded database from an unconfigured one |

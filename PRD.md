@@ -1,6 +1,6 @@
 # PRD — ZvaraShop
 
-> Verified against disk: 2026-09-01 @ `f5be51b` + WhatsApp same-context working tree
+> Verified against disk: 2026-09-02 @ `a1509c8` + AutoLaris digital-order reconciliation working tree
 
 ## A25 — Same-context WhatsApp handoff
 
@@ -333,7 +333,7 @@ The storefront sells on demand: a variant shall be purchasable whenever it is ac
 | REQ-31 | Fee bearer shall be configurable independently for payment fees and COD fees. | Implemented |
 | REQ-32 | Payment channels shall be individually toggleable by the operator. | Implemented |
 | REQ-33 | The payment instruction page shall show only recorded amounts and instructions, with copy-to-clipboard, expiry countdown, and automatic status polling. | Implemented |
-| REQ-34 | Until AutoLaris publishes an authoritative transaction-inquiry contract, only an authenticated owner/admin may manually confirm an AutoLaris payment after checking the provider dashboard. Provider callbacks shall be recorded as evidence and shall never transition payment state (1.3.3, ADR-022); a confirmed payment shall enqueue the server Purchase for the order (A-166). A buyer holding a failed or expired instruction shall be able to request a new one without operator involvement (A-163). Confirmation shall require exact re-entry of the recorded billed total and provider reference, explicit acknowledgement, and an operator note; atomically append immutable audit evidence and mark the payment/order paid; reject released-stock, cancelled, refunded, mismatched, or stale objects; remain idempotent under retries; never call a provider or dispatch shipment; and become visible to the buyer's existing status polling so `/payment` redirects to `/thanks`. The pending-verification queue may refresh once per minute and flag overdue records, but no timer or cron may infer `paid`. | Implemented locally 2026-08-18 — awaiting final A17 evidence reconciliation |
+| REQ-34 | The hourly Worker shall query AutoLaris Advice with the stored provider `transaction_id`. `02/PENDING`, `DELIVERED`, and unknown statuses shall not mutate payment; only `rc: 00` paired with an explicit settlement status may atomically and idempotently mark the transaction/order paid and enqueue the deduplicated server Purchase. Provider callbacks remain evidence only (ADR-022), manual owner/admin reconciliation remains available for unproven responses, and no automatic or manual payment transition shall dispatch shipment. | Implemented locally 2026-09-02 — focused Advice and idempotency contracts passed |
 | REQ-35 | The balance view shall present recorded reconciliation only, and shall not claim to be a live or withdrawable provider wallet. | Implemented |
 | REQ-36 | Every submitted non-COD checkout shall persist a normal pending order before payment is completed. Pending, failed, cancelled, or expired VA, QRIS, and bank-transfer payment states shall remain order states and shall never be reclassified as abandoned capture. | Implemented 2026-08-17 — full-funnel regression passed |
 

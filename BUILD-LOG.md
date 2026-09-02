@@ -1,6 +1,6 @@
 # BUILD LOG: ZvaraShop
 
-> Verified against disk: 2026-09-01 @ `e7c9ee7` + WhatsApp production evidence
+> Verified against disk: 2026-09-02 @ `a1509c8` + AutoLaris digital-order reconciliation working tree
 
 Author & Curator: **[ongki.pro](https://ongki.pro)**
 
@@ -4916,3 +4916,22 @@ most of the day's evidence was empirical rather than documentary.
   17 PageView and 16 ViewContent, with zero Purchase failures. Requeue was not
   performed because it is a separate production D1 mutation and provider
   resend that requires explicit approval.
+
+## 2026-09-02 — AutoLaris digital-order checkout and Advice reconciliation
+
+- Replaced the active standalone `/create_payment` call with one Create Order
+  `/submit` request. `courir_id: 1` records a digital/subscription/non-physical
+  purchase for this account; provider-required address and parcel fields do not
+  create shipping work in ZvaraShop.
+- Kept fulfilment isolated: no AutoLaris AWB, pickup, booking, or dispatch is
+  accepted, and physical shipment remains an explicit Mengantar operator action.
+- Added bounded hourly `/advice` reconciliation by provider transaction ID.
+  `02/PENDING`, `DELIVERED`, and unknown statuses leave money state untouched;
+  an explicit settlement uses guarded idempotent D1 updates, notification, and
+  the existing order-number-deduplicated server Purchase path.
+- Updated environment typing and install configuration for the numeric metadata
+  required by `/submit`. No secret, provider call, remote D1 mutation, commit,
+  push, or deployment occurred during implementation.
+- Verification after the final source edit: 630 tests (629 passed, 1 intentional
+  skip), 412 checked files with zero diagnostics, successful Cloudflare build,
+  and 29 Markdown files with all local links resolved.
