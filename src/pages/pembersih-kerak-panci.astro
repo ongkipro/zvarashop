@@ -38,7 +38,6 @@ const seoDescription =
 const cheapest = [...product.variants].sort((a, b) => a.price - b.price)[0] ?? null;
 const price = cheapest?.price ?? product.price;
 const comparePrice = cheapest?.comparePrice ?? Math.round(price * 1.09);
-const discountPercent = comparePrice > price ? Math.round(((comparePrice - price) / comparePrice) * 100) : 8;
 ---
 
 <BaseLayout
