@@ -70,4 +70,11 @@ export const nativeLandingPages: NativeLandingPage[] = [
     description: 'Landing page konversi untuk Holder HP Spion Motor Besi All-Motorcycle.',
     isActive: true,
   },
+  {
+    slug: 'pembersih-kerak-panci',
+    title: 'GlowHöme Gel Pembersih Kerak Hitam Panci & Wajan',
+    productSlug: 'pembersih-kerak-180ml',
+    description: 'Landing page direct-response konversi tinggi untuk GlowHöme Gel Pembersih Kerak Hitam Panci, Wajan & Kompor.',
+    isActive: true,
+  },
 ];
