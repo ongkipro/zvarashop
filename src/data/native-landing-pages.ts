@@ -84,4 +84,11 @@ export const nativeLandingPages: NativeLandingPage[] = [
     description: 'Landing page direct-response konversi tinggi untuk suplemen herbal penambah berat badan Nature Gemuk Badan.',
     isActive: true,
   },
+  {
+    slug: 'lem-jaysuing',
+    title: 'Lem Anti Bocor Jaysuing 300gr Waterproof Transparan',
+    productSlug: 'lem-anti-bocor-jaysuing-300gr',
+    description: 'Landing page direct-response konversi tinggi untuk Lem Anti Bocor Jaysuing 300gr Waterproof Transparan.',
+    isActive: true,
+  },
 ];
