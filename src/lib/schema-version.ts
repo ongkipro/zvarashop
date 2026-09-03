@@ -215,7 +215,9 @@ function validateMigrationChain(
 type MigrationConnection = Pick<D1Database, "prepare" | "batch">;
 
 function primaryConnection(database: D1Database): MigrationConnection {
-  return database;
+  return typeof database.withSession === "function"
+    ? database.withSession("first-primary")
+    : database;
 }
 
 async function createMigrationTable(database: D1Database, expected: number) {
