@@ -77,4 +77,11 @@ export const nativeLandingPages: NativeLandingPage[] = [
     description: 'Landing page direct-response konversi tinggi untuk GlowHöme Gel Pembersih Kerak Hitam Panci, Wajan & Kompor.',
     isActive: true,
   },
+  {
+    slug: 'nature-gemuk-badan',
+    title: 'Nature Gemuk Badan Isi 60 Kapsul (Penggemuk Alami BPOM)',
+    productSlug: 'nature-gemuk-badan-isi-60-kapsul',
+    description: 'Landing page direct-response konversi tinggi untuk suplemen herbal penambah berat badan Nature Gemuk Badan.',
+    isActive: true,
+  },
 ];
