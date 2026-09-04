@@ -149,7 +149,7 @@ GTIN or MPN column.
 Local evidence after the last edit:
 
 - version `1.5.0`, schema `55`, migrations `0000`–`0054`;
-- `npm test`: 650 total, 649 passed, 1 skipped, 0 failed;
+- `npm test`: 655 total, 654 passed, 1 skipped, 0 failed;
 - `npm run check`: 431 files, 0 errors, warnings, or hints;
 - `npm run build`: passed;
 - `npm run docs:check`: 29 Markdown files and all local links passed;
@@ -164,6 +164,36 @@ admin belum dikonfigurasi di server", and this audit did not read or create
 one. The three new fields therefore have compile, type, API and wiring
 evidence, but no browser evidence — which remains a release gate. Nothing in
 this audit contacted a provider, read a secret, ran remote D1, or deployed.
+
+## 2026-09-03/04 Meta CAPI incident
+
+Read from production D1 on 2026-09-04 with explicit approval; metadata only, no
+payloads, no customer data, no writes.
+
+- **No Purchase was lost.** 34 Purchase events delivered; zero Purchase rows
+  undelivered. Every affected event is top-of-funnel: PageView, ViewContent,
+  AddToCart, InitiateCheckout.
+- **Sharp cutover.** Last successful delivery `2026-09-03T11:22:09Z`; first
+  occurrence of the new error `2026-09-03T12:14:21Z`. A 52-minute window, with
+  no code change between them — the live Worker was `e7c9ee7`, deployed days
+  earlier.
+- **107 rows** (83 terminal, 24 still pending at the time of reading) carry
+  `Unsupported post request. Object with ID '1566746954921686' does not exist,
+  cannot be loaded due to missing permissions, or does not support this
+  operation.` This is destination-side: the pixel is unreachable to the token
+  in use. Root cause is a Meta configuration or permission change and is **not
+  resolved by any deploy**.
+- **33 rows** from `2026-09-01` carry the invalidated-session token error and
+  have not grown since `2026-09-01T16:36`. These are the rows this document
+  already recorded.
+- Rows were observed with `attempts` of 9 against a `max_attempts` of 5, which
+  no sequential path can produce. That is the concurrent-drain defect, now
+  fixed by claiming a batch before transmitting it.
+
+Recovery is available but deliberately gated: `/admin/ads/meta` proves the
+token and pixel live with a probe event and refuses to requeue anything if Meta
+rejects it. Pressing it before the pixel/permission is fixed cannot damage
+anything and will simply decline.
 
 ## Known boundaries
 

@@ -363,6 +363,38 @@ The docs are silent on what a *second* `fbq('init')` does. That behaviour was
 established against the live library instead (§4a) — which is the stronger
 evidence for this particular question, and the only kind available.
 
+### Outbox delivery: claim before send, and what a requeue may touch
+
+Two properties learned from a live incident on 2026-09-03/04 rather than from
+design.
+
+**Rows are claimed, not merely selected.** Every `/api/meta-event` request fires
+a drain in `waitUntil`, so two visitors arriving together ran two drains that
+selected the same due rows and both transmitted them. The evidence was rows
+carrying `attempts` of 9 against a `max_attempts` of 5 — unreachable through any
+single sequential path. `drainCapiOutbox` now claims its batch with one
+`UPDATE … RETURNING` that pushes `next_retry_at` a five-minute lease forward;
+SQLite serializes writers, so a concurrent drain sees the moved timestamps and
+takes a disjoint set. Meta deduplicates on `event_id`, so nothing double-counted
+— what was lost was quota, and the meaning of the attempt budget.
+
+**A requeue is bounded by what Meta will still accept.** Retries deliberately
+preserve the original `event_time` so a Purchase stays attributed to when it
+happened, and Meta rejects an event more than seven days old. Retention holds
+terminal rows for thirty. `requeueRecoverableEvents` therefore refuses anything
+older than seven days: without that bound a recovery would send rows Meta
+refuses as stale and re-terminate them, spending the operator's one recovery on
+events that could never land.
+
+The classification is not a guess about *why* a row failed. The caller proves
+the destination live first — `/api/admin/ads` sends a probe and refuses to
+requeue at all if Meta rejects it — and every failed row inside the window then
+gets one more attempt. The first version selected `attempts < max_attempts`,
+reasoning that a dead token is the only terminal state that does not exhaust the
+budget. That was exact and too narrow: on 2026-09-03 a pixel/permission error
+let 107 rows exhaust their budget honestly, and every one of them was as
+recoverable as a token failure.
+
 ### Never hash Meta browser identifiers
 
 Preserve `_fbp` and `_fbc` exactly as issued when present. They are attribution

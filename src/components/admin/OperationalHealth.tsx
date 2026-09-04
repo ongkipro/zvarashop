@@ -32,6 +32,8 @@ const REASONS: Record<string, string> = {
   stalled: "Event sudah lewat jadwal retry dan belum terkirim — antrean macet.",
   "terminal-failures":
     "Ada conversion yang gagal permanen dan tidak akan pernah sampai ke Meta.",
+  "stalled-with-terminal-failures":
+    "Ada conversion yang gagal permanen, dan event yang masih bisa dikirim pun sudah lewat jadwal retry — antrean macet.",
   // meta-capi
   "never-enqueued": "Belum pernah ada conversion event yang tercatat.",
   "no-delivery-in-window": "Tidak ada pengiriman pada 200 event terakhir.",

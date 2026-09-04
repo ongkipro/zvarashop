@@ -128,11 +128,25 @@ export function classifyCapiOutbox(
   if (depth.pending + depth.failed === 0) {
     return signal("capi-outbox", "healthy", "empty", null, now, metrics);
   }
-  if (depth.failed > 0) {
-    return signal("capi-outbox", "degraded", "terminal-failures", oldest, now, metrics);
-  }
+  // Both conditions are reported, because they are different problems with
+  // different responses and one used to hide the other: `failed > 0` returned
+  // first, so a queue that was *also* stalled read as nothing but terminal
+  // failures. On 2026-09-03 that is exactly what happened — 116 terminal rows
+  // masked 24 live ones that no drain was going to clear in time, and the
+  // operator was shown only the half that was already lost.
   const oldestAge = oldest ? now - Date.parse(oldest) : 0;
-  if (depth.overdue > 0 && oldestAge > CAPI_MAX_BACKOFF_MS) {
+  const stalled = depth.overdue > 0 && oldestAge > CAPI_MAX_BACKOFF_MS;
+  if (depth.failed > 0) {
+    return signal(
+      "capi-outbox",
+      "degraded",
+      stalled ? "stalled-with-terminal-failures" : "terminal-failures",
+      oldest,
+      now,
+      metrics,
+    );
+  }
+  if (stalled) {
     return signal("capi-outbox", "degraded", "stalled", oldest, now, metrics);
   }
   return signal("capi-outbox", "healthy", "draining", oldest, now, metrics);

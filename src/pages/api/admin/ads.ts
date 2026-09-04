@@ -2,9 +2,9 @@ import type { APIRoute } from 'astro';
 import { getRuntimeEnv, maskSecretValue } from '../../../lib/env';
 import { sendMetaCapiEvent } from '../../../lib/meta-capi';
 import {
-  countInvalidTokenEvents,
+  countRecoverableEvents,
   drainCapiOutbox,
-  requeueInvalidTokenEvents,
+  requeueRecoverableEvents,
 } from '../../../lib/capi-outbox';
 import {
   GOOGLE_ADS_CONVERSION_ID_PATTERN,
@@ -92,7 +92,7 @@ export const GET: APIRoute = async ({ locals }) => {
         ...publicConfig(row, await getStoreAdsConfig(locals)),
         // Surfaced so the operator is told the outage is recoverable rather
         // than having to know to ask. Zero on a healthy store.
-        capi_recoverable_events: await countInvalidTokenEvents(database).catch(() => 0),
+        capi_recoverable_events: await countRecoverableEvents(database).catch(() => 0),
       },
     });
   } catch (error) {
@@ -181,7 +181,7 @@ export const PUT: APIRoute = async ({ request, locals }) => {
         );
       }
 
-      const requeued = await requeueInvalidTokenEvents(database);
+      const requeued = await requeueRecoverableEvents(database);
       const delivered = requeued
         ? await drainCapiOutbox(database, pixelId, storedToken)
         : 0;
