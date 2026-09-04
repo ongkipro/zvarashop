@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  countInvalidTokenEvents,
   decideRetry,
   drainCapiOutbox,
   purgeExpiredCapiOutboxEvents,
+  requeueInvalidTokenEvents,
 } from "./capi-outbox.ts";
 
 const MINUTE = 60_000;
@@ -151,4 +153,66 @@ test("terminal CAPI outbox rows have bounded retention", async () => {
   assert.match(sql, /status IN \('sent', 'failed'\)/);
   assert.match(sql, /-30 days/);
   assert.equal(bound, "2026-09-01T00:00:00.000Z");
+});
+
+// Recovering an outage caused by a dead access token. The classification is
+// structural rather than a match on Meta's error prose, so it must stay
+// pinned to the one property that makes it exact.
+
+test("a dead token is the only reason decideRetry terminates below the attempt budget", () => {
+  // This is the invariant `requeueInvalidTokenEvents` selects on. If a third
+  // terminal reason is ever added without incrementing attempts, that reason
+  // would silently become "recoverable" and be resent forever.
+  assert.deepEqual(decideRetry({ success: false, errorCode: 190 }, 0, 5), {
+    status: "failed",
+    delayMs: 0,
+  });
+  assert.equal(decideRetry({ success: false, errorCode: 500 }, 0, 5).status, "pending");
+  assert.equal(decideRetry({ success: false, errorCode: 4 }, 0, 5).status, "pending");
+  assert.equal(decideRetry({ success: false, errorCode: 500 }, 4, 5).status, "failed");
+});
+
+test("requeue moves token failures, leaves exhausted and unreadable rows alone", async () => {
+  const { DatabaseSync } = await import("node:sqlite");
+  const sqlite = new DatabaseSync(":memory:");
+  sqlite.exec(`
+    CREATE TABLE capi_event_outbox (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      event_id TEXT NOT NULL UNIQUE, event_name TEXT NOT NULL, payload TEXT NOT NULL,
+      status TEXT NOT NULL, attempts INTEGER NOT NULL DEFAULT 0,
+      max_attempts INTEGER NOT NULL DEFAULT 5, last_error TEXT,
+      next_retry_at TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+    );
+    INSERT INTO capi_event_outbox VALUES
+      (1,'INV-1','Purchase','{}','failed',1,5,'Error validating access token','t','t','t'),
+      (2,'pv-1','PageView','{}','failed',1,5,'Error validating access token','t','t','t'),
+      (3,'vc-1','ViewContent','{}','failed',5,5,'Meta CAPI HTTP 400','t','t','t'),
+      (4,'bad-1','PageView','{}','failed',0,5,'payload tidak dapat dibaca','t','t','t'),
+      (5,'pv-2','PageView','{}','sent',1,5,NULL,'t','t','t');
+  `);
+  const database = {
+    prepare: (sql: string) => {
+      const bound: unknown[] = [];
+      const statement = {
+        bind: (...values: unknown[]) => { bound.push(...values); return statement; },
+        run: async () => ({ meta: { changes: Number(sqlite.prepare(sql).run(...bound as never[]).changes) } }),
+        first: async () => sqlite.prepare(sql).get(...bound as never[]) ?? null,
+      };
+      return statement;
+    },
+  } as unknown as D1Database;
+
+  assert.equal(await countInvalidTokenEvents(database), 2);
+  assert.equal(await requeueInvalidTokenEvents(database), 2);
+
+  const rows = sqlite.prepare("SELECT event_id, status, attempts FROM capi_event_outbox ORDER BY id").all() as {
+    event_id: string; status: string; attempts: number;
+  }[];
+  assert.deepEqual(
+    rows.map((row) => `${row.event_id}:${row.status}:${row.attempts}`),
+    // The exhausted row and the unreadable payload stay terminal; retrying
+    // either is pure waste. The delivered row is untouched.
+    ["INV-1:pending:0", "pv-1:pending:0", "vc-1:failed:5", "bad-1:failed:0", "pv-2:sent:1"],
+  );
+  assert.equal(await countInvalidTokenEvents(database), 0, "requeue is not repeatable into a loop");
 });

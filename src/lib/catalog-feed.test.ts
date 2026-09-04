@@ -49,8 +49,16 @@ test("Google feed emits one product-grain item with g:id matching Product ID", (
   assert.ok(!xml.includes("<g:size>"));
   assert.ok(xml.includes("<g:link>https://toko-uji.example/produk/bibit-sirsak</g:link>"));
   assert.ok(xml.includes("<g:price>85000 IDR</g:price>"));
-  assert.ok(!xml.includes("<g:identifier_exists>"));
+  // No GTIN or MPN column exists in this schema, so a branded item carrying
+  // neither must say so or Google reads it as missing data. Saying so is not a
+  // licence to invent one: `sku` is merchant-editable and is never `g:mpn`.
+  assert.ok(xml.includes("<g:identifier_exists>no</g:identifier_exists>"));
   assert.ok(!xml.includes("<g:mpn>"));
+  assert.ok(!xml.includes("<g:gtin>"));
+  assert.ok(
+    !xml.includes("variant_NO8meDAONBXBZr4lawMCaFOp"),
+    "the merchant-editable variant sku must not reach the feed at all",
+  );
 });
 
 test("catalog feeds prefer the product brand and fall back to the store name", () => {

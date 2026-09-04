@@ -322,6 +322,71 @@ export async function drainCapiOutbox(
   return sent;
 }
 
+/**
+ * Rows a dead access token killed, offered back once a live one is saved.
+ *
+ * `decideRetry` makes error 190 terminal immediately, which is right —
+ * retrying a dead token only burns quota — but it also means every event that
+ * arrived during the outage is lost the moment the operator fixes the
+ * credential. One live install carried 33 such rows.
+ *
+ * They are identified structurally rather than by parsing Meta's error prose,
+ * which is not a contract and would silently stop matching if Meta reworded
+ * it. `decideRetry` terminates for exactly two reasons: a dead token, or an
+ * exhausted attempt budget. So `status = 'failed' AND attempts < max_attempts`
+ * is precisely the token case — and it classifies rows recorded before this
+ * function existed, which a new error-code column could not. The one other
+ * writer of `failed` is `transmit`'s unparseable-payload branch, which leaves
+ * `attempts` untouched; it is excluded by its own `last_error` because
+ * requeueing a payload that can never be read is pure waste.
+ *
+ * This is deliberately not automatic. Resending conversions is an outbound
+ * action with a real advertising consequence, so it stays an explicit operator
+ * decision. Requeued rows keep their original `event_id` and stored
+ * `eventTime`, so Meta still deduplicates them against anything already
+ * delivered and a Purchase is still attributed to when it happened.
+ */
+export async function requeueInvalidTokenEvents(
+  database: D1Database,
+  limit = 200,
+): Promise<number> {
+  const bounded = Math.max(1, Math.min(1000, Math.trunc(limit) || 200));
+  const now = new Date().toISOString();
+  const result = await database
+    .prepare(
+      `UPDATE capi_event_outbox
+          SET status = 'pending', attempts = 0, last_error = NULL,
+              next_retry_at = ?, updated_at = ?
+        WHERE id IN (
+          SELECT id FROM capi_event_outbox
+           WHERE status = 'failed'
+             AND attempts < max_attempts
+             AND COALESCE(last_error, '') <> 'payload tidak dapat dibaca'
+           ORDER BY CASE WHEN event_name = 'Purchase' THEN 0 ELSE 1 END, id ASC
+           LIMIT ?
+        )`,
+    )
+    .bind(now, now, bounded)
+    .run();
+  return Number(result.meta?.changes || 0);
+}
+
+/** How many rows `requeueInvalidTokenEvents` would move right now. */
+export async function countInvalidTokenEvents(
+  database: D1Database,
+): Promise<number> {
+  const row = await database
+    .prepare(
+      `SELECT COUNT(*) AS recoverable
+         FROM capi_event_outbox
+        WHERE status = 'failed'
+          AND attempts < max_attempts
+          AND COALESCE(last_error, '') <> 'payload tidak dapat dibaca'`,
+    )
+    .first<{ recoverable: number }>();
+  return Number(row?.recoverable || 0);
+}
+
 const OUTBOX_RETENTION_DAYS = 30;
 
 export async function purgeExpiredCapiOutboxEvents(

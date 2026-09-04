@@ -3,7 +3,7 @@
 > **Product:** ZvaraShop — a standalone direct-response commerce store and CMS on Cloudflare Workers.
 > **Runtime model:** one Worker, one store, and private D1/KV/R2 resources. Isolation is the deployment boundary, not request-time tenant routing.
 > **This repository:** owns the application, schema, configuration, assets, and release procedure for `zvara.shop`. CI verifies but does not deploy.
-> Verified against disk: 2026-09-02 @ `a1509c8` + AutoLaris digital-order reconciliation working tree
+> Verified against disk: 2026-09-04 @ `81e2031` + open-gap audit working tree
 
 This document describes what the system **actually is**. AdsBookCMS references
 that remain in compatibility identifiers describe lineage, not a second
@@ -89,7 +89,7 @@ Stock integrity is enforced by the database, not the application: trigger `produ
 
 ### Migration chain
 
-53 files, `0000`–`0052`. The Worker bundle contains the exact checked-in SQL and applies any missing suffix automatically before serving a database-backed request. Each migration's SQL statements and `d1_migrations` claim row execute in one D1 batch; concurrent requests serialize on the claim, re-read history, and continue without double-applying. `wrangler d1 migrations apply OMS_DB` remains an optional operator preflight, not the runtime correctness boundary. The newest suffix retains a bounded checkout request/identity snapshot for paid-later Meta Purchase matching.
+55 files, `0000`–`0054`. The Worker bundle contains the exact checked-in SQL and applies any missing suffix automatically before serving a database-backed request. Each migration's SQL statements and `d1_migrations` claim row execute in one D1 batch; concurrent requests serialize on the claim, re-read history, and continue without double-applying. `wrangler d1 migrations apply OMS_DB` remains an optional operator preflight, not the runtime correctness boundary. The newest suffix carries the per-operator notification floor (NOT1).
 
 **Migrations are hand-authored.** There is no generator to keep in sync, which is deliberate: the schema contains data-integrity triggers, ordered indexes, CHECK constraints, and data migrations that a schema generator cannot represent safely.
 

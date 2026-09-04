@@ -1,8 +1,119 @@
 # BUILD LOG: ZvaraShop
 
-> Verified against disk: 2026-09-02 @ `a1509c8` + AutoLaris digital-order reconciliation working tree
+> Verified against disk: 2026-09-04 @ `81e2031` + open-gap audit working tree
 
 Author & Curator: **[ongki.pro](https://ongki.pro)**
+
+---
+
+## 2026-09-04 — Open-gap audit: Meta match parity and pixel ordering
+
+- Two Meta defects, both invisible because the surface that would have shown
+  them kept working.
+
+- **`country` was validated, hashed, sent by the browser leg — and dropped by
+  the server leg.** `/api/meta-event` built `user_data` without it while
+  `meta-event-contract.ts` parsed it, `meta-capi.ts` hashed it, the `/thanks`
+  tracker posted it and the headless route forwarded it. That route carries
+  every first-party PageView, ViewContent and `/thanks` Purchase, so the two
+  legs of one order described the buyer with different key sets and Meta scored
+  match quality on the shorter one. A comment in `MetaThanksTracker.astro`
+  asserted the opposite — "the CAPI leg has always sent ct/st/zp/country" — and
+  a test asserted that the tracker *posts* the key, never that the route
+  forwards it. `resolveMetaCountry` now resolves it from the order, the
+  caller's claim, or Cloudflare's `cf-ipcountry`, and yields nothing for `XX`
+  and `T1` because a hash of a non-country matches nobody.
+
+- **A browser `ViewContent` could be discarded before it was ever sent.**
+  `fbq`'s stub queues by arrival order and `fbevents.js` replays that queue in
+  the same order; `__PS_META_INIT__` returns before the init it schedules is
+  issued, because it waits on the external-ID digest. `MetaViewContentTracker`
+  fires during body parse, and `build.inlineStylesheets: 'always'` leaves no
+  render-blocking stylesheet between it and the head bootstrap. Replaying both
+  shipped inline scripts in one tick produced
+  `track:ViewContent -> init -> track:PageView`.
+
+  What that costs was measured rather than assumed. Against the live
+  `fbevents.js`, in an isolated frame, with a clean stub and no difference but
+  call order: `track` then `init` produced **zero** beacons to
+  `facebook.com/tr`; `init` then `track` produced one. No error, no warning.
+  The local dev page happened to win the race, so this was intermittent and
+  timing-dependent rather than uniformly broken — and the CAPI twin kept
+  arriving either way, which is why no dashboard showed a gap. Every tracker
+  now goes through `window.__PS_META_TRACK__`, which holds the call until the
+  init has actually been issued.
+
+- **S1 closed.** `theme_color`, `locale` and `admin_name` have been stored per
+  install since migration `0036` and rendered ever since — `<meta
+  name="theme-color">`, `<html lang>`, JSON-LD `inLanguage`, the admin title
+  and sidebar — with no way to set them. The store settings screen now edits
+  all three, and `tenant.ts` exports the patterns it resolves with so the form
+  refuses a value the resolver would silently replace.
+
+- **NOT1 closed.** Migration `0054` stamps a per-operator notification floor at
+  creation. `admin_credentials.updated_at` was the tempting no-new-column
+  alternative and is wrong: it doubles as the session revision, so rotating a
+  password would move the floor. Existing operators are backfilled to `0`
+  rather than to the current maximum, because they may hold genuinely unread
+  notifications. `purgeExpiredNotifications` prunes at 90 days beside the other
+  scheduled retention jobs.
+
+- **AD3 reduced.** Its SKU-as-MPN clause was already stale on disk. The Google
+  feed now declares `identifier_exists: no`, which is the truthful statement
+  for a schema with no GTIN or MPN column — removing `g:mpn` without it had
+  left branded items reading to Google as missing data. The out-of-stock clause
+  stays open and is now recorded as blocked by the data model: price lives only
+  on `product_variants`.
+
+- `/api/meta-event` had extension-less local imports, which is why the route
+  had no test at all — Vite resolves either form, `node --experimental-strip-types`
+  only the qualified one. Qualifying them is what made
+  `meta-event-country.test.ts` possible.
+
+- **COD1 settled as a price, not a bug.** The local 3% + 11% VAT COD fee is
+  ZvaraShop's own service price, not an attempt to mirror Mengantar's quoted
+  `codFee`; the consistent one-rupiah spread falls out of rounding each
+  component up. `payment-fee-policy.ts` now says so at the constants, including
+  the consequence that a provider rate change does not move it.
+
+- **A dead Meta token no longer costs an install its outage permanently.**
+  Error 190 is terminal by design — retrying a dead token only burns quota —
+  but that also means every event arriving during the outage is lost the moment
+  the operator fixes the credential; one live install carried 33 such rows. An
+  operator-triggered control on `/admin/ads/meta` proves the token live, then
+  requeues those rows with their original `event_id` and `eventTime` so Meta
+  still deduplicates. They are identified structurally, not by matching Meta's
+  error prose: `decideRetry` terminates for exactly two reasons and the other
+  increments `attempts`, so `failed AND attempts < max_attempts` is precisely
+  the token case — and unlike a new error-code column it classifies rows
+  recorded before the feature existed. A test pins that property, because a
+  third terminal reason added without incrementing `attempts` would silently
+  make itself recoverable.
+
+- **PageView stopped claiming things.** Nothing ever set `contentType`, so
+  `customData.contentType || 'product'` stamped a content type on every event
+  the store emitted, with no `content_ids` to describe — a malformed parameter
+  in Events Manager on every page view. The CAPI PageView also carried a value
+  of 1 IDR that its own browser twin never sends. Both are gone.
+
+- **DOC1: `DESIGN-SYSTEM.md` re-extracted rather than restamped.** The drift was
+  wider than the ledger recorded. §1.1 documented `#F8F7F4` as the storefront
+  canvas — zero occurrences under `src/` — and a champagne-gold accent that
+  survives only inside two CSS header comments. §1.2 and §8.12 described the
+  `wide-catalog` template that migration `0044` retired on 2026-08-23. §7.4
+  described a scroll-snap carousel with a thumbnail rail; the file is 65 lines,
+  scriptless, and contains none of those classes. §7.3 listed a deleted
+  `ProofsSection.astro` that §2.1 also cited a line number inside. `AGENTS.md`
+  §7 was still naming `wide-catalog` as a current built-in. One new
+  inconsistency is recorded rather than resolved: `design-tokens.md` and
+  `form-hybrid.css` declare different accents and different token counts, and
+  choosing between them is a design decision.
+
+- Gates: 650 tests (649 passed, 1 intentional skip, up from 630/629), 431 files
+  checked with zero diagnostics, build passed, 29 documents validated, and a
+  fresh local D1 applied all 55 migrations. The rendered admin store-settings
+  form was **not** opened: the local runtime has no session-signing secret and
+  this audit did not create one.
 
 ---
 

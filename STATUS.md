@@ -1,6 +1,6 @@
 # STATUS — ZvaraShop
 
-> Verified against disk: 2026-09-02 @ `a1509c8` + AutoLaris digital-order reconciliation working tree
+> Verified against disk: 2026-09-04 @ `81e2031` + open-gap audit working tree
 
 ## Repository authority
 
@@ -111,6 +111,60 @@ the fresh local runtime has no operator session, and this audit did not read or
 create a password/session. Their source, TypeScript, test, and build checks pass,
 but rendered authenticated behavior remains a release gate.
 
+## 2026-09-04 open-gap audit
+
+Two Meta defects were found by reading the code rather than the documents, and
+both had been invisible because the surface that would show them kept working.
+
+- **`country` never reached the CAPI leg from `/api/meta-event`.** It was
+  validated, hashed, sent by the `/thanks` browser leg and forwarded by the
+  headless route — and omitted from `user_data` on the route that carries every
+  first-party PageView, ViewContent and `/thanks` Purchase. The two legs of one
+  order therefore described the buyer with different key sets.
+  `resolveMetaCountry` now supplies it and `meta-event-country.test.ts` asserts
+  it against the stored outbox payload; removing the fix fails two of its three
+  cases.
+- **A browser `ViewContent` could be replayed ahead of the pixel `init` and
+  discarded.** Measured against the live `fbevents.js` in an isolated frame on
+  2026-09-04: `track` before `init` produced **zero** beacons to
+  `facebook.com/tr`, `init` before `track` produced one. The order was decided
+  by parse timing — replaying the real inline scripts in a single tick loses it
+  deterministically, while the local dev page happened to win it — so the loss
+  was silent and intermittent, and the CAPI twin kept arriving either way. All
+  trackers now queue through `window.__PS_META_TRACK__`.
+
+Six ledger gaps moved. **COD1** settled as a stated store price rather than a
+provider mirror, so `payment-fee-policy.ts` now says so at the constants;
+**DOC1** closed by re-extracting `DESIGN-SYSTEM.md` from the tree, which was
+describing a retired template, a deleted component and a canvas colour with zero
+occurrences under `src/`. An operator can now recover Meta events a dead access
+token terminated, from `/admin/ads/meta`, after the token is proven live. And
+**S1** closed (store settings now edit `theme_color`,
+`locale` and `admin_name` against the resolver's own patterns), **NOT1** closed
+(migration `0054` per-operator notification floor plus a 90-day scheduled
+prune), **AD3** reduced to its out-of-stock clause after the Google feed began
+declaring `identifier_exists: no` — the truthful statement for a schema with no
+GTIN or MPN column.
+
+Local evidence after the last edit:
+
+- version `1.5.0`, schema `55`, migrations `0000`–`0054`;
+- `npm test`: 650 total, 649 passed, 1 skipped, 0 failed;
+- `npm run check`: 431 files, 0 errors, warnings, or hints;
+- `npm run build`: passed;
+- `npm run docs:check`: 29 Markdown files and all local links passed;
+- a fresh local D1 applied all 55 migrations successfully;
+- Chromium on a seeded local store rendered `/produk/<slug>` with a configured
+  pixel and recorded the real `fbq` call order as
+  `init -> PageView -> ViewContent`.
+
+Not verified, and deliberately not claimed: the rendered admin store-settings
+form. The local runtime has no session-signing secret, so login answers "Login
+admin belum dikonfigurasi di server", and this audit did not read or create
+one. The three new fields therefore have compile, type, API and wiring
+evidence, but no browser evidence — which remains a release gate. Nothing in
+this audit contacted a provider, read a secret, ran remote D1, or deployed.
+
 ## Known boundaries
 
 - Provider credentials and live account acceptance cannot be proven without
@@ -119,8 +173,6 @@ but rendered authenticated behavior remains a release gate.
 - AutoLaris checkout creates one `/submit` record classified as digital/non-physical with `courir_id: 1`; it never creates or dispatches a shipment.
 - Hourly Advice checks use the stored provider transaction ID. `PENDING`, `DELIVERED`, and unknown statuses remain unchanged; explicit settlement is guarded and idempotent.
 - Stock is bookkeeping and never gates a sale (ADR-023).
-- `theme_color`, `locale`, and `admin_name` remain stored but have no admin
-  editor.
 - Production release is not automatic and is not authorized by this document.
 - The checkout fingerprint blocks exact replays, not fraud where an attacker
   materially changes buyer, address, item, shipping, or payment identity.

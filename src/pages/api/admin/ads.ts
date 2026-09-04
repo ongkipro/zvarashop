@@ -2,6 +2,11 @@ import type { APIRoute } from 'astro';
 import { getRuntimeEnv, maskSecretValue } from '../../../lib/env';
 import { sendMetaCapiEvent } from '../../../lib/meta-capi';
 import {
+  countInvalidTokenEvents,
+  drainCapiOutbox,
+  requeueInvalidTokenEvents,
+} from '../../../lib/capi-outbox';
+import {
   GOOGLE_ADS_CONVERSION_ID_PATTERN,
   GOOGLE_ADS_CONVERSION_LABEL_PATTERN,
   getStoreAdsConfig,
@@ -16,7 +21,7 @@ const GTM_ID_PATTERN = /^GTM-[A-Z0-9]{4,20}$/;
 const META_TEST_CODE_PATTERN = /^TEST\d{3,20}$/;
 
 type AdsConfigPayload = {
-  action?: 'save-meta' | 'save-google' | 'test-capi';
+  action?: 'save-meta' | 'save-google' | 'test-capi' | 'requeue-capi';
   meta_pixel_id?: string;
   meta_capi_token?: string;
   meta_test_event_code?: string;
@@ -81,7 +86,15 @@ export const GET: APIRoute = async ({ locals }) => {
   try {
     const row = await getAdsRow(database);
     if (!row) return json({ success: false, error: 'Store belum tersedia.' }, 404);
-    return json({ success: true, data: publicConfig(row, await getStoreAdsConfig(locals)) });
+    return json({
+      success: true,
+      data: {
+        ...publicConfig(row, await getStoreAdsConfig(locals)),
+        // Surfaced so the operator is told the outage is recoverable rather
+        // than having to know to ask. Zero on a healthy store.
+        capi_recoverable_events: await countInvalidTokenEvents(database).catch(() => 0),
+      },
+    });
   } catch (error) {
     console.error('ads-config-get', error);
     return json({ success: false, error: 'Gagal mengambil konfigurasi Ads & Tracking.' }, 500);
@@ -132,6 +145,53 @@ export const PUT: APIRoute = async ({ request, locals }) => {
         },
         result.success ? 200 : 400,
       );
+    }
+
+    // Offer the outage back, once, on an explicit operator decision. A dead
+    // token terminates every event that arrives while it is dead; saving a
+    // working token does not un-terminate them, and nothing else in the system
+    // ever will.
+    if (body.action === 'requeue-capi') {
+      const pixelId = submittedPixelId || effective.metaPixelId;
+      if (!PIXEL_ID_PATTERN.test(pixelId) || !storedToken) {
+        return json(
+          { success: false, error: 'Simpan Pixel ID dan Access Token yang valid sebelum mengirim ulang.' },
+          400,
+        );
+      }
+      // Proven live before anything is moved: requeueing against a token that
+      // is still dead would re-terminate every row and spend the operator's
+      // one recovery on nothing.
+      const probe = await sendMetaCapiEvent(
+        'PageView',
+        `requeue_probe_${Date.now()}`,
+        new URL(request.url).origin,
+        {
+          clientIp: request.headers.get('cf-connecting-ip') || '127.0.0.1',
+          userAgent: request.headers.get('user-agent') || 'ZvaraShop-CAPI-Tester/1.0',
+        },
+        {},
+        pixelId,
+        storedToken,
+      ).catch(() => ({ success: false, reason: 'Koneksi ke Meta CAPI gagal.' }));
+      if (!probe.success) {
+        return json(
+          { success: false, error: probe.reason || 'Meta menolak token saat ini; tidak ada event yang dikirim ulang.' },
+          400,
+        );
+      }
+
+      const requeued = await requeueInvalidTokenEvents(database);
+      const delivered = requeued
+        ? await drainCapiOutbox(database, pixelId, storedToken)
+        : 0;
+      return json({
+        success: true,
+        message: requeued
+          ? `${requeued} event dikirim ulang, ${delivered} sudah diterima Meta. Sisanya menunggu antrean.`
+          : 'Tidak ada event gagal-token yang bisa dikirim ulang.',
+        data: { requeued, delivered },
+      });
     }
 
     if (body.action === 'save-meta') {

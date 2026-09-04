@@ -104,3 +104,37 @@ export function isSyntheticBuyerEmail(email?: string, phone?: string): boolean {
  * library stores it on `userData` without a censored-format entry, so it was
  * never counted as one.
  */
+
+/**
+ * `country` is a Meta match key like any other, and it is the one key this
+ * store can always supply truthfully: every order carries an Indonesian
+ * province, is quoted in IDR, and ships domestically.
+ *
+ * It was validated by `meta-event-contract.ts`, hashed by `meta-capi.ts`, sent
+ * by the `/thanks` browser leg and by the headless route — and dropped on the
+ * floor by `/api/meta-event`, which builds `userData` without it. That is the
+ * route every first-party PageView, ViewContent and `/thanks` Purchase goes
+ * through, so the Pixel leg of a Purchase described the buyer with `country`
+ * and the CAPI leg of the same Purchase did not.
+ *
+ * `edgeCountry` is Cloudflare's `cf-ipcountry` for the *buyer's* request. It is
+ * only truthful where the request came from the buyer's browser, so the
+ * headless route — whose caller is another server — must pass `null` rather
+ * than attribute its own egress location to a customer. `XX` (unknown) and `T1`
+ * (Tor) are Cloudflare's own not-a-country values; a hash of either matches
+ * nobody, which is worse than an absent key because Meta scores match quality
+ * on the keys it was given.
+ */
+const ISO_ALPHA2 = /^[a-z]{2}$/;
+const NOT_A_COUNTRY = new Set(["xx", "t1"]);
+
+export function resolveMetaCountry(
+  supplied: string | undefined,
+  edgeCountry: string | null | undefined,
+  hasOrder = false,
+): string | undefined {
+  if (hasOrder) return "id";
+  const candidate = String(supplied ?? edgeCountry ?? "").trim().toLowerCase();
+  if (!ISO_ALPHA2.test(candidate) || NOT_A_COUNTRY.has(candidate)) return undefined;
+  return candidate;
+}

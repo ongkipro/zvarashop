@@ -1,15 +1,16 @@
-# AdsBookCMS — Design System
+# ZvaraShop — Design System
 
-> Verified against disk: 2026-08-27 @ `3bb51a3` + payment-recovery working tree
+> Verified against disk: 2026-09-04 @ `81e2031` + open-gap audit working tree
 >
 > **The public palette is neutral plus one overridable accent (ADR-019, as
-> amended 2026-08-23).** Colour tokens below that describe the retired gold
-> accent are historical; `design-tokens.md` at the repository root is the
-> current source for the neutrals, and the eight `--sf-*` custom properties in
-> `src/styles/form-hybrid.css` are the re-brand contract in full — four accent
-> tokens including the focus ring, plus the field, its border, the alternate
-> surface and the separator hairline. An install overrides those five declarations; it does not fork the
-> stylesheet.
+> amended 2026-08-23).** The gold accent this document once described is
+> retired and gone from `src/`. The re-brand contract is the nine `--sf-*`
+> custom properties at the top of `src/styles/form-hybrid.css` — four accent
+> tokens including the focus ring, plus the field, its empty state, its border,
+> the alternate surface and the separator hairline. An install overrides those
+> declarations; it does not fork the stylesheet. Note that `--sf-accent-ring`
+> is an `rgba()`, not a hex: a store script matching hex literals will skip it
+> and leave the focus ring the product's colour.
 
 This document describes the presentation layer **as it ships**, extracted from the code rather than from intent. Concrete values carry a file reference, and a line number where that line number is stable. Section 1.4 dropped its line numbers after they drifted through a refactor and left the document wrong about its own subject. Anything that could not be verified against the tree was left out — see `DECISIONS.md` ADR-010.
 
@@ -19,45 +20,61 @@ Scope note from `ARCHITECTURE.md`: the **admin shell is a canonical product surf
 
 ## 1. Colour
 
-Storefront colour is mostly hex literals written inline as Tailwind arbitrary values (`bg-[#F8F7F4]`) and as raw CSS in component `<style>` blocks. The **one** exception is the accent, which since #58 lives as eight custom properties at the top of `src/styles/form-hybrid.css` — `--sf-accent`, `--sf-accent-strong`, `--sf-accent-soft`, `--sf-accent-ring`, `--sf-field`, `--sf-field-border`, `--sf-surface-alt`, `--sf-line`. Note that `--sf-accent-ring` is an `rgba()`, not a hex: a store script matching hex literals will skip it and leave the focus ring the product's colour. ADR-019 as amended makes those the re-brand surface, so a new accent colour belongs there and never at a call site. The shadcn/admin layer uses its own, separate custom properties.
+Storefront colour is mostly hex literals written inline as Tailwind arbitrary
+values (`bg-[#111111]`) and as raw CSS in component `<style>` blocks. The **one**
+exception is the accent, which since #58 lives as custom properties at the top of
+`src/styles/form-hybrid.css` — now **nine**: `--sf-accent`, `--sf-accent-strong`,
+`--sf-accent-soft`, `--sf-accent-ring`, `--sf-field`, `--sf-field-empty`,
+`--sf-field-border`, `--sf-surface-alt`, `--sf-line`. ADR-019 as amended makes
+those the re-brand surface, so a new accent colour belongs there and never at a
+call site. The shadcn/admin layer uses its own, separate custom properties.
 
 ### 1.1 Storefront palette (`compact-market`)
 
-The shipped storefront is a champagne-on-ebony boutique palette. Counts are literal occurrences of the hex string under `src/`.
+Neutral ink on white, with one accent. Counts are literal occurrences of the
+hex string under `src/`, case-insensitive, taken 2026-09-04.
 
-| Hex | Role | Uses | Representative definition |
-| --- | --- | ---: | --- |
-| `#111111` | Primary ink / ebony — body text, announcement bar, primary button fill | 128 | `src/components/storefront/shared/SiteHeader.astro:6` |
-| `#C5A880` | Accent — champagne gold; hover, active, badges, focus outline | 49 | `src/components/storefront/shared/SiteHeader.astro:6` |
-| `#E5E5E5` | Hairline border — the only border colour in storefront chrome | 64 | `src/components/storefront/shared/SiteHeader.astro:16` |
-| `#F8F7F4` | Canvas — warm alabaster page background | 49 | `src/components/storefront/shared/SiteHeader.astro:16` |
-| `#555555` | Secondary text | 22 | `src/components/storefront/shared/Breadcrumb.astro:21` |
-| `#8A704F` | Muted gold — eyebrow labels, sub-brand text | 12 | `src/components/storefront/shared/SiteBrand.astro:37` |
-| `#77736C` | Placeholder / tertiary text | 7 | `src/components/storefront/home/ProductsSection.astro:52` |
-| `#D8D6D0` | Input and product-card border (heavier than `#E5E5E5`) | 6 | `src/components/storefront/home/ProductsSection.astro:52` |
-| `#EEEAE2` | Hero image well background | 2 | `src/components/storefront/home/HeroSection.astro:40` |
-| `#A3A09A` | Breadcrumb separator | 1 | `src/components/storefront/shared/Breadcrumb.astro:31` |
-| `#999999` | Footer copyright | 1 | `src/components/storefront/shared/SiteFooter.astro:34` |
+| Hex | Role | Uses |
+| --- | --- | ---: |
+| `#111111` | Primary ink — body text, announcement bar, primary button fill | 209 |
+| `#555555` | Secondary text | 98 |
+| `#E5E5E5` | Hairline border — the only border colour in storefront chrome | 83 |
+| `#767676` | Tertiary / placeholder text | 36 |
+| `#F5F5F5` | Image well and inert surface fill | 28 |
+| `#2C6ECB` | Accent — `--sf-accent`, the re-brand surface | 26 |
+| `#FAFAFA` | Alternate surface | 13 |
+| `#1F5199` | Accent hover / pressed — `--sf-accent-strong` | 12 |
+| `#A12626` | Error text | 9 |
+| `#EEF4FC` | Accent wash — `--sf-accent-soft` | 7 |
+| `#FDF1F1` / `#F2C4C4` | Error wash and its border | 6 each |
 
-White (`#ffffff` / `bg-white`) is the card surface against the `#F8F7F4` canvas — e.g. `src/components/storefront/shared/ProductListItem.astro:31`, `src/components/storefront/home/ProofsSection.astro:68`.
+White is the page ground; there is no tinted canvas. The champagne-gold
+boutique palette this section used to document is gone: `#C5A880` survives in
+exactly two places, both of them prose in a CSS header comment
+(`src/styles/landing-pages/landing.css`, `contoh-landing.css`), and
+`#F8F7F4` — described here for months as the canvas — has **zero** occurrences
+under `src/`.
 
-The only place any of these are given a name is `src/lib/ui-variants.ts`:
+Named in `src/lib/ui-variants.ts`:
 
-- `buttonVariants` primary — `bg-[#111111] text-white hover:bg-[#C5A880] hover:text-[#111111]` (`src/lib/ui-variants.ts:8`)
-- `badgeVariants` green — `bg-[#F8F7F4] text-[#8A704F] ring-1 ring-[#E5E5E5]` (`src/lib/ui-variants.ts:30`)
-- `textVariants` — `brand: 'text-[#111111]'`, `accent: 'text-[#C5A880]'` (`src/lib/ui-variants.ts:79-80`)
+- `buttonVariants` primary — `bg-[#111111] text-white hover:bg-[#333333]`
+- `secondary`, `dark`, `ghost` and every `listItemVariants` / `metaTextVariants`
+  value are Tailwind **slate**, not the storefront neutrals. See §8.2.
 
-Note the leak: the same file's `secondary`, `dark`, `ghost` button variants and every `listItemVariants` / `metaTextVariants` value are Tailwind **slate**, not the boutique palette (`src/lib/ui-variants.ts:9-11`, `46`, `60`, `72`). See §8.
+### 1.2 `wide-catalog` is retired
 
-### 1.2 Storefront palette (`wide-catalog`)
+Migration `0044_retire_wide_catalog.sql` retired the second template under
+ADR-018, repointing every store that used it. `wide-catalog` and
+`WideCatalogHome.astro` have **no** references left in `src/` outside tests, and
+`storefront-template.ts` accepts the single `layout: "compact"` literal.
+`src/components/storefront/templates/` holds one file, `CompactMarketHome.astro`.
 
-The second template does **not** use the boutique palette at all. It is Tailwind `zinc` plus `emerald` accents on a `#FBFBFB` canvas:
+This section previously documented a `zinc`/`emerald` palette on a `#FBFBFB`
+canvas. None of those three values appears under `src/` any more.
 
-- Canvas `bg-[#FBFBFB]`, text `text-zinc-950` — `src/components/storefront/templates/WideCatalogHome.astro:29`
-- Hero accent dot `bg-emerald-400` — `:36`
-- Category eyebrow `text-emerald-700` — `:78`
-
-`#FBFBFB` appears only in this file (2 uses).
+Note that a retired *built-in* is not a closed template system: `ARCHITECTURE.md`
+§10 G6 records that operator-created template definitions live in D1 and need no
+rebuild.
 
 ### 1.3 Admin palette (canonical product surface)
 
@@ -109,10 +126,12 @@ foundation exists so that cannot recur. Plus Jakarta Sans is no longer imported;
 
 Cinzel is applied through three inline `style` attributes, not a class or token:
 
-- `src/components/storefront/shared/SiteBrand.astro:23` — `font-family: 'Cinzel', serif`
-- `src/components/storefront/shared/SiteBrand.astro:30` — `font-family: 'Cinzel', 'Playfair Display', Georgia, serif`
-- `src/components/storefront/home/ProofsSection.astro:74`
-- `src/pages/produk/[slug].astro:394`
+- `src/components/storefront/shared/SiteBrand.astro:50` — `font-family: 'Cinzel', serif`
+- `src/components/storefront/shared/SiteBrand.astro:56` — `font-family: 'Cinzel', 'Playfair Display', Georgia, serif`
+- `src/pages/produk/[slug].astro:411` — `font-family: 'Cinzel', serif`
+
+There were four. The fourth was `home/ProofsSection.astro:74`, in a component
+that no longer exists.
 
 `AdminLayout.astro` imports no font files at all; admin inherits Inter from `foundation.css`.
 
@@ -413,38 +432,66 @@ The directory contains 21 primitives used by admin React islands. The former zer
 
 ### 7.2 `src/components/storefront/shared/`
 
-The nine current shared Astro components are `Breadcrumb.astro`, `Icon.astro`, `LegalPage.astro`, `PageIntro.astro`, `ProductListItem.astro`, `RatingStars.astro`, `SiteBrand.astro`, `SiteFooter.astro`, and `SiteHeader.astro`. The six orphan components previously listed here were removed by A-34.
+Ten Astro components: `Breadcrumb.astro`, `Icon.astro`, `LegalPage.astro`,
+`PageIntro.astro`, `ProductListItem.astro`, `RatingStars.astro`,
+`SiteBrand.astro`, `SiteFooter.astro`, `SiteHeader.astro`,
+`SocialProofToast.astro`. The directory also holds `lucide-subset.json`, the
+icon payload `Icon.astro` reads.
 
 ### 7.3 Other storefront directories
 
-- `src/components/storefront/home/` — `HeroSection.astro`, `ProductsSection.astro`, `ProofsSection.astro`. All three are consumed by `CompactMarketHome.astro:2-4` only.
-- `src/components/storefront/` — `ProductImageGallery.astro` and `templates/`. **There is no React on the public surface.** The gallery was the only island; it shipped 183 KB of React runtime to drive 4 KB of component code, measured on a live install.
-- `src/components/storefront/forms/` — `FormHybridContent.astro` (259 lines), `FormMiddleContent.astro` (218), `GeoIpResolvedForm.astro` (175).
+`src/components/storefront/` holds one component of its own,
+`ProductImageGallery.astro`, plus seven directories: `forms/`, `home/`,
+`landing-pages/`, `seo/`, `shared/`, `templates/`, `tracking/`.
 
-### 7.4 PDP gallery layout
+- `home/` — `HeroSection.astro`, `LandingPagesSection.astro`,
+  `ProductsSection.astro`. `ProofsSection.astro` was deleted; this section
+  listed it for months, and §2.1 cited a line inside it.
+- `templates/` — `CompactMarketHome.astro` only (§1.2).
+- `seo/` — `JsonLdSchema.astro`.
+- `landing-pages/` — `README.md` only; the native landing pages are pages, not
+  components.
+- `tracking/` — the Meta, GTM and Google Ads trackers. `TRACKING_SPECS.md` owns
+  their contract; nothing about them is a design decision.
+- `forms/` — `FormHybridContent.astro` (268 lines), `FormMiddleContent.astro`
+  (227), `GeoIpResolvedForm.astro` (64). The last was 175 lines when it carried
+  the override layer §8.5 records as resolved.
 
-`ProductImageGallery.astro` is a left vertical thumbnail rail beside the main image, not a carousel with dots:
+**There is no React on the public surface.** The product gallery was the only
+island and is now scriptless Astro (§7.4).
 
-- Row container `flex flex-row gap-2.5 sm:gap-3`
-- Thumb rail `w-14 shrink-0 flex-col overflow-y-auto max-h-[420px] sm:w-16 sm:max-h-[500px]`, rendered only when the gallery holds more than one photo
-- Thumbs `aspect-[3/4] rounded-none`, active = `border-[#C5A880] ring-1 ring-[#C5A880]`, inactive = `border-[#E5E5E5] opacity-60`
-- Main frame `flex-1 aspect-[3/4] rounded-none border border-[#E5E5E5] bg-[#F8F7F4]`, with the photos on a `snap-x snap-mandatory` track filling it through `absolute inset-0`
+### 7.4 PDP gallery
 
-Swiping is the browser's, not ours — the track is a scroll container, so there
-are no touch handlers. Arrows, the counter and the thumbnail highlight are the
-only things that need script, and the script returns immediately when there is
-one photo. `catalog-data.ts` currently builds exactly one image per product, so
-that early return is the normal path; the rail exists for when real galleries
-return.
+`ProductImageGallery.astro` is 65 lines and renders one plain `<img>` per photo,
+stacked. No scroll container, no thumbnails, no arrows, no counter, **no
+script**.
+
+- Wrapper `w-full`, one `relative w-full bg-[#F5F5F5]` frame per photo
+- Image `block aspect-square w-full object-cover`, `draggable={false}`
+- First photo `loading="eager"`, `decoding="sync"`, `fetchpriority="high"` — it
+  is the page's LCP element; the rest are lazy and async
+- Badge and discount chips are absolute over the first frame only, in
+  `bg-[#111111]` on white
+
+This section previously described a scroll-snap carousel with a `w-14` vertical
+thumb rail, `aspect-[3/4]` frames and a `#C5A880` active border. None of those
+values exists in the file. The carousel was deleted rather than fixed: a
+horizontal scroll container claims the touch gesture before `touch-action` is
+consulted, so a finger resting on the photo — most of the target on a phone —
+could not scroll the page. Three fixes had gone into it first. The component's
+own header comment records that reasoning.
 
 ### 7.5 Catalog pagination
 
-`/produk` renders **every** product and hides the overflow with CSS, then reveals it with a load-more button. It does not slice.
+`/produk` renders **every** product and hides the overflow with CSS, then
+reveals it with a load-more button. It does not slice.
 
-- `const INITIAL_COUNT = 10` — `src/pages/produk/index.astro:10` (and again in the client script at `:66`)
-- All products mapped; `index >= INITIAL_COUNT` gets `hidden` — `:35`
-- Counter and "Muat Lebih Banyak" button, rendered only when `products.length > INITIAL_COUNT` — `:41-53`
-- Reveal loop removes `hidden` — `:79`
+- `const INITIAL_COUNT = 10` — `src/pages/produk/index.astro:10`, and again in
+  the client script at `:69`
+- All products mapped; `index >= INITIAL_COUNT` gets `hidden` — `:34`
+- Counter and "Muat Lebih Banyak" button, rendered only when
+  `products.length > INITIAL_COUNT` — `:43-54`
+- Reveal loop removes `hidden` — `:82`
 
 ---
 
@@ -454,9 +501,30 @@ Current observations, not a second backlog. Any item selected for implementation
 
 **8.1 Two headless UI libraries ship side by side.** `radix-ui` and `@base-ui/react` are both runtime dependencies and current admin primitives import both. The former zero-import `popover.tsx` was removed; choosing whether to converge libraries requires a measured bundle/behaviour migration, not a speculative rewrite.
 
-**8.2 Three parallel colour systems in the storefront.** Boutique hex literals (§1.1), Tailwind `slate` (`src/lib/ui-variants.ts:9-11`, `:46`, `:60`, `:72`, `:81-83`; `src/pages/thanks.astro:43,131`; `src/pages/payment.astro:17` onward), and Tailwind `emerald` (16 × `emerald-700`, 10 × `emerald-100`, 10 × `emerald-800` across `payment.astro`, `thanks.astro`, `WideCatalogHome.astro`). `/payment` and `/thanks` are customer-facing pages that adopted the square shape rule but never the boutique palette — they are slate + emerald with `#F8F7F4` used only as a fill (`payment.astro:27,58,68,106`).
+**8.2 Two parallel colour systems remain, not three.** The storefront neutrals
+(§1.1) and Tailwind **slate**, the latter in `src/lib/ui-variants.ts` —
+`secondary`, `dark`, `ghost` button variants and every `listItemVariants` /
+`metaTextVariants` value — and in `src/pages/thanks.astro` and
+`src/pages/payment.astro`. Those two are customer-facing pages that adopted the
+square shape rule but never the storefront palette.
 
-**8.3 The literal `#047857` appears nowhere under `src/`** — 0 occurrences. Emerald reaches the page only through Tailwind utility classes, so any doc quoting that hex as the brand colour is describing a value the build never emits.
+The emerald system this entry used to describe has left the public surface
+entirely. `emerald-*` now appears only on admin screens (`admin/check.astro`,
+`admin/ads/google.astro`, `admin/ads/meta.astro`,
+`admin/settings/developer.astro`) plus `src/lib/traffic-source.ts`, where it is
+operator chrome rather than storefront design.
+
+**8.3 — RESOLVED.** This entry reported that `#047857` appears nowhere under
+`src/`, which was true and is still true. It was a note about a doc that quoted
+that hex, not a defect in the tree, and there is no longer such a doc.
+
+**8.3a `design-tokens.md` and `form-hybrid.css` disagree about the accent.**
+The root token file declares `--sf-accent: #C93A1B` with an accessibility
+argument for that orange, and says the store overrides "four of the eight"
+`--sf-*` tokens. `src/styles/form-hybrid.css` ships `--sf-accent: #2c6ecb` and
+declares nine. One of the two is describing an install that is not this one.
+Which colour this store should ship is a design decision and is deliberately
+not settled here.
 
 **8.4 — RESOLVED 2026-08-16.** The two checkouts diverged: `GeoIpResolvedForm.astro`'s `[data-canonical-order-form]` overrides were the boutique palette, while `/hybrid-form` bypassed that wrapper and rendered raw `form-hybrid.css` — green float labels, green focus ring, orange gradient submit. Resolved by deleting the override layer and folding the boutique palette into `form-hybrid.css` itself: `data-canonical-order-form` now appears in the build only as a DOM attribute, in zero CSS rules, and the seven checkout routes resolve to one palette.
 
@@ -480,7 +548,16 @@ and after. The public ramp is 400 / 600 / 700 and nothing else.
 
 **8.11 — RESOLVED 2026-08-18.** `.admin-shell` and the admin login stage are isolated in `src/styles/admin.css`, loaded only by `AdminLayout` and `/hello`; storefront requests receive `storefront.css` instead. Checkout remains route-owned in `form-hybrid.css`.
 
-**8.12 The `wide-catalog` template shares no design language with `compact-market`.** Different canvas (`#FBFBFB` vs `#F8F7F4`), different neutrals (`zinc` vs custom hex), different accent (`emerald` vs `#C5A880`), different shape rule (`rounded-full`/`rounded-2xl` vs `rounded-none`), and it renders none of the `src/components/storefront/home/` sections. `ARCHITECTURE.md` §10 G6 already tracks the compile-time template set; the two templates being unrelated designs rather than two densities of one design belongs with it.
+**8.12 — RESOLVED 2026-08-23 by migration `0044`.** The `wide-catalog` template
+was retired under ADR-018 rather than reconciled, which settles the entry: two
+unrelated designs became one. See §1.2.
+
+**8.13 `ProductsSection.astro` and `HeroSection.astro` have no consumer test.**
+`src/components/storefront/home/` is reachable only through
+`CompactMarketHome.astro`, and `npm test` globs `src/lib/*.test.ts` only, so a
+component that throws during SSR answers `200` with an empty body. This is the
+failure mode `AGENTS.md` §4 documents; it is called out here because the home
+sections are the surface most likely to be edited for visual reasons alone.
 
 ---
 

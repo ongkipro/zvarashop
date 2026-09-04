@@ -86,10 +86,15 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const now = new Date().toISOString();
     const result = await database
       .prepare(
+        // The notification floor is stamped here, in the same statement that
+        // creates the operator (NOT1). A new operator inherits no backlog: the
+        // history that already existed is neither shown as unread nor claimed
+        // by a `notification_reads` row when they clear the badge.
         `INSERT INTO admin_credentials (
           username, display_name, email, role, password_hash,
-          must_change_password, updated_at
-        ) VALUES (?, ?, ?, ?, ?, 1, ?)`,
+          must_change_password, updated_at, notification_floor_id
+        ) VALUES (?, ?, ?, ?, ?, 1, ?,
+          COALESCE((SELECT MAX(id) FROM notifications), 0))`,
       )
       .bind(username, displayName, email || null, role, passwordHash, now)
       .run();

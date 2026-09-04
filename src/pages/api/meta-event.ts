@@ -1,17 +1,17 @@
 import type { APIRoute } from 'astro';
-import { drainCapiOutbox, deliverCapiEvent, enqueueCapiEvent } from '../../lib/capi-outbox';
-import { getStoreAdsConfig } from '../../lib/store-ads';
-import { validateMetaEventPayload } from '../../lib/meta-event-contract';
-import { getRuntimeEnv } from '../../lib/env';
-import { toE164Digits } from '../../lib/meta-capi';
-import { isSyntheticBuyerEmail } from '../../lib/meta-identity';
-import { checkRateLimit, getClientIp, rateLimitHeaders } from '../../lib/rate-limit';
-import { readMetaBrowserIds } from '../../lib/click-ids';
+import { drainCapiOutbox, deliverCapiEvent, enqueueCapiEvent } from '../../lib/capi-outbox.ts';
+import { getStoreAdsConfig } from '../../lib/store-ads.ts';
+import { validateMetaEventPayload } from '../../lib/meta-event-contract.ts';
+import { getRuntimeEnv } from '../../lib/env.ts';
+import { toE164Digits } from '../../lib/meta-capi.ts';
+import { isSyntheticBuyerEmail, resolveMetaCountry } from '../../lib/meta-identity.ts';
+import { checkRateLimit, getClientIp, rateLimitHeaders } from '../../lib/rate-limit.ts';
+import { readMetaBrowserIds } from '../../lib/click-ids.ts';
 import {
   findPurchaseOrderByStatusToken,
   resolveMetaPurchaseContentIds,
   type MetaPurchaseOrder,
-} from '../../lib/meta-purchase-order';
+} from '../../lib/meta-purchase-order.ts';
 
 export const prerender = false;
 
@@ -165,6 +165,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
         city: purchaseOrder?.city || payload.city,
         province: purchaseOrder?.province || payload.province,
         postalCode: purchaseOrder?.postal_code || payload.postalCode,
+        // Truthful without guessing: a resolved order is Indonesian by
+        // construction, and every other event falls back to the country
+        // Cloudflare resolved for this very request.
+        country: resolveMetaCountry(
+          payload.country,
+          request.headers.get('cf-ipcountry'),
+          Boolean(purchaseOrder),
+        ),
         externalId:
           browserIds.externalId || purchaseExternalId || payload.externalId,
         fbp: payload.fbp || browserIds.fbp,

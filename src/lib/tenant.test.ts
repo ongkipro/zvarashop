@@ -1,7 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 
 import {
+  LOCALE_PATTERN,
+  THEME_COLOR_PATTERN,
   envTenantConfig,
   loadStoreIdentity,
   resolveTenantConfig,
@@ -136,4 +139,46 @@ test("an unconfigured store never advertises itself as unconfigured", () => {
     description: "Bunga segar diantar hari ini.",
   } as never);
   assert.equal(configured.description, "Bunga segar diantar hari ini.");
+});
+
+// S1: `theme_color`, `locale` and `admin_name` resolved from D1 since migration
+// 0036 and rendered ever since — `<meta name="theme-color">`, `<html lang>`,
+// JSON-LD `inLanguage`, the admin title and sidebar — with no operator editor.
+// The editor and the resolver must agree on what is valid, or a saved value
+// silently falls back and the operator is told nothing.
+
+test("the settings editor and identity resolution share one rule for theme colour", () => {
+  for (const accepted of ["#111111", "#FFFFFF", "#0a7c3f"]) {
+    assert.ok(THEME_COLOR_PATTERN.test(accepted), `${accepted} must be storable`);
+    assert.equal(
+      resolveTenantConfig({ theme_color: accepted } as never).themeColor,
+      accepted,
+      `${accepted} must survive resolution unchanged`,
+    );
+  }
+  for (const rejected of ["#fff", "111111", "red", "#1111111", ""]) {
+    assert.ok(!THEME_COLOR_PATTERN.test(rejected), `${rejected} must be refused at the form`);
+  }
+});
+
+test("the settings editor and identity resolution share one rule for locale", () => {
+  for (const accepted of ["id-ID", "en-US", "id"]) {
+    assert.ok(LOCALE_PATTERN.test(accepted), `${accepted} must be storable`);
+    assert.equal(resolveTenantConfig({ locale: accepted } as never).locale, accepted);
+  }
+  for (const rejected of ["ID-id", "indonesia", "id_ID", "i", ""]) {
+    assert.ok(!LOCALE_PATTERN.test(rejected), `${rejected} must be refused at the form`);
+  }
+});
+
+test("saving the store profile persists all three previously uneditable fields", () => {
+  const source = readFileSync(new URL("../pages/api/admin/settings.ts", import.meta.url), "utf8");
+  const update = source.slice(source.indexOf("if (body.action === \"save-store\")"));
+  const statement = update.slice(update.indexOf("UPDATE stores"), update.indexOf(".run()"));
+  for (const column of ["theme_color", "locale", "admin_name"]) {
+    assert.match(statement, new RegExp(`${column} = \\?`), `save-store must write ${column}`);
+  }
+  // A blank field clears the column back to NULL — "not configured here" —
+  // rather than storing an empty string the resolver would treat as a value.
+  assert.match(statement, /clean\(body\.admin_name, 120\) \|\| null/);
 });

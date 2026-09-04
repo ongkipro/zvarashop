@@ -162,10 +162,16 @@ export async function sendMetaCapiEvent(
           client_ip_address: clientIp,
           client_user_agent: userAgent,
         },
+        // `content_type` describes `content_ids`; sent without them it is a
+        // claim about nothing, and Events Manager reports it as a malformed
+        // parameter on every PageView. Nothing sets `contentType`, so this
+        // previously stamped `product` on every event the store emitted.
         custom_data: {
           content_name: customData.contentName,
           content_ids: customData.contentIds,
-          content_type: customData.contentType || 'product',
+          content_type: customData.contentIds?.length
+            ? customData.contentType || 'product'
+            : undefined,
           value: customData.value,
           currency: customData.currency || 'IDR',
           order_id: orderNumber,
