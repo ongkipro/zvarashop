@@ -195,6 +195,19 @@ token and pixel live with a probe event and refuses to requeue anything if Meta
 rejects it. Pressing it before the pixel/permission is fixed cannot damage
 anything and will simply decline.
 
+## Deployment 2026-09-04 (second)
+
+`install/zvarashop` at `285ea4a` deployed as Worker version
+`f849f8e5-4244-4e84-9b35-5a9506a65707`. It carries the guard that closes the
+outage's root cause: `verifyMetaPixelIdentity` asks Meta on save whether the ID
+is actually a pixel, and refuses by name an object that resolves and is not one.
+
+Live evidence after the deploy: eight public routes plus the new landing pages
+`200`, unauthenticated health `401`, and a ViewContent driven through the real
+production path returned `delivered: true`. Queue: 2 pending, 150 terminal and
+all 150 recoverable; the last failure (`06:07:30Z`) predates the pixel
+correction and nothing has failed since.
+
 ## Deployment 2026-09-04
 
 `install/zvarashop` at `8828c2c` deployed as Worker version
