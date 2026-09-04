@@ -488,7 +488,10 @@ const feedUrl = `${origin}/feed/meta-catalog.xml`;
         const payload = await res.json().catch(() => ({}));
         if (!res.ok || !payload.success) throw new Error(payload.error || 'Gagal menyimpan konfigurasi.');
 
-        if (statusText) statusText.textContent = 'Konfigurasi Meta berhasil disimpan!';
+        // A save can succeed and still carry a warning — an ID Meta could not
+        // confirm as a Pixel/Dataset. Overwriting that with a cheerful fixed
+        // string is how the 2026-09-03 outage stayed invisible for two days.
+        if (statusText) statusText.textContent = payload.warning || 'Konfigurasi Meta berhasil disimpan!';
         render(payload.data);
         tokenInput.value = '';
       } catch (err) {

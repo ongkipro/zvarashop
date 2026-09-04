@@ -363,6 +363,40 @@ The docs are silent on what a *second* `fbq('init')` does. That behaviour was
 established against the live library instead (§4a) — which is the stronger
 evidence for this particular question, and the only kind available.
 
+### A Pixel ID is verified against Meta, not against a regular expression
+
+`^\d{5,25}$` accepts a Business Manager ID, an ad account and a page. On
+2026-09-03 an operator saved a Business ID into the Pixel ID field and both legs
+died for two days without a single signal:
+
+- `POST /{business}/events` returns *"Object with ID … does not exist, cannot be
+  loaded due to missing permissions, **or does not support this operation**"*.
+  The third clause is the operative one, and the message reads like an auth
+  failure — which is why the first two diagnoses of this outage were wrong.
+- The browser beacon endpoint validates **no** ID. `facebook.com/tr` accepted
+  every event against a Business ID and discarded it, leaving no record
+  anywhere. The Conversions API outbox at least counted its losses; the browser
+  leg's were invisible.
+
+`verifyMetaPixelIdentity` now runs on save, while the operator is still on the
+screen, and asks Meta for a field that exists only on an AdsPixel:
+
+| Meta's answer | Verdict |
+| --- | --- |
+| `200` | it is a pixel |
+| `100` "nonexisting field" | the object resolves and is **not** a pixel — refuse, and name it |
+| `100/33` "does not exist / cannot be loaded" | unknown; a missing asset permission produces this too |
+| anything else, or no answer at all | unknown |
+
+Only the second refuses. Everything inconclusive saves with a warning, because
+a verification that cannot reach Meta must never stop an operator fixing a
+credential — and a permission gap must not be mistaken for a wrong ID.
+
+One correction worth keeping, because it cost time: the token's scope was **not**
+the problem. A system-user token carrying only `read_ads_dataset_quality` writes
+to the Conversions API perfectly well. That was assumed rather than tested, and
+testing it is what produced the real answer.
+
 ### Outbox delivery: claim before send, and what a requeue may touch
 
 Two properties learned from a live incident on 2026-09-03/04 rather than from

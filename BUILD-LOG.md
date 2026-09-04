@@ -6,6 +6,50 @@ Author & Curator: **[ongki.pro](https://ongki.pro)**
 
 ---
 
+## 2026-09-04 — Root cause: a Business ID in the Pixel ID field
+
+- The outage was never a token, a permission, or a stalled drain. `GET` on the
+  stored ID returned an object named "Winning Mall"; every AdsPixel field came
+  back `100` ("nonexisting field") while every Business field came back `200`
+  ("requires business_management"). Code 100 means the field does not exist on
+  this node type; code 200 means it does and you may not read it. The ID was a
+  **Business Manager ID**. A Business has no `/events` edge, which is why Meta's
+  message ended in "or does not support this operation" and why reads succeeded
+  throughout while writes never could.
+
+- **The browser Pixel had been dead the whole time and left no trace.**
+  `facebook.com/tr` validates no ID: every beacon since 3 September went to a
+  Business ID and was silently discarded. The CAPI outbox counted its losses;
+  the browser leg had nothing to count them with. The real loss is larger than
+  any number the dashboard showed.
+
+- Two of this session's own diagnoses were wrong and are recorded as such. The
+  drain was never stalled — it was running fine. And the token's scope was never
+  the problem: a system-user token carrying only `read_ads_dataset_quality`
+  writes to the Conversions API perfectly well, which a probe established after
+  the ID was corrected. Both were plausible, both were asserted before being
+  tested, and testing is what produced the real answer.
+
+- **The defect that allowed it is now closed.** `^\d{5,25}$` cannot tell a pixel
+  from a business, so `verifyMetaPixelIdentity` asks Meta on save for a field
+  that exists only on an AdsPixel. An object that resolves and lacks it is
+  refused by name — "ID 1566746954921686 ada di Meta dengan nama 'Winning Mall',
+  tetapi bukan Pixel/Dataset". Everything inconclusive saves with a warning
+  instead: a permission gap must not be mistaken for a wrong ID, and a
+  verification that cannot reach Meta must never block an operator from fixing a
+  credential. The admin screen shows that warning rather than overwriting it
+  with a fixed success string, which is how this stayed invisible for two days.
+
+- After the operator saved dataset `511101804635811`, a ViewContent driven
+  through the real production path returned `delivered: true`. Pending fell 23 to
+  3 on its own and the last success is now newer than the last failure. 150
+  terminal rows remain, all inside the recovery window.
+
+- Gates: 661 tests (660 passed, 1 intentional skip), 431 files checked with zero
+  diagnostics, build passed, 29 documents validated.
+
+---
+
 ## 2026-09-04 — Meta CAPI incident response: drain claim and recovery scope
 
 - A production alert reported 114 terminal CAPI rows and a two-day-old backlog.
