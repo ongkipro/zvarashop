@@ -227,6 +227,35 @@ terminal and 23 pending rows remain, still failing against pixel
 `1566746954921686`, newest failure `2026-09-04T04:54Z`. All 125 are inside the
 deployed recovery scope — none excluded as unreadable, none yet too old.
 
+**Resolved 2026-09-04 06:28Z.** The stored Pixel ID was never a pixel: probing
+the Graph API showed `1566746954921686` resolving to an object named
+"Winning Mall" on which every AdsPixel field returned code 100 ("nonexisting
+field") while every Business field returned code 200 ("requires
+business_management") — the signature of a **Business Manager ID**. A Business
+has no `/events` edge, which is why Meta's error ended in "or does not support
+this operation" rather than an auth failure, and why `GET` on the object
+succeeded throughout. The browser Pixel had been dead the same whole time and
+left no record: `facebook.com/tr` validates no ID and silently discards a
+beacon sent to a non-pixel.
+
+Corrected while diagnosing: this document's earlier reading blamed a missing
+`ads_management` scope. It does not. The replacement token still carries only
+`read_ads_dataset_quality` and writes fine — once the ID was right, a probe got
+past object resolution into payload validation, and `POST /events` failed only
+with "You haven't added sufficient customer information parameter data", which
+is a complaint about the probe's own deliberately minimal payload.
+
+After the operator saved dataset `511101804635811`, a ViewContent driven through
+the real production path (`POST /api/meta-event` with `_fbp` and external-ID
+cookies) returned `delivered: true` — accepted by Meta on the first attempt.
+The pending queue is draining on its own: 23 down to 3, and the last success
+(`06:28:22Z`) is now newer than the last failure (`06:07:30Z`), so the
+`meta-capi` signal returns to healthy.
+
+**150 terminal rows remain and are all recoverable** — none unreadable, none yet
+too old. They need one press of "Kirim ulang event tertahan" on
+`/admin/ads/meta`, which will now pass its probe.
+
 **There is a deadline.** Retries preserve the original `event_time` and Meta
 rejects an event older than seven days, so the oldest recoverable row
 (`2026-09-01T12:31Z`) ages out of recovery at about **2026-09-08T12:31Z**. Fix
