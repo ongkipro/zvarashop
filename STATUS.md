@@ -195,6 +195,44 @@ token and pixel live with a probe event and refuses to requeue anything if Meta
 rejects it. Pressing it before the pixel/permission is fixed cannot damage
 anything and will simply decline.
 
+## Deployment 2026-09-04
+
+`install/zvarashop` at `8828c2c` deployed as Worker version
+`27cf401a-8ca2-4689-b85a-01b909a8a270`, triggers `zvara.shop`, `www.zvara.shop`
+and the `7 * * * *` schedule. The branch was rebased onto five commits that had
+been pushed by another session (three native landing pages plus two
+`schema-version.ts` commits that cancel each other out, net zero); the merged
+tree passed every gate before deploy.
+
+Live evidence after the deploy:
+
+- `/`, `/produk`, `/sitemap.xml`, both feeds, `/robots.txt`, `/thanks` and
+  `/hello` all `200`; unauthenticated `/api/admin/health` correctly `401`.
+- The three new landing pages return `200`.
+- 35 items in the live Google feed carry `<g:identifier_exists>no</...>`.
+- Chromium on `/produk/lampu-led-multifungsi` recorded the real `fbq` call order
+  as `init -> PageView -> ViewContent`, exactly one pixel initialised, and
+  **both browser beacons reaching `facebook.com/tr`** with distinct `eid`s —
+  the ViewContent leg that the ordering defect could silently drop. Zero
+  horizontal overflow, clean console.
+
+A first pass at that check reported a `TypeError` and a "Multiple pixels with
+conflicting versions" warning. Both were artifacts of the instrumentation used
+to observe call order — the `fbq` wrapper copied `queue` before the stub had
+created it — and neither appears on a clean load. Recorded because the
+instrumented reading looked exactly like a production defect.
+
+The incident itself is **not** resolved by this deploy, as expected: 125
+terminal and 23 pending rows remain, still failing against pixel
+`1566746954921686`, newest failure `2026-09-04T04:54Z`. All 125 are inside the
+deployed recovery scope — none excluded as unreadable, none yet too old.
+
+**There is a deadline.** Retries preserve the original `event_time` and Meta
+rejects an event older than seven days, so the oldest recoverable row
+(`2026-09-01T12:31Z`) ages out of recovery at about **2026-09-08T12:31Z**. Fix
+the pixel or the token's permission on it before then, and the requeue on
+`/admin/ads/meta` will still be able to take all of them.
+
 ## Known boundaries
 
 - Provider credentials and live account acceptance cannot be proven without
