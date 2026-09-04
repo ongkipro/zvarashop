@@ -65,3 +65,30 @@ test('Meta CAPI uses supported API version and forwards test event code', async 
     '0123456789abcdef0123456789abcdef',
   );
 });
+
+test("content_type is sent only where content_ids give it something to describe", async () => {
+  const sent: Record<string, unknown>[] = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = (async (_url: string, init: RequestInit) => {
+    sent.push(JSON.parse(String(init.body)));
+    return new Response(JSON.stringify({ events_received: 1 }), { status: 200 });
+  }) as typeof fetch;
+  try {
+    await sendMetaCapiEvent(
+      "PageView", "pv_1", "https://toko.test/", {}, {}, "1234567890", "token",
+    );
+    await sendMetaCapiEvent(
+      "ViewContent", "vc_1", "https://toko.test/produk/x", {},
+      { contentIds: ["14001"], value: 89000 }, "1234567890", "token",
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+  const custom = (index: number) =>
+    (sent[index] as { data: { custom_data: Record<string, unknown> }[] }).data[0].custom_data;
+  // A content type without content ids is a claim about nothing, and Events
+  // Manager reports it as a malformed parameter on every single PageView.
+  assert.equal(custom(0).content_type, undefined);
+  assert.equal(custom(1).content_type, "product");
+  assert.deepEqual(custom(1).content_ids, ["14001"]);
+});

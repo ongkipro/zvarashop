@@ -1,6 +1,6 @@
 # AdsBookCMS — Remaining Work and Blockers
 
-> Verified against disk: 2026-09-02 @ `a1509c8` + AutoLaris digital-order reconciliation working tree
+> Verified against disk: 2026-09-04 @ `81e2031` + open-gap audit working tree
 
 This is the single ledger of work that is **not** done. Implemented behaviour belongs in `STATUS.md`, history in `BUILD-LOG.md`, accepted product behaviour in `PRD.md`, real architecture in `ARCHITECTURE.md`, and constraining decisions in `DECISIONS.md`.
 
@@ -17,12 +17,41 @@ All ten structural gaps in `ARCHITECTURE.md` §10 are closed. This file now owns
 
 | ID | Severity | Gap | Completion boundary |
 | --- | --- | --- | --- |
-| AD3 | Medium | Product-grain Google feed items still map the first variant's merchant-editable internal SKU to MPN while declaring `identifier_exists` as `no`; products with no sellable variant disappear instead of retaining a stable `out_of_stock` item. | Separate internal SKU from standard identifiers, define the product-level price/availability fallback contract, retain stable out-of-stock items when truthful data exists, and cover Google and Meta XML with executable fixtures. |
-| COD1 | Medium | This store computes its COD service fee locally (`payment-fee-policy.ts`: 3% plus 11% VAT, each rounded up) while Mengantar returns its own `codFee` on every quote that asks for it. Measured against the live account on 2026-08-19 the two disagree at every amount sampled — Rp50.000, Rp100.000, Rp199.000, Rp333.333 and Rp1.000.000 all came back exactly **one rupiah below** the local figure. The buyer is billed the local number. | Decide whether the local policy is a deliberate store markup or an attempt to mirror the provider. If it mirrors, take the provider's quoted `codFee` as the billed figure instead of recomputing it, so a provider rate change cannot silently diverge; if it is the store's own price, say so in the policy and stop treating the gap as a rounding bug. This is a pricing decision, not an engineering one, so nothing was changed. |
-| S1 | Medium | `theme_color`, `locale`, and `admin_name` resolve from D1 but have no complete operator editor. | Add validated fields to the existing store settings boundary and verify runtime rendering without a rebuild. |
-| DOC1 | Low | `DESIGN-SYSTEM.md` still describes deleted components, old font/CSS ownership, build-time tenant fallback, and historical gate counts. | Re-extract it from the current component and style tree instead of incrementally restamping stale sections. |
+| AD3 | Low | **Reduced 2026-09-04.** The SKU-as-MPN half of this row was already stale: `catalog-feed.ts` had stopped emitting `g:mpn` and now also declares `<g:identifier_exists>no</g:identifier_exists>`, which is the truthful statement for a schema with no GTIN or MPN column — a branded item carrying neither previously read to Google as *missing* data. `catalog-feed.test.ts` asserts the pairing and that the merchant-editable variant `sku` reaches neither feed. What remains is the out-of-stock clause, and it is blocked by the data rather than by effort: price lives only on `product_variants`, so a product with no sellable variant has no truthful price to publish and retaining it as a stable `out_of_stock` item would require inventing one. `getPublicProductValidationError` already refuses to publish an active product without a valid priced variant, so the case is prevented upstream. | Either give products a price of their own, or accept that a variant-less product legitimately leaves the feed and close this row. |
 | SCR1 | Low | The 2026-08-22 full-system screening proved the QRIS create path against AutoLaris but **not a settled payment**: capturing a paid `POST /api/h2h/advice` response means paying a real virtual account, so the confirmation path (`/thanks` replacement, paid-state gating, reconciliation marking an order paid) remains proven only by fixtures and the earlier manual-reconciliation browser smoke. It also did not exercise Mengantar dispatch (`POST /order`), which creates a real shipment and spends wallet balance, nor the Meta/Google outbound legs, which were verified by hand on 2026-08-19. | Prove the settled path once, deliberately, on a store that is ready to pay a small real amount, and record the observed `advice` response so `inquirePayment` can classify it. Dispatch stays a manual, operator-initiated action by design (A11) and should be screened against a provider sandbox if one is ever published. |
-| NOT1 | Low | Operator notifications (A19) have no unread floor and no retention. An operator added to a store that already holds a long notification history sees the entire backlog as unread on first login, and clearing it writes one `notification_reads` row per historical notification; `notification_reads` therefore grows as notifications × operators. Harmless on every current install — the table ships empty and the operator set is small — so no floor table was built for a problem no store has yet. | Record a per-operator floor (the newest notification id at the moment the operator is created) and count unread above it, and prune notifications alongside the existing abandoned-order retention cron rather than keeping them forever. |
+
+**DOC1** was closed on 2026-09-04 by re-extracting `DESIGN-SYSTEM.md` from the
+tree rather than restamping it. The drift was wider than this row recorded: §1.1
+documented `#F8F7F4` as the storefront canvas, a value with **zero** occurrences
+under `src/`, and a champagne-gold accent that survives only inside two CSS
+header comments; §1.2 and §8.12 described the `wide-catalog` template that
+migration `0044` retired on 2026-08-23 under ADR-018; §7.4 described a
+scroll-snap carousel with a thumbnail rail, none of whose classes exist in the
+65-line component that replaced it; §7.3 listed a deleted `ProofsSection.astro`
+that §2.1 also cited a line number inside; and §8.2 attributed an emerald
+palette to `/payment` and `/thanks` that now appears only on admin screens. One
+new inconsistency was recorded rather than resolved (§8.3a): `design-tokens.md`
+and `form-hybrid.css` declare different accents and different token counts, and
+which one this store should ship is a design decision.
+
+**COD1** was settled on 2026-09-04 as what it always was: a pricing decision.
+The local 3% + 11% VAT figure is ZvaraShop's own COD service price, not an
+attempt to mirror Mengantar's quoted `codFee`, and the consistent one-rupiah
+spread is a consequence of rounding each component up rather than a bug.
+`payment-fee-policy.ts` now says so at the constants, including the consequence
+that a provider rate change does not move it.
+
+Closed 2026-09-04 by the open-gap audit: **S1** — `theme_color`, `locale` and
+`admin_name` are edited at `/admin/settings/store`, validated against the same
+patterns `resolveTenantConfig` resolves with (`THEME_COLOR_PATTERN`,
+`LOCALE_PATTERN`, exported for exactly that reason) so a malformed value is
+refused at the form rather than silently falling back; **NOT1** — migration
+`0054` stamps a per-operator notification floor at creation, every read and
+every clear filters above it through one shared predicate, and
+`purgeExpiredNotifications` prunes at 90 days beside the other scheduled
+retention jobs. Existing operators are backfilled to floor `0` on purpose: they
+may hold genuinely unread notifications, and a retroactive floor would mark
+those read.
 
 Closed by the A10 work and 2026-08-18 production hardening recorded in `BUILD-LOG.md`: canonical single/bulk order transitions; exactly-once stock restoration on cancellation/deletion; non-destructive dispatched-order deletion; atomic order numbers; abandoned-order abuse controls and retention; bank-transfer verification; submit-boundary payment policy; canonical Meta Purchase identity and paid-state gates; runtime schema upgrades; fresh-install home fail-closed; runtime storefront definitions; Headless scopes, quotas, final-response audits, and public order status; per-install schema/CAPI alerting; one-time install capability; public provider rate limits with server-owned origin; and migration-owned settings schema.
 

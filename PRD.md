@@ -1,11 +1,27 @@
 # PRD — ZvaraShop
 
-> Verified against disk: 2026-09-02 @ `a1509c8` + AutoLaris digital-order reconciliation working tree
+> Verified against disk: 2026-09-04 @ `81e2031` + open-gap audit working tree
 
 ## A25 — Same-context WhatsApp handoff
 
 **Status:** Accepted 2026-09-01.
 
+- **REQ-180** — Every Meta conversion event the storefront emits shall describe
+  the buyer with the same match keys on both legs. Where the browser Pixel leg
+  sends a customer-information parameter, the Conversions API leg for that same
+  event shall send it too, or neither shall.
+- **REQ-181** — A browser Meta event shall never be dispatched before the page's
+  single `fbq('init')` has been issued, regardless of document parse or network
+  timing, because `fbevents.js` discards a `track` it replays ahead of the init
+  without error or beacon.
+- **REQ-182** — An operator shall be able to edit `theme_color`, `locale` and
+  `admin_name` from the store settings screen, and a value the identity
+  resolver would reject shall be refused at the form rather than accepted and
+  silently replaced by the default.
+- **REQ-183** — An operator added to a store shall inherit no notification
+  backlog: notifications recorded before that operator existed shall be neither
+  counted as unread nor claimed by a read row when the badge is cleared.
+  Notifications shall be pruned on a retention schedule.
 - **REQ-179** — When a buyer activates the WhatsApp confirmation action on
   `/thanks`, the storefront shall navigate the current browsing context to the
   official `https://wa.me` URL so a capable mobile OS may hand off to WhatsApp

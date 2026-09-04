@@ -156,6 +156,23 @@ const shouldRenderPixel = /^\d{5,25}$/.test(String(pixelId || '').trim());
         // can supply, and no other file may call it — `__PS_META_INIT__` is how
         // a page contributes to it.
         let initialised = false;
+        let releaseInit;
+        // Resolves the moment the single init has actually been issued — not
+        // when `__PS_META_INIT__` was called. The two are different: the init
+        // waits on the external-ID digest, so the function returns first and
+        // the `fbq('init')` lands a microtask later.
+        //
+        // That gap is load-bearing. fbq's stub queues by arrival order and
+        // fbevents replays the queue in that order, so a `track` enqueued
+        // before the init is replayed before it and dropped with "You must
+        // call fbq('init', …) before tracking events". `MetaViewContentTracker`
+        // fires during body parse, and `build.inlineStylesheets: 'always'`
+        // means no render-blocking stylesheet separates it from this script —
+        // replaying both inline scripts in one tick puts ViewContent ahead of
+        // the init every single time.
+        const pixelInitialised = new Promise((resolve) => {
+          releaseInit = resolve;
+        });
         window.__PS_META_INIT__ = (advancedMatching) => {
           if (initialised) return;
           initialised = true;
@@ -166,7 +183,22 @@ const shouldRenderPixel = /^\d{5,25}$/.test(String(pixelId || '').trim());
             }
             if (Object.keys(userData).length) window.fbq('init', pixelId, userData);
             else window.fbq('init', pixelId);
+            releaseInit();
             window.fbq('track', 'PageView', {}, { eventID: eventId });
+          });
+        };
+
+        // The only way another file may reach `fbq('track')`. Ordering is the
+        // whole point: a caller cannot overtake the init above no matter which
+        // order the document happens to parse in, and it no longer has to rely
+        // on an incidental network delay to be correct.
+        window.__PS_META_TRACK__ = (eventName, data, options) => {
+          void pixelInitialised.then(() => {
+            try {
+              window.fbq('track', eventName, data, options);
+            } catch (error) {
+              console.error('meta-pixel-track', error);
+            }
           });
         };
 

@@ -54,6 +54,15 @@ export function escapeXml(value: string): string {
  * - **Unambiguous in transit.** Decimal, no leading zero, minimum five digits.
  *   Legacy short IDs fail closed instead of being padded into a value that is
  *   no longer the real Product ID.
+ *
+ * A GTIN and an MPN are assigned by a manufacturer, and this schema has no
+ * column for either — no product here can ever carry one. Google reads a
+ * branded item with neither as *missing* data and warns or disapproves it, so
+ * the Google feed states `identifier_exists: no`, which is the declaration that
+ * case exists for. What it must never do again is answer the same question by
+ * publishing the merchant-editable variant `sku` as `g:mpn`: that claimed a
+ * manufacturer part number the product does not have, and the value changed
+ * whenever an operator edited it.
  */
 
 /** Canonical ads identity: the immutable numeric D1 Product ID. */
@@ -148,6 +157,7 @@ ${googleCategoryXml}
       <g:product_type>${escapeXml(taxonomy.productType)}</g:product_type>
       <g:brand>${escapeXml(product.brand?.trim() || siteTitle)}</g:brand>
       <g:condition>new</g:condition>
+      <g:identifier_exists>no</g:identifier_exists>
     </item>`;
   }
 

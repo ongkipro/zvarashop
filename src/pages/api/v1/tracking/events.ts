@@ -7,7 +7,7 @@ import { getClientIp } from '../../../../lib/rate-limit';
 import { enqueueCapiEvent, deliverCapiEvent, drainCapiOutbox } from '../../../../lib/capi-outbox';
 import { findPurchaseOrderForApiKeyCaller, resolveMetaPurchaseContentIds } from '../../../../lib/meta-purchase-order';
 import { toE164Digits } from '../../../../lib/meta-capi';
-import { isSyntheticBuyerEmail } from '../../../../lib/meta-identity';
+import { isSyntheticBuyerEmail, resolveMetaCountry } from '../../../../lib/meta-identity';
 import { parseClickIds } from '../../../../lib/click-ids';
 import { parseMetaOrderContext } from '../../../../lib/meta-order-context';
 
@@ -80,7 +80,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
         city: purchaseOrder?.city || payload.city,
         province: purchaseOrder?.province || payload.province,
         postalCode: purchaseOrder?.postal_code || payload.postalCode,
-        country: payload.country,
+        // No edge fallback here: the caller is another server, so its
+        // `cf-ipcountry` is that server's location and never the buyer's.
+        country: resolveMetaCountry(payload.country, null, Boolean(purchaseOrder)),
         externalId: payload.externalId || storedContext.externalId || (purchaseOrder
           ? toE164Digits(purchaseOrder.customer_phone)
           : undefined),

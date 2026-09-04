@@ -1,6 +1,6 @@
 # ZvaraShop Meta Pixel, CAPI, GTM, and Google Ads Specification
 
-> Verified against disk: 2026-09-01 @ `a99e7eb` + order/Purchase dedupe working tree
+> Verified against disk: 2026-09-04 @ `81e2031` + open-gap audit working tree
 
 This document owns the technical tracking contract for ZvaraShop-rendered and
 headless storefronts. It covers event semantics, identity, browser/server
@@ -121,6 +121,44 @@ Consequences, which are contract rather than style:
 - Identity discovered **after** bootstrap cannot reach the browser leg at all.
   The checkout forms therefore send late identity to the CAPI leg only, under
   the same `event_id`; they no longer re-init the Pixel.
+- No other file may call `fbq('track')` either. They call
+  `window.__PS_META_TRACK__(eventName, data, options)`, which `MetaPixelBase`
+  installs and which holds each call until the single `init` has actually been
+  **issued** — see §4b.
+
+### 4b. Why tracking is queued behind the init, and not merely after it
+
+Calling `__PS_META_INIT__` and *issuing* the init are two different moments.
+The init waits on the external-ID SHA-256, so the function returns and the
+`fbq('init')` lands a microtask later. `fbq`'s own stub queues by arrival order
+and `fbevents.js` replays that queue in the same order, which makes the gap
+load-bearing rather than cosmetic.
+
+Measured against the live library on 2026-09-04, in an isolated frame, with a
+clean stub and no other difference than call order:
+
+| Order handed to `fbq` | Beacons to `facebook.com/tr` |
+| --- | --- |
+| `track` then `init` | **0** |
+| `init` then `track` | 1 |
+
+A `track` replayed ahead of the init is discarded. Nothing throws and nothing
+appears in Events Manager — the event simply never existed.
+
+`MetaViewContentTracker` and `MetaLandingTracker` fire during body parse, while
+that digest is still outstanding. `astro.config.mjs` sets
+`build.inlineStylesheets: 'always'`, so no render-blocking stylesheet separates
+them from the head bootstrap and nothing guarantees the parser yields in
+between: replaying both inline scripts in a single tick puts `ViewContent`
+ahead of the init every time, while a production page with a chunk boundary
+between head and body may well win the race. The outcome was decided by network
+timing, and the losing side lost the event silently — the CAPI twin kept
+arriving, so the dashboards showed a ViewContent either way.
+
+`__PS_META_TRACK__` removes the race rather than the symptom.
+`meta-pixel-ordering.test.ts` replays the real inline scripts in one tick and
+fails if any `init` follows any `track`, and asserts that no tracker reaches
+`fbq('track')` around the hook.
 
 Until 2026-08-28 three files called `init` behind the bootstrap —
 `MetaThanksTracker.astro`, `form-hybrid.ts` and `form-middle.ts`. Every
@@ -289,7 +327,22 @@ Verified 2026-08-28 against Meta's Pixel advanced-matching reference. The valid
 manual keys are `em`, `fn`, `ln`, `ph`, `external_id`, `ge`, `db`, `ct`, `st`,
 `zp`, `country`. The confirmation page sends **eight** of them —
 `ph fn ln ct st zp country external_id` — which is every key this checkout
-actually knows. The three omissions are deliberate:
+actually knows. Both legs send the same eight: until 2026-09-04 the CAPI leg
+did not. `country` was validated by `meta-event-contract.ts`, hashed by
+`meta-capi.ts`, posted by the `/thanks` browser leg and forwarded by the
+headless route — and dropped by `/api/meta-event`, which built `user_data`
+without it. That route carries every first-party PageView, ViewContent and
+`/thanks` Purchase, so the Pixel leg of an order described the buyer with a
+country and the CAPI leg of the same order did not. `resolveMetaCountry` now
+supplies it: `id` for a resolved order, which is truthful because every order
+carries an Indonesian province, is quoted in IDR and ships domestically; the
+caller's validated claim otherwise; and Cloudflare's `cf-ipcountry` for the
+buyer's own request as the last source. Cloudflare's `XX` and `T1` yield no key
+at all — a hash of a non-country matches nobody, and Meta scores match quality
+on the keys it was given. The headless route passes no edge country, because
+its caller is another server whose location is not the buyer's.
+
+The three omissions are deliberate:
 
 - `ge` and `db` are never collected.
 - `em` has no real value to send. The native checkout is email-free by design;

@@ -1,6 +1,116 @@
 # Tasks: ZvaraShop
 
-> Verified against disk: 2026-09-02 @ `a1509c8` + AutoLaris digital-order reconciliation working tree
+> Verified against disk: 2026-09-04 @ `81e2031` + open-gap audit working tree
+
+## A31 — Open-gap audit: Meta match parity, pixel ordering, S1, NOT1, AD3
+
+- [x] **A-185** — Send `country` on the Conversions API leg of every
+  first-party event, so both legs of one Meta event describe the buyer with the
+  same key set.
+      -> REQ: REQ-180 · Done when: `/api/meta-event` and the headless tracking
+      route both resolve `country` through one helper; a resolved order yields
+      `id`; a caller claim outranks the edge; Cloudflare's `XX`/`T1` yield no
+      key; and the value is asserted on the stored outbox payload rather than
+      on the validator.
+      -> Evidence: `resolveMetaCountry` in `meta-identity.ts`;
+      `meta-event-country.test.ts` drives the real route against an in-memory
+      D1 with `fetch` stubbed so nothing leaves the machine, and removing the
+      route change fails two of its three cases.
+
+- [x] **A-186** — Stop a browser Meta event from being replayed ahead of the
+  page's single `fbq('init')`.
+      -> REQ: REQ-181 · Done when: no tracker calls `fbq('track')` directly;
+      `MetaPixelBase` holds each call until the init has been *issued*, not
+      merely requested; and a same-tick replay of the real inline scripts
+      orders `init` before every `track`.
+      -> Evidence: measured against the live `fbevents.js` in an isolated frame
+      — `track` then `init` produced **zero** beacons to `facebook.com/tr`,
+      `init` then `track` produced one. `meta-pixel-ordering.test.ts` replays
+      the shipped inline scripts and failed before the fix
+      (`track:ViewContent -> init -> track:PageView`). Chromium on a seeded
+      local store with a configured pixel recorded
+      `init -> PageView -> ViewContent` on `/produk/<slug>`.
+
+- [x] **A-187** — Give `theme_color`, `locale` and `admin_name` an operator
+  editor (gap S1).
+      -> REQ: REQ-182 · Done when: the store settings screen reads and writes
+      all three; a malformed value is refused with a message instead of being
+      silently replaced by the resolver's default; and the editor and
+      `resolveTenantConfig` share one definition of valid.
+      -> Evidence: `THEME_COLOR_PATTERN`/`LOCALE_PATTERN` exported from
+      `tenant.ts` and asserted against resolution in `tenant.test.ts`, which
+      also asserts the `save-store` statement writes all three columns.
+      **Not done:** the rendered form was not opened in a browser — the local
+      runtime has no session-signing secret and this task did not create one.
+
+- [x] **A-188** — Give operator notifications a per-operator floor and a
+  retention window (gap NOT1).
+      -> REQ: REQ-183 · Done when: a newly created operator inherits no
+      backlog; clearing the badge writes no read row for a notification below
+      their floor; an event after they joined is theirs; an unknown operator
+      fails open; and notifications are pruned on the scheduled run.
+      -> Evidence: migration `0054`; one shared `ABOVE_FLOOR` predicate so no
+      read path can forget it; six tests in `notifications.test.ts` over a real
+      SQLite fixture, including that the cascade clears read rows on prune.
+
+- [x] **A-189** — Declare `identifier_exists` on the Google feed (gap AD3,
+  partial).
+      -> Done when: the feed states `no` for a schema with no GTIN or MPN
+      column, and the merchant-editable variant `sku` reaches neither feed.
+      -> Evidence: `catalog-feed.test.ts`. The out-of-stock clause of AD3 stays
+      open and `UNIMPLEMENTED_SPECS.md` now records why it is blocked by the
+      data model rather than by effort.
+
+- [x] **A-191** — Settle COD1 as a stated store price rather than a provider
+  mirror.
+      -> Done when: `payment-fee-policy.ts` says at the constants that the 3% +
+      11% VAT figure is ZvaraShop's own COD service price, that the one-rupiah
+      spread against Mengantar's `codFee` is a consequence of rounding each
+      component up, and that a provider rate change therefore does not move it.
+      -> Evidence: operator decision recorded 2026-09-04; row removed from
+      `UNIMPLEMENTED_SPECS.md` §1. No behaviour changed — this was always a
+      pricing question, and answering it in the ledger alone would have left the
+      next reader treating the gap as a rounding bug.
+
+- [x] **A-192** — Let an operator recover Meta events a dead access token
+  terminated.
+      -> Done when: the recovery is explicit rather than automatic; the token is
+      proven live before any row moves; rows are identified without parsing
+      Meta's error prose; and an exhausted or unreadable row is never resent.
+      -> Evidence: `requeueInvalidTokenEvents` selects on `status = 'failed' AND
+      attempts < max_attempts`, which is exact because `decideRetry` terminates
+      for only two reasons and the other increments `attempts` — a property now
+      pinned by its own test, since a third terminal reason added without that
+      increment would silently make itself "recoverable". Requeued rows keep
+      their `event_id` and stored `eventTime`, so Meta still deduplicates them.
+      The control is hidden entirely when the count is zero.
+
+- [x] **A-193** — Stop sending commerce fields on a PageView.
+      -> Done when: `content_type` is emitted only where `content_ids` give it
+      something to describe, and the CAPI PageView no longer claims a value of
+      1 IDR its browser twin never sends.
+      -> Evidence: `meta-capi.test.ts`. Nothing ever set `contentType`, so the
+      previous `|| 'product'` stamped a content type on every event the store
+      emitted, which Events Manager reports as a malformed parameter.
+
+- [x] **A-194** — Re-extract `DESIGN-SYSTEM.md` from the component and style
+  tree (gap DOC1).
+      -> Done when: no section describes a deleted component, a retired
+      template, or a colour absent from `src/`.
+      -> Evidence: §1.1 rebuilt from measured hex counts; §1.2 and §8.12 record
+      the `wide-catalog` retirement (migration `0044`, ADR-018, 2026-08-23);
+      §7.2–7.5 re-listed against the directory; §7.4 rewritten for the
+      65-line scriptless gallery; §2.1's citation into a deleted file removed.
+      `AGENTS.md` §7 was naming `wide-catalog` as a current built-in and is
+      corrected. One new inconsistency (§8.3a) is recorded, not resolved: it is
+      a design decision.
+
+- [x] **A-190** — Full gates after the final edit.
+      -> Evidence: `npm test` 650 total, 649 passed, 1 intentional skip;
+      `npm run check` 431 files with zero diagnostics; `npm run build` passed;
+      `npm run docs:check` 29 documents; a fresh local D1 applied all 55
+      migrations. No provider was contacted, no secret read, no remote D1 run,
+      and nothing deployed.
 
 ## A30 — AutoLaris non-physical Create Order and Advice cron
 

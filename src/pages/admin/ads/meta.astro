@@ -184,6 +184,19 @@ const feedUrl = `${origin}/feed/meta-catalog.xml`;
           <button id="testMeta" type="button" class="btn-secondary min-h-11 w-full px-5 text-xs sm:w-auto">Kirim test event</button>
         </div>
 
+        <div id="capiRecoveryBlock" class="hidden border-t border-slate-200 p-5 md:p-6">
+          <h2 class="text-sm font-black text-slate-950">Kirim ulang event yang gagal karena token</h2>
+          <p id="capiRecoveryCount" class="mt-1 text-xs leading-5 text-slate-500"></p>
+          <p class="mt-2 text-[11px] leading-5 text-slate-500">
+            Token yang mati menghentikan setiap event yang masuk selama token itu mati, dan menyimpan token
+            baru tidak menghidupkannya kembali. Tombol ini mengantre ulang event tersebut satu kali dengan
+            <code>event_id</code> dan waktu kejadian aslinya, jadi Meta tetap melakukan deduplikasi terhadap
+            apa pun yang sudah diterima. Token diuji lebih dulu; kalau Meta masih menolaknya, tidak ada
+            satu pun event yang dipindahkan.
+          </p>
+          <button id="requeueCapi" type="button" class="btn-secondary mt-4 min-h-11 w-full px-5 text-xs sm:w-auto">Kirim ulang event tertahan</button>
+        </div>
+
         <div class="flex flex-col gap-3 border-t border-slate-200 p-4 sm:flex-row sm:items-center sm:justify-between">
           <p id="metaStatus" class="min-h-5 text-xs font-bold text-slate-500" role="status" aria-live="polite" aria-atomic="true">Perubahan belum ada.</p>
           <button id="saveMeta" type="submit" class="btn-blue min-h-11 w-full px-6 text-xs sm:w-auto">Simpan Meta</button>
@@ -360,6 +373,9 @@ const feedUrl = `${origin}/feed/meta-catalog.xml`;
     const toggleToken = document.getElementById('toggleToken');
     const tokenHint = document.getElementById('tokenHint');
     const testButton = document.getElementById('testMeta') as HTMLButtonElement | null;
+    const requeueButton = document.getElementById('requeueCapi') as HTMLButtonElement | null;
+    const recoveryBlock = document.getElementById('capiRecoveryBlock');
+    const recoveryCount = document.getElementById('capiRecoveryCount');
     const saveButton = document.getElementById('saveMeta') as HTMLButtonElement | null;
     let pending = false;
 
@@ -386,7 +402,18 @@ const feedUrl = `${origin}/feed/meta-catalog.xml`;
         : 'Tampilkan CAPI access token');
     });
 
-    const render = (data: Record<string, string | boolean | undefined>) => {
+    const renderRecovery = (recoverable: number) => {
+      // Hidden entirely at zero. A healthy store must not be shown a recovery
+      // control for an outage it never had.
+      if (!recoveryBlock) return;
+      recoveryBlock.classList.toggle('hidden', recoverable < 1);
+      if (recoveryCount) {
+        recoveryCount.textContent = `${recoverable} event tertahan dan masih bisa dikirim ulang.`;
+      }
+    };
+
+    const render = (data: Record<string, string | boolean | number | undefined>) => {
+      renderRecovery(Number(data.capi_recoverable_events || 0));
       pixelInput.value = String(data.meta_pixel_id || '');
       const effectivePixel = String(data.meta_pixel_effective_id || '');
       const pixelSource = data.meta_pixel_source === 'environment' ? 'environment' : 'database';
@@ -502,6 +529,31 @@ const feedUrl = `${origin}/feed/meta-catalog.xml`;
       } finally {
         testButton.removeAttribute('disabled');
         testButton.textContent = 'Kirim test event';
+      }
+    });
+
+    requeueButton?.addEventListener('click', async () => {
+      requeueButton.setAttribute('disabled', 'true');
+      requeueButton.textContent = 'Mengirim ulang...';
+      try {
+        const res = await fetch('/api/admin/ads', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'requeue-capi',
+            meta_pixel_id: pixelInput.value.trim(),
+            meta_capi_token: tokenInput.value.trim() || undefined,
+          }),
+        });
+        const payload = await res.json().catch(() => ({}));
+        if (!res.ok || !payload.success) throw new Error(payload.error || 'Gagal mengirim ulang event.');
+        if (statusText) statusText.textContent = payload.message || 'Event dikirim ulang.';
+        renderRecovery(0);
+      } catch (err) {
+        if (statusText) statusText.textContent = err instanceof Error ? err.message : 'Gagal mengirim ulang event.';
+      } finally {
+        requeueButton.removeAttribute('disabled');
+        requeueButton.textContent = 'Kirim ulang event tertahan';
       }
     });
   </script>

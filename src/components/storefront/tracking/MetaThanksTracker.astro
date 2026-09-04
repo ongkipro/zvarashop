@@ -258,16 +258,14 @@ const { tenantName, tenantSlug } = Astro.props;
       // Guard 1: cegah event success dobel untuk event yang sama.
       if (alreadyFired(`${eventName}_${finalEventId}`)) return;
 
-      // The Pixel's one init already carries this buyer's match keys; waiting on
-      // it here only orders the two calls, and it resolved long before the
-      // verification fetch above returned.
+      // The Pixel's one init already carries this buyer's match keys. Awaiting
+      // `pixelReady` only proves `__PS_META_INIT__` was *called* — the init it
+      // schedules lands a microtask later — so the Purchase goes out through
+      // the hook that waits for the init to have actually been issued rather
+      // than relying on the verification fetch above having taken long enough.
       await pixelReady;
-      try {
-        if (window.fbq) {
-          window.fbq('track', eventName, data, { eventID: finalEventId });
-        }
-      } catch (error) {
-        console.error('meta-browser-purchase', error);
+      if (typeof window.__PS_META_TRACK__ === 'function') {
+        window.__PS_META_TRACK__(eventName, data, { eventID: finalEventId });
       }
 
       try {

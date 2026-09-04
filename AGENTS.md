@@ -1,6 +1,6 @@
 # AGENTS.md — Working Agreement for ZvaraShop
 
-> Verified against disk: 2026-09-01 @ `e6b9fbe` + standalone/ad-signals working tree
+> Verified against disk: 2026-09-04 @ `81e2031` + open-gap audit working tree
 
 This file is the contract for any AI coding agent or contributor working in this repository. Read it before the first edit.
 
@@ -72,6 +72,8 @@ failure mode this section exists to prevent.
 - Binding names are fixed: `OMS_DB`, `SESSION`, `ASSET_BUCKET`, `AI`, `ASSETS`.
 - Provider credentials are D1-first, env-fallback. Never echo a stored credential back through a browser API.
 - Meta CAPI tokens are server-only. Browser and server Purchase share one per-order `event_id`.
+- `MetaPixelBase.astro` owns the only `fbq('init')` **and** the only `fbq('track')`. Every other tracker goes through `window.__PS_META_TRACK__`, which holds the call until that init has been issued: `fbevents` replays its queue in arrival order and discards a `track` that precedes the init, silently and with no beacon. Both rules are enforced by tests (`meta-identity.test.ts`, `meta-pixel-ordering.test.ts`).
+- Both Meta legs of one event describe the same person with the same keys. A match key the browser leg sends and the server leg drops is a defect, not an optimisation — `country` was exactly that until 2026-09-04.
 - Every Headless route is registered in `HEADLESS_OPERATIONS` with one minimum scope. API-key usage quotas and write audit events are D1-backed and part of the request boundary, not UI-only policy.
 
 **Content**
@@ -103,7 +105,7 @@ admin order list blank for a day.
 
 On a fresh clone, run `npm run check` rather than bare `npx tsc --noEmit`. `astro check` generates `.astro/types.d.ts` first; without it `tsc` reports phantom errors such as `Property 'env' does not exist on type 'ImportMeta'`.
 
-Current verified base-branch baseline: **604 passing, 1 skipped**, 0 type errors, `astro check` 0 errors / 0 warnings / 0 hints. A change that reduces this baseline is not done.
+Current verified baseline: **646 passing, 1 skipped**, 0 type errors, `astro check` 0 errors / 0 warnings / 0 hints across 431 files. A change that reduces this baseline is not done.
 
 New non-trivial logic — a branch, a parser, a money or auth path — leaves one runnable check behind. Trivial one-liners do not need a test.
 
@@ -143,7 +145,7 @@ Do not "fix" these silently or treat them as bugs to be surprised by — they ar
 
 - Missing published home content renders the explicit setup state. Do not restore generated or compiled merchant-facing fallback copy.
 - `theme_color`, `locale` and `admin_name` are stored per install but have no admin editor yet.
-- Storefront template definitions live in `storefront_templates`. Built-in `compact-market` and `wide-catalog` are seeded only as editable D1 definitions; adding a definition must not require a rebuild.
+- Storefront template definitions live in `storefront_templates`. The one built-in, `compact-market`, is seeded only as an editable D1 definition; adding a definition must not require a rebuild. `wide-catalog` was retired by migration `0044` under ADR-018 and this line named it as current until 2026-09-04.
 - The admin session cookie is `adsbook_session`, declared once as `SESSION_COOKIE_NAME` in `src/lib/auth.ts`. Never write the literal string; a writer and reader that disagree is a silent lockout.
 - The `SESSION` KV binding holds **caches only** (ADR-021). Admin sessions live in `admin_sessions` and rate-limit windows in `rate_limits`, both D1. A KV write on any request path must be wrapped so that its failure is logged and nothing else — the account-wide Free-plan write allowance ran out once and took every install's login and checkout search down with it.
 - The click cookie is `adsbook_click_ids`. The former `zanoby_click_ids` is still **read** as a fallback so an upgrading install does not lose 90 days of in-flight attribution. Never write the legacy name; it ages out on its own.

@@ -54,8 +54,11 @@ const { slug, contentId, contentName, price } = Astro.props;
         value: Number(price || 1),
         currency: 'IDR',
       };
-      if (window.fbq) {
-        window.fbq('track', eventName, data, { eventID: eventId });
+      // Never `fbq('track')` directly: this fires during body parse, while
+      // MetaPixelBase's single init is still waiting on the external-ID
+      // digest, and fbevents drops a track it replays ahead of the init.
+      if (typeof window.__PS_META_TRACK__ === 'function') {
+        window.__PS_META_TRACK__(eventName, data, { eventID: eventId });
       }
       postMeta({
         event_name: eventName,
