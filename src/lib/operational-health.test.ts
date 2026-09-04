@@ -245,3 +245,43 @@ test("a fault is louder than a blank when the panel is summarised", () => {
     "degraded",
   );
 });
+
+// The 2026-09-03 incident: 116 terminal rows and 24 live ones past every retry
+// window. `failed > 0` returned first, so the operator was shown only the half
+// that was already lost, and nothing said the drain had stopped clearing the
+// half that was still recoverable.
+
+test("a queue that is both stalled and holding terminal failures reports both", () => {
+  const now = Date.parse("2026-09-04T04:00:00.000Z");
+  const signal = classifyCapiOutbox(
+    {
+      pending: 24,
+      failed: 116,
+      overdue: 24,
+      oldestCreatedAt: "2026-09-01T12:31:09.595Z",
+    },
+    now,
+  );
+  assert.equal(signal.state, "degraded");
+  assert.equal(signal.reason, "stalled-with-terminal-failures");
+  assert.deepEqual(signal.metrics, { pending: 24, failed: 116, overdue: 24 });
+});
+
+test("terminal failures alone still read as terminal failures", () => {
+  const now = Date.parse("2026-09-04T04:00:00.000Z");
+  const signal = classifyCapiOutbox(
+    { pending: 0, failed: 3, overdue: 0, oldestCreatedAt: "2026-09-04T03:55:00.000Z" },
+    now,
+  );
+  assert.equal(signal.reason, "terminal-failures");
+});
+
+test("a backlog inside its backoff is draining, not stalled", () => {
+  const now = Date.parse("2026-09-04T04:00:00.000Z");
+  const signal = classifyCapiOutbox(
+    { pending: 4, failed: 0, overdue: 4, oldestCreatedAt: "2026-09-04T03:40:00.000Z" },
+    now,
+  );
+  assert.equal(signal.state, "healthy");
+  assert.equal(signal.reason, "draining");
+});

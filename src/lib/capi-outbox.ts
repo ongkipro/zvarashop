@@ -296,23 +296,54 @@ export async function deliverCapiEvent(
 }
 
 /**
+ * How long a claimed row is hidden from other drains. Long enough to transmit
+ * a batch, short enough that a Worker killed mid-drain returns its rows to the
+ * queue rather than stranding them.
+ */
+export const CAPI_DRAIN_LEASE_MS = 5 * 60_000;
+
+/**
  * Retries events whose backoff has elapsed. Bounded per call so a burst of
  * failures cannot turn one storefront request into a long-running drain.
+ *
+ * Rows are **claimed** before they are sent, not merely selected. Every
+ * `/api/meta-event` request fires a drain in `waitUntil`, so two visitors
+ * arriving together used to run two drains that selected the same due rows and
+ * both transmitted them. Live evidence on 2026-09-04: rows carrying `attempts`
+ * of 9 against a `max_attempts` of 5, which is unreachable through any single
+ * sequential path. Meta deduplicates on `event_id` so nothing double-counted,
+ * but the quota was spent twice over and the attempt budget stopped meaning
+ * anything — a row could be terminated in half the retries it was granted.
+ *
+ * The claim is one `UPDATE … RETURNING` that pushes `next_retry_at` a lease
+ * into the future. SQLite serializes writers, so a concurrent drain runs after
+ * it, sees the moved timestamps and selects a disjoint set. `transmit` then
+ * overwrites `next_retry_at` with the real backoff, so the lease only ever
+ * governs rows nobody got to.
  */
 export async function drainCapiOutbox(
   database: D1Database,
   pixelId: string,
   accessToken: string,
+  now = new Date(),
 ): Promise<number> {
   const due = await database
     .prepare(
-      `SELECT id, event_id, event_name, payload, attempts, max_attempts, created_at
-       FROM capi_event_outbox
-       WHERE status = 'pending' AND next_retry_at <= ?
-       ORDER BY CASE WHEN event_name = 'Purchase' THEN 0 ELSE 1 END, id ASC
-       LIMIT ?`,
+      `UPDATE capi_event_outbox
+          SET next_retry_at = ?
+        WHERE id IN (
+          SELECT id FROM capi_event_outbox
+           WHERE status = 'pending' AND next_retry_at <= ?
+           ORDER BY CASE WHEN event_name = 'Purchase' THEN 0 ELSE 1 END, id ASC
+           LIMIT ?
+        )
+       RETURNING id, event_id, event_name, payload, attempts, max_attempts, created_at`,
     )
-    .bind(new Date().toISOString(), MAX_DRAIN_BATCH)
+    .bind(
+      new Date(now.getTime() + CAPI_DRAIN_LEASE_MS).toISOString(),
+      now.toISOString(),
+      MAX_DRAIN_BATCH,
+    )
     .all<OutboxRow>();
 
   let sent = 0;
@@ -323,35 +354,54 @@ export async function drainCapiOutbox(
 }
 
 /**
- * Rows a dead access token killed, offered back once a live one is saved.
+ * Undelivered rows offered back once the destination is proven live again.
  *
- * `decideRetry` makes error 190 terminal immediately, which is right —
+ * `decideRetry` makes a dead token terminal immediately, which is right —
  * retrying a dead token only burns quota — but it also means every event that
- * arrived during the outage is lost the moment the operator fixes the
- * credential. One live install carried 33 such rows.
+ * arrived during an outage is lost the moment the operator fixes the
+ * credential. Nothing else in the system ever un-terminates them.
  *
- * They are identified structurally rather than by parsing Meta's error prose,
- * which is not a contract and would silently stop matching if Meta reworded
- * it. `decideRetry` terminates for exactly two reasons: a dead token, or an
- * exhausted attempt budget. So `status = 'failed' AND attempts < max_attempts`
- * is precisely the token case — and it classifies rows recorded before this
- * function existed, which a new error-code column could not. The one other
- * writer of `failed` is `transmit`'s unparseable-payload branch, which leaves
- * `attempts` untouched; it is excluded by its own `last_error` because
- * requeueing a payload that can never be read is pure waste.
+ * The first version of this selected `attempts < max_attempts`, on the
+ * reasoning that `decideRetry` terminates for exactly two reasons and the other
+ * one increments `attempts`, so that predicate was precisely the dead-token
+ * case. It was precise and too narrow. On 2026-09-03 a live install started
+ * getting "Object with ID … does not exist, cannot be loaded due to missing
+ * permissions" on every event: a destination-side misconfiguration, entirely
+ * fixable, that let 107 rows exhaust their budget honestly. Those are exactly
+ * as recoverable as a token failure and that predicate excluded all of them.
  *
- * This is deliberately not automatic. Resending conversions is an outbound
- * action with a real advertising consequence, so it stays an explicit operator
- * decision. Requeued rows keep their original `event_id` and stored
- * `eventTime`, so Meta still deduplicates them against anything already
- * delivered and a Purchase is still attributed to when it happened.
+ * So the classification is no longer a guess about *why* a row failed. The
+ * caller proves the destination works — `/api/admin/ads` sends a probe event
+ * and refuses to requeue at all if Meta rejects it — and every failed row then
+ * gets one more go. Meta still deduplicates on `event_id`, so a row that did
+ * reach it cannot double-count.
+ *
+ * Two exclusions remain, and both are absolute:
+ *
+ * - A payload that cannot be parsed can never succeed; retrying it is waste.
+ * - Meta rejects an event whose `event_time` is more than seven days old, and
+ *   retries deliberately preserve the original time so a Purchase is still
+ *   attributed to when it happened. Without this bound a requeue would take
+ *   rows the 30-day retention still holds, send them, have Meta refuse them for
+ *   being stale, and re-terminate them — spending the operator's recovery on
+ *   events that could never land.
+ *
+ * Deliberately not automatic: resending conversions has a real advertising
+ * consequence, so it stays an explicit operator decision.
  */
-export async function requeueInvalidTokenEvents(
+export const CAPI_REQUEUE_MAX_AGE_DAYS = 7;
+
+const RECOVERABLE_PREDICATE = `status = 'failed'
+   AND COALESCE(last_error, '') <> 'payload tidak dapat dibaca'
+   AND unixepoch(created_at) >= unixepoch(?, '-${CAPI_REQUEUE_MAX_AGE_DAYS} days')`;
+
+export async function requeueRecoverableEvents(
   database: D1Database,
-  limit = 200,
+  now = new Date(),
+  limit = 500,
 ): Promise<number> {
-  const bounded = Math.max(1, Math.min(1000, Math.trunc(limit) || 200));
-  const now = new Date().toISOString();
+  const bounded = Math.max(1, Math.min(1000, Math.trunc(limit) || 500));
+  const stamp = now.toISOString();
   const result = await database
     .prepare(
       `UPDATE capi_event_outbox
@@ -359,30 +409,27 @@ export async function requeueInvalidTokenEvents(
               next_retry_at = ?, updated_at = ?
         WHERE id IN (
           SELECT id FROM capi_event_outbox
-           WHERE status = 'failed'
-             AND attempts < max_attempts
-             AND COALESCE(last_error, '') <> 'payload tidak dapat dibaca'
+           WHERE ${RECOVERABLE_PREDICATE}
            ORDER BY CASE WHEN event_name = 'Purchase' THEN 0 ELSE 1 END, id ASC
            LIMIT ?
         )`,
     )
-    .bind(now, now, bounded)
+    .bind(stamp, stamp, stamp, bounded)
     .run();
   return Number(result.meta?.changes || 0);
 }
 
-/** How many rows `requeueInvalidTokenEvents` would move right now. */
-export async function countInvalidTokenEvents(
+/** How many rows `requeueRecoverableEvents` would move right now. */
+export async function countRecoverableEvents(
   database: D1Database,
+  now = new Date(),
 ): Promise<number> {
   const row = await database
     .prepare(
-      `SELECT COUNT(*) AS recoverable
-         FROM capi_event_outbox
-        WHERE status = 'failed'
-          AND attempts < max_attempts
-          AND COALESCE(last_error, '') <> 'payload tidak dapat dibaca'`,
+      `SELECT COUNT(*) AS recoverable FROM capi_event_outbox
+        WHERE ${RECOVERABLE_PREDICATE}`,
     )
+    .bind(now.toISOString())
     .first<{ recoverable: number }>();
   return Number(row?.recoverable || 0);
 }

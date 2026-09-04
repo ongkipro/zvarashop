@@ -6,6 +6,61 @@ Author & Curator: **[ongki.pro](https://ongki.pro)**
 
 ---
 
+## 2026-09-04 — Meta CAPI incident response: drain claim and recovery scope
+
+- A production alert reported 114 terminal CAPI rows and a two-day-old backlog.
+  Reading production D1 (metadata only, with approval) refuted the obvious
+  diagnosis: the drain was running fine. Two distinct populations, one of them
+  still growing.
+
+- **No Purchase was lost.** 34 delivered, zero undelivered. The 140 affected
+  rows are entirely top-of-funnel.
+
+- **The incident is destination-side and no deploy fixes it.** From
+  `2026-09-03T12:14:21Z` every event returns `Unsupported post request. Object
+  with ID '1566746954921686' does not exist, cannot be loaded due to missing
+  permissions`. The last success was `11:22:09Z` the same morning — a 52-minute
+  cutover with no code change between them. The pixel is unreachable to the
+  token in use, which is a Meta configuration or permission matter.
+
+- **The health panel was hiding half the problem.** `classifyCapiOutbox`
+  returned on `failed > 0` before evaluating `stalled`, so a queue that was both
+  read as terminal failures alone. Those are different problems: terminal rows
+  are already lost, stalled rows are still recoverable and nothing is moving
+  them. Both are now reported, through a new `stalled-with-terminal-failures`
+  reason.
+
+- **Concurrent drains were transmitting the same row twice.** Rows carried
+  `attempts` of 9 against a `max_attempts` of 5, which no sequential path can
+  produce: every `/api/meta-event` request fires a drain in `waitUntil`, and two
+  overlapping drains selected the same due rows. Meta deduplicates on
+  `event_id`, so nothing double-counted — what was lost was quota, and the
+  attempt budget stopped meaning anything, since a row could be terminated in
+  half the retries it was granted. `drainCapiOutbox` now claims its batch with
+  one `UPDATE … RETURNING` that leases the rows five minutes forward; SQLite
+  serializes writers, so a concurrent drain takes a disjoint set. A Worker
+  killed mid-drain returns its rows when the lease expires rather than
+  stranding them.
+
+- **The recovery built the day before was too narrow to recover this.** It
+  selected `attempts < max_attempts`, on the sound reasoning that a dead token
+  is the only terminal state that does not exhaust the budget. Exact, and
+  useless here: the 107 pixel-error rows exhausted their budget honestly and
+  were every bit as recoverable. The rule is no longer a guess about why a row
+  failed — the caller proves the destination live with a probe and refuses to
+  requeue at all if Meta rejects it, and every failed row then gets one more
+  attempt. Two exclusions remain absolute: an unparseable payload, and anything
+  older than seven days, because retries preserve the original `event_time` and
+  Meta rejects a stale event — without that bound a recovery would send rows
+  Meta refuses and re-terminate them.
+
+- Gates: 655 tests (654 passed, 1 intentional skip), 431 files checked with zero
+  diagnostics, build passed, 29 documents validated, fresh local D1 applied all
+  55 migrations. The concurrency and lease tests were mutation-verified against
+  the previous select-then-send drain.
+
+---
+
 ## 2026-09-04 — Open-gap audit: Meta match parity and pixel ordering
 
 - Two Meta defects, both invisible because the surface that would have shown
