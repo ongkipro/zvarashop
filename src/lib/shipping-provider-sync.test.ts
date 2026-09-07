@@ -375,3 +375,23 @@ test("RTS synchronization releases the order exactly once", async () => {
     globalThis.fetch = originalFetch;
   }
 });
+
+// A middle-form order legitimately carries no destination and no courier until
+// an operator completes it, so this branch is a normal operational state rather
+// than an error. Naming the four possible causes in one sentence sent the
+// operator to check settings, the warehouse and the order all at once.
+test("dispatch names the field that is actually missing", async () => {
+  const { buildMissingDispatchFields } = await import("./mengantar-dispatch.ts");
+  assert.deepEqual(
+    buildMissingDispatchFields({ apiKey: "", pickupAddressId: "p", destinationAreaId: "d", courierCode: "c" }),
+    ["kredensial Mengantar"],
+  );
+  assert.deepEqual(
+    buildMissingDispatchFields({ apiKey: "k", pickupAddressId: "p", destinationAreaId: "", courierCode: "" }),
+    ["kecamatan tujuan", "kurir"],
+  );
+  assert.deepEqual(
+    buildMissingDispatchFields({ apiKey: "k", pickupAddressId: "p", destinationAreaId: "d", courierCode: "c" }),
+    [],
+  );
+});

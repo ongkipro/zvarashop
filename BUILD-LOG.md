@@ -6,6 +6,48 @@ Author & Curator: **[ongki.pro](https://ongki.pro)**
 
 ---
 
+## 2026-09-08 — Kecamatan and weight screening
+
+Screened on request. Most of it came back clean, which is worth recording so the
+next reader does not re-open it.
+
+**Weight.** The quote reads `product_variants.weight_grams / 1000 * quantity`
+with a one-gram floor; dispatch recomputes the same figure from the same column
+through `MAX(0.001, …)`. The two agree, so a quoted rate and a declared parcel
+cannot diverge. `product-mutation.ts` already refuses a weight of zero or less
+at the save boundary. Dispatch takes one `order_items` row (`LIMIT 1`), and that
+is correct rather than a latent multi-item bug: all five insert paths write
+exactly one row per order, so a second row cannot exist. Not generalised — the
+data model does not have the case (YAGNI).
+
+**Two candidate defects investigated and cleared.** `recordAbandonedOrder`
+writes `unit_price = totalAmount`, which looked like the invoice reaching
+`product_value` and inflating the Meta Purchase value. It is not: on that path
+`totalAmount` is the variant price alone, since a lead has no shipping or COD
+fee yet. The real checkout writes `unit_price = variant.price` and keeps
+shipping and fees in `total_amount`. The goods-not-invoice invariant holds on
+every path.
+
+**Kecamatan.** Free text in `orderSubmitSchema`, which looked like it could
+produce an order no courier could ever accept. It cannot: `submit-order` calls
+`resolveEligibleShippingRates` first, which throws `DESTINATION_NOT_RESOLVED`
+on an empty `destination_id` and fails the whole submit with 422. The headless
+route enforces the same. `district` is a record; `destination_area_id` is the
+operative field and it is required.
+
+The middle form is the deliberate exception: it persists `city: ""`,
+`district: ""`, `shippingCost: 0` and no destination or courier, because an
+operator completes the address by phone afterwards. `/api/admin/orders/[id]`
+accepts `destination_area_id`, so the flow closes.
+
+**One fix.** That order's dispatch failed with "Kredensial Mengantar, pickup
+gudang, tujuan, atau kurir belum lengkap" — four causes with different owners in
+one sentence, sending the operator to check settings, the warehouse and the
+order at once. It now names what is actually missing, and the normal case for a
+middle-form order reads "kecamatan tujuan, kurir belum diisi".
+
+---
+
 ## 2026-09-08 — Why the outage took two days to notice
 
 - The Meta pipeline recovered completely: **4550 rows, all `sent`**, zero

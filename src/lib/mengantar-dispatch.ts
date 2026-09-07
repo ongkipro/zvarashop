@@ -121,6 +121,21 @@ async function recordDispatchError(
     .run();
 }
 
+
+export function buildMissingDispatchFields(input: {
+  apiKey: string;
+  pickupAddressId: string;
+  destinationAreaId: string;
+  courierCode: string;
+}): string[] {
+  return [
+    !input.apiKey && "kredensial Mengantar",
+    !input.pickupAddressId && "alamat pickup gudang",
+    !input.destinationAreaId && "kecamatan tujuan",
+    !input.courierCode && "kurir",
+  ].filter((value): value is string => typeof value === "string");
+}
+
 export async function dispatchOrderToMengantar(
   database: D1Database,
   locals: App.Locals,
@@ -200,14 +215,19 @@ export async function dispatchOrderToMengantar(
   const destinationAreaId = order.destination_area_id?.trim() || "";
   const courierCode = order.courier_code?.trim() || "";
   const config = (await getProviderConfig(database, locals)).mengantar;
-  if (
-    !config.apiKey ||
-    !pickupAddressId ||
-    !destinationAreaId ||
-    !courierCode
-  ) {
-    const error =
-      "Kredensial Mengantar, pickup gudang, tujuan, atau kurir belum lengkap.";
+  // Name what is actually missing. These four have different owners — a
+  // credential is a settings problem, a pickup address is a warehouse problem,
+  // and a missing destination or courier is this order's own, which is the
+  // normal state of a middle-form order until an operator completes it. One
+  // sentence covering all four told the operator to go and check everything.
+  const missing = buildMissingDispatchFields({
+    apiKey: config.apiKey,
+    pickupAddressId,
+    destinationAreaId,
+    courierCode,
+  });
+  if (missing.length) {
+    const error = `Dispatch Mengantar belum bisa jalan: ${missing.join(", ")} belum diisi.`;
     await recordDispatchError(database, order.id, error);
     return { status: "failed", error };
   }
