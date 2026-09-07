@@ -20,6 +20,16 @@ All ten structural gaps in `ARCHITECTURE.md` §10 are closed. This file now owns
 | AD3 | Low | **Reduced 2026-09-04.** The SKU-as-MPN half of this row was already stale: `catalog-feed.ts` had stopped emitting `g:mpn` and now also declares `<g:identifier_exists>no</g:identifier_exists>`, which is the truthful statement for a schema with no GTIN or MPN column — a branded item carrying neither previously read to Google as *missing* data. `catalog-feed.test.ts` asserts the pairing and that the merchant-editable variant `sku` reaches neither feed. What remains is the out-of-stock clause, and it is blocked by the data rather than by effort: price lives only on `product_variants`, so a product with no sellable variant has no truthful price to publish and retaining it as a stable `out_of_stock` item would require inventing one. `getPublicProductValidationError` already refuses to publish an active product without a valid priced variant, so the case is prevented upstream. | Either give products a price of their own, or accept that a variant-less product legitimately leaves the feed and close this row. |
 | SCR1 | Low | The 2026-08-22 full-system screening proved the QRIS create path against AutoLaris but **not a settled payment**: capturing a paid `POST /api/h2h/advice` response means paying a real virtual account, so the confirmation path (`/thanks` replacement, paid-state gating, reconciliation marking an order paid) remains proven only by fixtures and the earlier manual-reconciliation browser smoke. It also did not exercise Mengantar dispatch (`POST /order`), which creates a real shipment and spends wallet balance, nor the Meta/Google outbound legs, which were verified by hand on 2026-08-19. | Prove the settled path once, deliberately, on a store that is ready to pay a small real amount, and record the observed `advice` response so `inquirePayment` can classify it. Dispatch stays a manual, operator-initiated action by design (A11) and should be screened against a provider sandbox if one is ever published. |
 
+**S1's browser evidence was completed on 2026-09-08**, closing the one change
+from this whole effort that had shipped without it. A local runtime was given a
+throwaway `AUTH_SECRET` through `process.env` — no secret file was read or
+written — and the rendered form was driven end to end: the three fields appear
+with their help text; `#fff` is refused by the input's own `pattern` before a
+request is made and again by the API with a specific message rather than being
+silently replaced by the default; and a saved `#0A7C3F` / `en-US` /
+`Verifikasi Admin` reached `<meta name="theme-color">`, `<html lang>`, JSON-LD
+`inLanguage` and the admin `<title>` on the next request, with no rebuild.
+
 **DOC1** was closed on 2026-09-04 by re-extracting `DESIGN-SYSTEM.md` from the
 tree rather than restamping it. The drift was wider than this row recorded: §1.1
 documented `#F8F7F4` as the storefront canvas, a value with **zero** occurrences

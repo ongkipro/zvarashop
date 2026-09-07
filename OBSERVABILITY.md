@@ -1,6 +1,6 @@
 # Observability — ZvaraShop
 
-> Verified against disk: 2026-09-02 @ `a1509c8` + AutoLaris digital-order reconciliation working tree
+> Verified against disk: 2026-09-08 @ `79d80de` + alerting-reachability working tree
 
 This document describes what an operator can observe and what ZvaraShop alerts
 on for its one Worker. External uptime probing remains a separate decision.
@@ -74,6 +74,36 @@ These are the paths where the system degrades without telling anyone. Each is a 
 The pattern across all of them: the system is **correctly defensive** and **completely silent**. Defensive degradation without telemetry converts an outage into a slow-burning content or revenue bug.
 
 ---
+
+## 3a. Alerting is only as real as its channel
+
+The scheduled Worker evaluates every health signal hourly and sends firing and
+recovery events to `OPS_ALERT_WEBHOOK_URL`. When that variable is unset the
+evaluation still runs, the transitions still compute, and the results go
+**nowhere** — the admin dashboard becomes the only channel, so somebody has to
+think to look.
+
+That is what happened on 2026-09-03. `capi-outbox` turned degraded within the
+hour of the Meta outage starting and the store ran two days before anyone
+opened the panel. The system knew the entire time; it had no way to say so.
+`wrangler secret list` on the reference install confirmed the variable had
+never been set.
+
+The dashboard now carries an `alerting` signal of its own, reported as
+`unknown` with reason `not-configured` when no webhook is set. Deliberately not
+`degraded`: a store may choose to run without webhooks, and §1's own rule is
+that colouring a deliberate choice red produces an alarm nobody trusts. Amber
+with an explicit sentence — "tidak ada peringatan yang dikirim ke mana pun, dan
+halaman ini satu-satunya cara mengetahui ada masalah" — says the thing that
+matters without crying wolf.
+
+An alerting system nobody wired is worse than none, because it creates
+confidence that something is watching. Setting the variable is a one-line
+operator action and is the highest-value change available to this install:
+
+```bash
+npx wrangler secret put OPS_ALERT_WEBHOOK_URL   # production action, needs approval
+```
 
 ## 4. What to enable first
 

@@ -5,6 +5,7 @@ import {
   type CapiDeliveryWindow,
   type CapiOutboxDepth,
 } from "./capi-outbox.ts";
+import { getEnvValue, getRuntimeEnv } from "./env.ts";
 import { getSchemaVersionStatus } from "./schema-version.ts";
 import { CMS_VERSION } from "./version.ts";
 import {
@@ -12,6 +13,34 @@ import {
   readGoogleAdsOutboxDepth,
   type GoogleAdsOutboxDepth,
 } from "./google-ads-offline.ts";
+
+/**
+ * Whether anything can actually tell the operator.
+ *
+ * The scheduled Worker evaluates every signal above hourly and sends firing and
+ * recovery events to `OPS_ALERT_WEBHOOK_URL`. When that is unset the evaluation
+ * still runs and the transitions still compute — they simply go nowhere, and
+ * the dashboard becomes the only channel, which means somebody has to think to
+ * look.
+ *
+ * That is not hypothetical. The Meta outage of 2026-09-03 turned `capi-outbox`
+ * degraded within the hour and ran for two days before anyone opened the panel.
+ * The system knew the whole time and had no way to say so.
+ *
+ * Reported as `unknown`, not `degraded`. A store may legitimately decide it
+ * does not want webhooks, and this module's own rule is that colouring a
+ * deliberate choice red produces an alarm nobody trusts. Amber with an explicit
+ * reason says the thing that matters — nothing will be sent — without crying
+ * wolf on every refresh.
+ */
+export function classifyAlerting(
+  webhookConfigured: boolean,
+  now: number,
+): HealthSignal {
+  return webhookConfigured
+    ? signal("alerting", "healthy", "configured", null, now)
+    : signal("alerting", "unknown", "not-configured", null, now);
+}
 
 /**
  * Operational health for `/admin`.
@@ -41,7 +70,8 @@ export type HealthSignalId =
   | "meta-capi"
   | "google-ads-outbox"
   | "mengantar"
-  | "autolaris";
+  | "autolaris"
+  | "alerting";
 
 export type HealthSignal = {
   id: HealthSignalId;
@@ -391,6 +421,10 @@ export async function collectOperationalHealth(
     classifyGoogleAdsOutbox(googleAdsDepth, now),
     classifyMengantar(mengantar, now),
     classifyAutoLaris(autolaris, now),
+    classifyAlerting(
+      Boolean(getEnvValue("OPS_ALERT_WEBHOOK_URL", getRuntimeEnv(locals))?.trim()),
+      now,
+    ),
   ];
 
   return {

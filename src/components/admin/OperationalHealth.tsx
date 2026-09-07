@@ -22,6 +22,7 @@ const SIGNAL_TITLES: Record<HealthSignal["id"], string> = {
   "google-ads-outbox": "Antrean Google Ads offline",
   mengantar: "Kontak Mengantar terakhir",
   autolaris: "AutoLaris Create Order & verifikasi",
+  alerting: "Saluran peringatan",
 };
 
 const REASONS: Record<string, string> = {
@@ -52,6 +53,10 @@ const REASONS: Record<string, string> = {
   "awaiting-first-manual-confirmation":
     "Create Order diterima AutoLaris; belum ada pembayaran yang dikonfirmasi manual.",
   "manually-confirmed": "Pembayaran terakhir dikonfirmasi manual dengan audit operator.",
+  // alerting
+  configured: "Peringatan dikirim ke webhook operasional.",
+  "not-configured":
+    "OPS_ALERT_WEBHOOK_URL belum diatur — tidak ada peringatan yang dikirim ke mana pun, dan halaman ini satu-satunya cara mengetahui ada masalah.",
 };
 
 const STATE_LABEL: Record<HealthState, string> = {
@@ -196,13 +201,19 @@ export default function OperationalHealth() {
                       </p>
                     </div>
                     <div className="flex shrink-0 items-center gap-3">
-                      <span className="text-right text-[11px] text-slate-500">
-                        {ageLabel(signal)}
-                        <br />
-                        <span className="font-medium text-slate-700">
-                          {formatAge(signal.ageMinutes)}
+                      {/* Alerting reports a configuration, not an event, so it
+                          has no timestamp — and "Terakhir sukses —" beside it
+                          reads as a missing measurement rather than an absent
+                          one. */}
+                      {signal.id !== "alerting" && (
+                        <span className="text-right text-[11px] text-slate-500">
+                          {ageLabel(signal)}
+                          <br />
+                          <span className="font-medium text-slate-700">
+                            {formatAge(signal.ageMinutes)}
+                          </span>
                         </span>
-                      </span>
+                      )}
                       <span
                         className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-medium ${STATE_TONE[signal.state]}`}
                       >

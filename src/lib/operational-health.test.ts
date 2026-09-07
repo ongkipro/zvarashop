@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFileSync } from "node:fs";
 import {
+  classifyAlerting,
   classifyAutoLaris,
   classifyCapiDelivery,
   classifyCapiOutbox,
@@ -284,4 +286,38 @@ test("a backlog inside its backoff is draining, not stalled", () => {
   );
   assert.equal(signal.state, "healthy");
   assert.equal(signal.reason, "draining");
+});
+
+// The Meta outage of 2026-09-03 turned `capi-outbox` degraded within the hour
+// and ran two days before anyone opened the panel. `OPS_ALERT_WEBHOOK_URL` was
+// never set, so every transition the scheduled Worker computed went nowhere.
+// An alerting system nobody wired is worse than none: it creates confidence
+// that something is watching.
+
+test("an unwired alert channel is reported, in amber rather than red", () => {
+  const signal = classifyAlerting(false, Date.now());
+  assert.equal(signal.id, "alerting");
+  assert.equal(signal.reason, "not-configured");
+  // Deliberately not `degraded`. A store may choose to run without webhooks,
+  // and this module's own rule is that colouring a deliberate choice red
+  // produces an alarm nobody trusts.
+  assert.equal(signal.state, "unknown");
+});
+
+test("a wired alert channel reads healthy", () => {
+  const signal = classifyAlerting(true, Date.now());
+  assert.equal(signal.state, "healthy");
+  assert.equal(signal.reason, "configured");
+});
+
+test("the panel explains both alerting states", () => {
+  const source = readFileSync(
+    new URL("../components/admin/OperationalHealth.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(source, /alerting: "Saluran peringatan"/);
+  for (const reason of ["configured", '"not-configured"']) {
+    assert.ok(source.includes(reason), `panel must describe the ${reason} state`);
+  }
+  assert.match(source, /OPS_ALERT_WEBHOOK_URL belum diatur/);
 });

@@ -6,6 +6,43 @@ Author & Curator: **[ongki.pro](https://ongki.pro)**
 
 ---
 
+## 2026-09-08 — Why the outage took two days to notice
+
+- The Meta pipeline recovered completely: **4550 rows, all `sent`**, zero
+  failed, zero pending, and all 130 rows inside the incident window delivered.
+  Nothing aged out of Meta's seven-day window.
+
+- The remaining question was why a two-day outage needed a human to stumble on
+  it. `wrangler secret list` answered it: **`OPS_ALERT_WEBHOOK_URL` has never
+  been set on this install.** The scheduled Worker evaluated `capi-outbox` as
+  degraded within the hour of 12:14 on 3 September and every hour after, and
+  each of those evaluations went nowhere. The dashboard was the only channel.
+
+- An alerting system nobody wired is worse than none: it creates confidence
+  that something is watching. The dashboard now carries an `alerting` signal
+  reporting its own reachability. Deliberately `unknown` rather than
+  `degraded` — a store may choose to run without webhooks, and this module's
+  own rule is that colouring a deliberate choice red produces an alarm nobody
+  trusts. The copy carries the weight instead. Its age row is suppressed,
+  because "Terakhir sukses —" beside a configuration reads as a missing
+  measurement rather than an absent one.
+
+- **S1's browser evidence is finally in**, closing the one change from this
+  effort that shipped without it. The blocker had been a local runtime with no
+  session-signing secret; `getEnvValue` falls through to `process.env`, so a
+  throwaway value passed on the dev server's command line was enough — no
+  secret file read or written. The form renders its three fields; `#fff` is
+  refused by the input's `pattern` before any request and again by the API with
+  a specific message rather than being silently replaced by the resolver's
+  default; and `#0A7C3F` / `en-US` / `Verifikasi Admin` reached
+  `<meta name="theme-color">`, `<html lang>`, JSON-LD `inLanguage` and the admin
+  `<title>` on the next request with no rebuild.
+
+- Gates: 664 tests (663 passed, 1 intentional skip), 431 files checked with zero
+  diagnostics, build passed, 29 documents validated.
+
+---
+
 ## 2026-09-04 — Root cause: a Business ID in the Pixel ID field
 
 - The outage was never a token, a permission, or a stalled drain. `GET` on the

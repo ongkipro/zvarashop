@@ -195,6 +195,24 @@ token and pixel live with a probe event and refuses to requeue anything if Meta
 rejects it. Pressing it before the pixel/permission is fixed cannot damage
 anything and will simply decline.
 
+## 2026-09-08
+
+The Meta incident is fully closed. Production D1 shows **4550 outbox rows, all
+`sent`** — zero failed, zero pending — including every row from the incident
+window. Nothing aged out.
+
+Two things changed since:
+
+- **`OPS_ALERT_WEBHOOK_URL` has never been set on this install** (`wrangler
+  secret list`), which is why a two-day outage needed a human to stumble on it:
+  the hourly evaluation ran the whole time and had nowhere to send its result.
+  The dashboard now reports its own alerting reachability as an `alerting`
+  signal, amber with an explicit sentence rather than red. Setting the variable
+  is the highest-value operator action available here and remains a production
+  action needing approval — see `OBSERVABILITY.md` §3a.
+- **S1 now has browser evidence**, the last change from this effort that lacked
+  it. Details in `UNIMPLEMENTED_SPECS.md`.
+
 ## Deployment 2026-09-04 (second)
 
 `install/zvarashop` at `285ea4a` deployed as Worker version
