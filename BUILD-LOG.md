@@ -6,6 +6,46 @@ Author & Curator: **[ongki.pro](https://ongki.pro)**
 
 ---
 
+## 2026-09-08 — Form logic screening: a honeypot that named itself
+
+- The three public checkout endpoints — `submit-order`, `submit-middle-order`,
+  `record-abandoned-order` — answered a filled decoy with
+  `code: "HONEYPOT_TRIGGERED"`. That tells an anonymous caller exactly which
+  control it tripped, so a bot filling every field learns to leave that one
+  empty and never trips it again. A honeypot that names itself is not a
+  honeypot. All three now answer exactly like a generic invalid payload
+  (`VALIDATION_ERROR`), and log `checkout-honeypot-triggered` server-side, where
+  the hit stays countable by the operator and unreadable by the attacker.
+
+- **`/api/v1/checkout` deliberately keeps the explicit code.** Its caller is
+  authenticated by API key and origin allowlist — a partner debugging their own
+  integration, not a bot probing — and `HONEYPOT_TRIGGERED` is a published
+  contract in `STOREFRONT_INTEGRATION.md`'s guard-stack list. Changing it there
+  would break a partner's error handling to defend against a caller who has
+  already authenticated.
+
+- A false start worth recording: the first search for the decoy looked for an
+  input named `website` or `honeypot`, found none, and nearly became a finding
+  that the honeypot was never rendered. It is rendered — as
+  `contact_url_confirm`, with `tabindex="-1"` and `autocomplete="off"`, mapped
+  to `website` by the form script. The decoy's whole point is not to be named
+  after itself.
+
+- The rest of the form screening came back clean. All three public endpoints
+  carry both a rate limit and the honeypot. Price is server-authoritative:
+  `submit-order` re-quotes shipping through `resolveEligibleShippingRates` and
+  rejects a changed rate with `SHIPPING_QUOTE_CHANGED`, and `unit_price` comes
+  from the D1 variant rather than the browser. `quantity` is bounded 1-100 by
+  the schema. One low-severity note left alone: `city` is read straight from the
+  body with a 120-character slice rather than through `orderSubmitSchema` — it
+  is display data and is escaped at render, but it is the one checkout field
+  that bypasses the schema.
+
+- Gates: 671 tests (670 passed, 1 intentional skip), 431 files checked with zero
+  diagnostics, build passed.
+
+---
+
 ## 2026-09-08 — Catalog feed fields are clamped to what the platforms accept
 
 - Google Merchant Center caps `title` at 150 characters and `description` at

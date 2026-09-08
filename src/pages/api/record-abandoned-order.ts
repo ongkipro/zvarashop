@@ -30,8 +30,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
 
   if (String(body.website || body.honeypot || '').trim()) {
-    return jsonError('Request tidak valid.', 400, {
-      code: 'HONEYPOT_TRIGGERED',
+    // Answered exactly like a generic invalid payload — naming the control that
+    // caught it tells a bot which field to leave empty next time.
+    console.warn('checkout-honeypot-triggered', { path: 'record-abandoned-order' });
+    return jsonError('Payload tidak valid.', 400, {
+      code: 'VALIDATION_ERROR',
     });
   }
 
