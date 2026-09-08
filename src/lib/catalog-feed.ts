@@ -109,6 +109,44 @@ export function defaultCatalogContentId(product: {
   return catalogProductIdOrNull(product.productId) ?? undefined;
 }
 
+/**
+ * Platform field limits, and why they are enforced here rather than at the
+ * admin boundary.
+ *
+ * Google Merchant Center caps `title` at 150 characters and `description` at
+ * 5000; Meta's catalog caps them at 200 and 9999. Exceeding a cap does not
+ * truncate the field — it **disapproves the item**, silently, for one product
+ * at a time.
+ *
+ * `product-mutation.ts` accepts a title of up to 160 characters, so a title of
+ * 151-160 saved cleanly and then vanished from the Google feed's approved set.
+ * Raising the admin cap's ceiling is the wrong fix: the merchant's own record
+ * is not Google's to constrain, and shortening it would lose data the
+ * storefront legitimately shows. The feed is where a platform's limit applies,
+ * so the feed is where it is met.
+ *
+ * Truncation is deliberate and is strictly better than the alternative: a
+ * shortened title is listed, an over-length one is not listed at all.
+ */
+const GOOGLE_TITLE_MAX = 150;
+const GOOGLE_DESCRIPTION_MAX = 5000;
+const META_TITLE_MAX = 200;
+const META_DESCRIPTION_MAX = 9999;
+
+/** Trims on a word boundary where one is near enough to matter. */
+export function clampFeedText(value: string, max: number): string {
+  const text = value.trim();
+  if (text.length <= max) return text;
+  const cut = text.slice(0, max);
+  const lastSpace = cut.lastIndexOf(" ");
+  // `lastIndexOf` answers -1 when there is no space at all, and -1 clears any
+  // negative threshold — which silently dropped the final character of every
+  // unbroken value. The boundary trim only applies when a real space is close
+  // enough that cutting there costs little.
+  const useBoundary = lastSpace > 0 && lastSpace > max - 20;
+  return (useBoundary ? cut.slice(0, lastSpace) : cut).trimEnd();
+}
+
 export function generateGoogleCatalogXml(
   products: CatalogProduct[],
   siteOrigin: string,
@@ -147,8 +185,8 @@ export function generateGoogleCatalogXml(
     itemsXml += `
     <item>
       <g:id>${escapeXml(itemId)}</g:id>
-      <g:title>${escapeXml(titleText)}</g:title>
-      <g:description>${escapeXml(itemDescription)}</g:description>
+      <g:title>${escapeXml(clampFeedText(titleText, GOOGLE_TITLE_MAX))}</g:title>
+      <g:description>${escapeXml(clampFeedText(itemDescription, GOOGLE_DESCRIPTION_MAX))}</g:description>
       <g:link>${escapeXml(productLink)}</g:link>
       <g:image_link>${escapeXml(imageLink)}</g:image_link>
       <g:availability>in_stock</g:availability>
@@ -210,8 +248,8 @@ export function generateMetaCatalogXml(
     itemsXml += `
     <item>
       <g:id>${escapeXml(itemId)}</g:id>
-      <g:title>${escapeXml(titleText)}</g:title>
-      <g:description>${escapeXml(itemDescription)}</g:description>
+      <g:title>${escapeXml(clampFeedText(titleText, META_TITLE_MAX))}</g:title>
+      <g:description>${escapeXml(clampFeedText(itemDescription, META_DESCRIPTION_MAX))}</g:description>
       <g:link>${escapeXml(productLink)}</g:link>
       <g:image_link>${escapeXml(imageLink)}</g:image_link>
       <g:availability>in_stock</g:availability>

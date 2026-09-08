@@ -6,6 +6,7 @@ import {
   generateGoogleCatalogXml,
   generateMetaCatalogXml,
   type CatalogProduct,
+  clampFeedText,
 } from "./catalog-feed.ts";
 
 test("catalog identity is the numeric Product ID with a five-digit minimum", () => {
@@ -170,4 +171,53 @@ test("a feed omits the ad category it cannot determine", () => {
     "https://toko-uji.example",
   );
   assert.ok(known.includes("<g:google_product_category>"));
+});
+
+// Google Merchant Center caps title at 150 and description at 5000; Meta caps
+// them at 200 and 9999. Exceeding a cap does not truncate the field — it
+// disapproves the item, silently, one product at a time. `product-mutation.ts`
+// accepts a 160-character title, so a title of 151-160 saved cleanly and then
+// vanished from Google's approved set.
+
+test("a title Google would reject is trimmed rather than disapproved", () => {
+  const longTitle = "Senter LED Mini Super Terang Tahan Air ".repeat(6).trim(); // > 150
+  assert.ok(longTitle.length > 150, "fixture must exceed Google's cap");
+  const product: CatalogProduct = {
+    productId: 14005,
+    slug: "judul-panjang",
+    productName: longTitle,
+    heroImage: "/images/hero.jpg",
+    variants: [{ id: 1, label: "Satuan", price: 89000 }],
+  };
+
+  const google = generateGoogleCatalogXml([product], "https://toko-uji.example");
+  const googleTitle = /<g:title>([^<]*)<\/g:title>/.exec(google)?.[1] ?? "";
+  assert.ok(googleTitle.length <= 150, `Google title was ${googleTitle.length}`);
+  assert.ok(googleTitle.length > 0, "the item must still be listed");
+
+  // Meta's cap is higher, so the same title survives further there.
+  const meta = generateMetaCatalogXml([product], "https://toko-uji.example");
+  const metaTitle = /<g:title>([^<]*)<\/g:title>/.exec(meta)?.[1] ?? "";
+  assert.ok(metaTitle.length <= 200, `Meta title was ${metaTitle.length}`);
+  assert.ok(metaTitle.length >= googleTitle.length, "Meta allows at least as much as Google");
+});
+
+test("a title inside the cap is published byte-for-byte", () => {
+  const product: CatalogProduct = {
+    productId: 14006,
+    slug: "judul-pendek",
+    productName: "Senter LED Mini",
+    heroImage: "/images/hero.jpg",
+    variants: [{ id: 1, label: "Satuan", price: 89000 }],
+  };
+  const xml = generateGoogleCatalogXml([product], "https://toko-uji.example");
+  assert.match(xml, /<g:title>Senter LED Mini<\/g:title>/);
+});
+
+test("clampFeedText trims on a word boundary when one is close", () => {
+  assert.equal(clampFeedText("satu dua tiga empat", 100), "satu dua tiga empat");
+  // Cuts at the space rather than mid-word.
+  assert.equal(clampFeedText("satu dua tiga empat", 12), "satu dua");
+  // No nearby space: takes the hard cut rather than losing most of the value.
+  assert.equal(clampFeedText("a".repeat(40), 10), "a".repeat(10));
 });

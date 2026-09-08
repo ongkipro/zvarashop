@@ -6,6 +6,42 @@ Author & Curator: **[ongki.pro](https://ongki.pro)**
 
 ---
 
+## 2026-09-08 — Catalog feed fields are clamped to what the platforms accept
+
+- Google Merchant Center caps `title` at 150 characters and `description` at
+  5000; Meta's catalog caps them at 200 and 9999. Exceeding a cap does not
+  truncate the field — it **disapproves the item**, silently, one product at a
+  time, and nothing in this system would have shown it.
+
+- `product-mutation.ts` accepts a title of up to 160 characters. A title of
+  151-160 therefore saved cleanly, rendered correctly on the storefront, and
+  vanished from Google's approved set. Ten characters wide, and invisible from
+  this side.
+
+- The clamp is in the feed rather than at the admin boundary, deliberately: the
+  merchant's own record is not Google's to constrain, and shortening it there
+  would lose data the storefront legitimately shows. A platform's limit belongs
+  where that platform reads. Truncation is strictly better than the
+  alternative — a shortened title is listed, an over-length one is not listed at
+  all.
+
+- `clampFeedText` trims on a word boundary when one is close. Its first version
+  had a bug of its own, caught by its own test: `lastIndexOf` answers `-1` when
+  there is no space, and `-1` clears any negative threshold, so every unbroken
+  value silently lost its final character.
+
+- Google Ads was audited in the same pass and came back clean across all three
+  repositories: the browser conversion sends `transaction_id` = order number and
+  the offline upload sends the same value as `orderId`, so Google deduplicates
+  them; and all three call `gtag('set', 'user_data', …)` separately ahead of the
+  conversion, which is the documented enhanced-conversions shape rather than the
+  nested form Google ignores.
+
+- Gates: 668 tests (667 passed, 1 intentional skip), 431 files checked with zero
+  diagnostics, build passed.
+
+---
+
 ## 2026-09-08 — Kecamatan and weight screening
 
 Screened on request. Most of it came back clean, which is worth recording so the
