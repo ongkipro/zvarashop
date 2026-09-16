@@ -1,0 +1,470 @@
+---
+/*
+ * Native Astro landing page — GIA Serbuk Anti Tersumbat 110g.
+ * Clean, Direct-Response Indonesian Commerce Funnel.
+ * Authentic product assets with zero emojis and zero AI-slop.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import MetaLandingTracker from '../components/storefront/tracking/MetaLandingTracker.astro';
+import GeoIpResolvedForm from '../components/storefront/forms/GeoIpResolvedForm.astro';
+import SocialProofToast from '../components/storefront/shared/SocialProofToast.astro';
+import { getStorefrontProduct, getStorefrontProducts } from '../lib/catalog';
+import { nativeLandingCanonicalPath } from '../lib/landing-pages';
+import { defaultCatalogContentId } from '../lib/catalog-feed';
+import '../styles/form-hybrid.css';
+import '../styles/landing-pages/landing.css';
+import '../styles/landing-pages/gia-anti-sumbat.css';
+
+export const prerender = false;
+
+const SLUG = 'gia-anti-sumbat';
+const PRODUCT_SLUG = 'pemersih-saluran-tersumbat-110ml';
+
+// Product resolution with strict DB fallback
+let product = await getStorefrontProduct(Astro.locals, PRODUCT_SLUG);
+if (!product) {
+  const allProducts = await getStorefrontProducts(Astro.locals);
+  product = allProducts.find((p) => p.slug.includes('saluran') || p.slug.includes('sumbat')) ?? allProducts[0] ?? null;
+}
+if (!product) return Astro.rewrite('/404');
+
+const canonical = `${Astro.locals.tenant.siteUrl}${await nativeLandingCanonicalPath(Astro.locals, SLUG)}`;
+const seoTitle = 'GIA Serbuk Anti Tersumbat 110g — Melancarkan Saluran Pipa Mampet';
+const seoDescription =
+  'Serbuk pembersih saluran pipa mampet untuk melarutkan lemak makanan, rambut, dan kotoran organik pada wastafel, floor drain, dan kloset. Aman untuk pipa PVC. Bisa COD.';
+
+const cheapest = [...product.variants].sort((a, b) => a.price - b.price)[0] ?? null;
+const price = cheapest?.price ?? product.price;
+const comparePrice = cheapest?.comparePrice ?? Math.round(price * 1.8);
+---
+
+<BaseLayout
+  title={seoTitle}
+  description={seoDescription}
+  image="/images/landing/gia-anti-sumbat/hero-giana-overclaim.webp"
+  preloadImages="/images/landing/gia-anti-sumbat/hero-giana-overclaim.webp"
+  canonical={canonical}
+  hideHeader={true}
+  hideFooter={true}
+>
+  <main class="mx-auto min-h-screen w-full max-w-[480px] overflow-x-hidden bg-white pb-8 font-sans text-slate-900 shadow-xl antialiased selection:bg-[#1E3A8A] selection:text-white">
+    <MetaLandingTracker
+      slug={SLUG}
+      contentId={defaultCatalogContentId(product)}
+      contentName={product.contentName}
+      price={price}
+    />
+
+    <!-- ═══ 1. TOP ANNOUNCEMENT BAR ═══ -->
+    <header class="flex items-center justify-between border-b border-slate-800 bg-[#0A2540] px-3.5 py-2 text-white shadow-xs">
+      <div class="flex items-center gap-1.5 text-[11.5px] sm:text-[12px] font-bold tracking-wide">
+        <span class="relative flex h-2 w-2 shrink-0">
+          <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75"></span>
+          <span class="relative inline-flex h-2 w-2 rounded-full bg-red-500"></span>
+        </span>
+        <span class="text-amber-300 uppercase">Promo Terbatas:</span>
+        <span class="text-white font-black">Mulai Rp{Math.round(price).toLocaleString('id-ID')}</span>
+      </div>
+      <div class="shrink-0 rounded-full border border-white/20 bg-white/15 px-2.5 py-0.5 text-[9.5px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-100 backdrop-blur-xs">
+        Bisa COD
+      </div>
+    </header>
+
+    <!-- ═══ 2. HERO SECTION ═══ -->
+    <section id="landing-hero" class="relative bg-white pt-5 pb-2 text-left">
+      <div class="px-4 sm:px-5">
+        <!-- Rating & Social Proof Badges -->
+        <div class="mb-2.5 flex items-center gap-2">
+          <div class="flex items-center gap-0.5" role="img" aria-label="Rating 4.9 dari 5 bintang">
+            <svg class="h-4 w-4 fill-amber-400 text-amber-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+            <svg class="h-4 w-4 fill-amber-400 text-amber-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+            <svg class="h-4 w-4 fill-amber-400 text-amber-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+            <svg class="h-4 w-4 fill-amber-400 text-amber-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+            <svg class="h-4 w-4 fill-amber-400 text-amber-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+          </div>
+          <p class="text-[11.5px] font-semibold text-slate-600">
+            4.9 / 5.0 <span class="mx-1 text-slate-300">•</span> 4.800+ Botol Terkirim
+          </p>
+        </div>
+
+        <!-- Clean Headline -->
+        <h1 class="text-[clamp(19.5px,5.8vw,23.5px)] font-black leading-[1.28] tracking-tight text-slate-900">
+          Saluran Air Mampet &amp; Bau Tak Sedap? <span class="text-[#1E3A8A]">Hancurkan Lemak &amp; Rambut Seketika Tanpa Bongkar Pipa</span>
+        </h1>
+
+        <p class="mt-2.5 text-[13.5px] leading-relaxed text-slate-600">
+          Wastafel cuci piring macet, lubang kamar mandi menggenang, atau kloset WC mampet? <strong class="font-bold text-slate-900">GIA Serbuk Anti Tersumbat 110g</strong> bekerja aktif melarutkan sisa makanan, endapan lemak beku, dan gumpalan rambut hingga saluran kembali bersih dan lancar.
+        </p>
+      </div>
+
+      <!-- ═══ AUTHENTIC GIANA OVERCLAIM HERO IMAGE ═══ -->
+      <div class="relative mx-auto mt-4 w-full overflow-hidden border-y border-slate-200 bg-slate-900">
+        <img
+          src="/images/landing/gia-anti-sumbat/hero-giana-overclaim.webp"
+          alt="GIANA Serbuk Anti Sumbat 110g melarutkan lemak dan rambut seketika di dalam pipa"
+          class="aspect-square w-full object-cover block"
+          fetchpriority="high"
+          loading="eager"
+          decoding="async"
+          width="1024"
+          height="1024"
+        />
+        <div class="border-t border-slate-800 bg-[#0A2540] px-3.5 py-2 text-center text-white">
+          <p class="text-[11px] sm:text-[12px] font-semibold text-cyan-200 leading-snug">
+            Formula Kristal Aktif GIANA: Melumatkan Lemak &amp; Sumbatan Pipa Seketika
+          </p>
+        </div>
+      </div>
+
+      <!-- Trust Badges (Clean Mobile Strip) -->
+      <div class="grid grid-cols-3 divide-x divide-slate-200 border-b border-slate-200 bg-white py-3 px-2 text-center">
+        <div class="flex flex-col items-center justify-center px-1">
+          <svg class="h-4.5 w-4.5 text-[#1E3A8A]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h2"></path></svg>
+          <span class="mt-1 text-[11px] font-bold text-slate-900">Bisa COD</span>
+          <p class="text-[9.5px] text-slate-500 leading-tight">Bayar di Tempat</p>
+        </div>
+        <div class="flex flex-col items-center justify-center px-1">
+          <svg class="h-4.5 w-4.5 text-[#1E3A8A]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+          <span class="mt-1 text-[11px] font-bold text-slate-900">Aman Pipa PVC</span>
+          <p class="text-[9.5px] text-slate-500 leading-tight">Tidak Mengikis</p>
+        </div>
+        <div class="flex flex-col items-center justify-center px-1">
+          <svg class="h-4.5 w-4.5 text-[#1E3A8A]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <span class="mt-1 text-[11px] font-bold text-slate-900">Reaksi Cepat</span>
+          <p class="text-[9.5px] text-slate-500 leading-tight">15-30 Menit</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 3. PENYEBAB & AREA YANG DAPAT DITANGANI ═══ -->
+    <section class="border-t border-slate-200 bg-slate-50/70 px-4 sm:px-5 py-6 sm:py-8 text-left">
+      <div class="mb-3.5">
+        <span class="text-[10.5px] font-bold uppercase tracking-wider text-[#1E3A8A]">Lingkup Penggunaan</span>
+        <h2 class="mt-1 text-[clamp(18px,5vw,21px)] font-extrabold leading-snug tracking-tight text-slate-900">
+          Efektif Untuk Berbagai Area Saluran Pembuangan
+        </h2>
+        <p class="mt-1 text-[13px] text-slate-600">
+          Berdasarkan panduan resmi produk, serbuk GIA dirancang untuk melancarkan saluran:
+        </p>
+      </div>
+
+      <!-- Overclaim Efficacy Graphic Asset -->
+      <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xs">
+        <img
+          src="/images/landing/gia-anti-sumbat/real-product-2.webp"
+          alt="Leburkan semua jenis sumbatan pipa: Lemak & Minyak, Gumpalan Rambut, Sisa Makanan, Kerak Sabun & Tisu dengan GIA Serbuk 110g"
+          class="aspect-square w-full rounded-xl object-cover block"
+          loading="lazy"
+          decoding="async"
+          width="1024"
+          height="1024"
+        />
+      </div>
+
+      <div class="mt-3.5 grid grid-cols-2 gap-2 sm:gap-2.5">
+        <div class="rounded-xl border border-slate-200/90 bg-white p-2.5 sm:p-3 shadow-xs">
+          <span class="flex items-center gap-1.5 text-[11.5px] sm:text-[12.5px] font-bold text-slate-900 mb-1.5">
+            <span class="h-1.5 w-1.5 rounded-full bg-[#1E3A8A] shrink-0"></span>
+            Saluran Cocok:
+          </span>
+          <ul class="space-y-1 text-[11px] sm:text-[12px] text-slate-600 leading-snug">
+            <li class="flex items-center gap-1"><span class="text-blue-700 font-bold">✓</span> Kloset WC &amp; Septic Tank</li>
+            <li class="flex items-center gap-1"><span class="text-blue-700 font-bold">✓</span> Wastafel Cuci Tangan</li>
+            <li class="flex items-center gap-1"><span class="text-blue-700 font-bold">✓</span> Bak Cuci Piring Dapur</li>
+            <li class="flex items-center gap-1"><span class="text-blue-700 font-bold">✓</span> Floor Drain Kamar Mandi</li>
+            <li class="flex items-center gap-1"><span class="text-blue-700 font-bold">✓</span> Selang Spiral Pembuangan</li>
+          </ul>
+        </div>
+        <div class="rounded-xl border border-slate-200/90 bg-white p-2.5 sm:p-3 shadow-xs">
+          <span class="flex items-center gap-1.5 text-[11.5px] sm:text-[12.5px] font-bold text-slate-900 mb-1.5">
+            <span class="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0"></span>
+            Material Larut:
+          </span>
+          <ul class="space-y-1 text-[11px] sm:text-[12px] text-slate-600 leading-snug">
+            <li class="flex items-center gap-1"><span class="text-amber-600 font-bold">✓</span> Lemak &amp; Minyak Beku</li>
+            <li class="flex items-center gap-1"><span class="text-amber-600 font-bold">✓</span> Gumpalan Rambut</li>
+            <li class="flex items-center gap-1"><span class="text-amber-600 font-bold">✓</span> Kerak Busa Sabun</li>
+            <li class="flex items-center gap-1"><span class="text-amber-600 font-bold">✓</span> Kertas Tisu / Pembalut</li>
+            <li class="flex items-center gap-1"><span class="text-amber-600 font-bold">✓</span> Sisa Sayur &amp; Makanan</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 4. CARA KERJA & APLIKASI NYATA ═══ -->
+    <section class="border-t border-slate-200 bg-white px-4 sm:px-5 py-6 sm:py-8 text-left">
+      <div class="mb-3.5">
+        <span class="text-[10.5px] font-bold uppercase tracking-wider text-[#1E3A8A]">Cara Kerja</span>
+        <h2 class="mt-1 text-[clamp(18px,5vw,21px)] font-extrabold leading-snug tracking-tight text-slate-900">
+          Reaksi Busa Aktif Bekerja di Titik Sumbatan
+        </h2>
+        <p class="mt-1 text-[13px] text-slate-600">
+          Begitu dituangkan dan diberi sedikit air hangat, butiran serbuk bereaksi membentuk busa pembersih yang melunakkan kotoran:
+        </p>
+      </div>
+
+      <!-- Real Graphic Asset 6 (Before / After Real Sink & Toilet) -->
+      <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xs">
+        <img
+          src="/images/landing/gia-anti-sumbat/real-product-6.webp"
+          alt="Contoh reaksi berbusa dan hasil sebelum sesudah pada wastafel dan kloset"
+          class="aspect-square w-full rounded-xl object-cover block"
+          loading="lazy"
+          decoding="async"
+          width="1024"
+          height="1024"
+        />
+      </div>
+
+      <!-- Clean Mobile Comparison Stack -->
+      <div class="mt-4 space-y-2.5">
+        <div class="rounded-xl border border-rose-200/90 bg-rose-50/50 p-3 text-left">
+          <div class="flex items-center gap-1.5">
+            <span class="flex h-4 w-4 items-center justify-center rounded-full bg-rose-200/80 text-[10px] font-black text-rose-700">✕</span>
+            <span class="font-bold text-[11.5px] uppercase tracking-wider text-rose-800">Cairan Pembersih Biasa</span>
+          </div>
+          <p class="mt-1 text-[12px] leading-relaxed text-slate-600">
+            Terlalu encer dan cepat hanyut sebelum sempat melunakkan sumbatan. Reaksi panas berlebih berisiko membuat pipa PVC melengkung atau sambungan bocor.
+          </p>
+        </div>
+        <div class="rounded-xl border border-blue-200/90 bg-blue-50/60 p-3 text-left">
+          <div class="flex items-center gap-1.5">
+            <span class="flex h-4 w-4 items-center justify-center rounded-full bg-blue-200/80 text-[10px] font-black text-[#1E3A8A]">✓</span>
+            <span class="font-bold text-[11.5px] uppercase tracking-wider text-[#1E3A8A]">GIA Serbuk Anti Tersumbat 110g</span>
+          </div>
+          <p class="mt-1 text-[12px] leading-relaxed text-slate-700">
+            Butiran kristal padat mengendap di titik sumbatan. Busa aktif melumatkan kotoran secara stabil dan merata, 100% aman untuk pipa PVC/paralon tanpa merusak.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 5. TESTIMONI PELANGGAN NYATA ═══ -->
+    <section class="border-t border-slate-200 bg-white px-4 sm:px-5 py-6 sm:py-8 text-left">
+      <div class="mb-3.5">
+        <span class="text-[10.5px] font-bold uppercase tracking-wider text-[#1E3A8A]">Ulasan Pembeli</span>
+        <h2 class="mt-1 text-[clamp(18px,5vw,21px)] font-extrabold leading-snug tracking-tight text-slate-900">
+          Pengalaman Pengguna
+        </h2>
+      </div>
+
+      <div class="space-y-2.5">
+        <div class="rounded-xl border border-slate-200/90 bg-slate-50/50 p-3 sm:p-3.5 shadow-xs">
+          <div class="flex items-center justify-between">
+            <span class="text-[13px] font-bold text-slate-900">Ratna D. — Bekasi</span>
+            <span class="rounded-full border border-emerald-200/80 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">Pembeli Terverifikasi</span>
+          </div>
+          <div class="mt-1 flex gap-0.5">
+            <svg class="h-3.5 w-3.5 fill-amber-400 text-amber-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+            <svg class="h-3.5 w-3.5 fill-amber-400 text-amber-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+            <svg class="h-3.5 w-3.5 fill-amber-400 text-amber-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+            <svg class="h-3.5 w-3.5 fill-amber-400 text-amber-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+            <svg class="h-3.5 w-3.5 fill-amber-400 text-amber-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+          </div>
+          <p class="mt-1.5 text-[12px] leading-relaxed text-slate-700">
+            "Wastafel dapur mampet karena minyak sisa masakan. Dituang 1 botol campur air panas, didiamkan semalaman, paginya disiram air kran langsung lancar mengalir."
+          </p>
+        </div>
+
+        <div class="rounded-xl border border-slate-200/90 bg-slate-50/50 p-3 sm:p-3.5 shadow-xs">
+          <div class="flex items-center justify-between">
+            <span class="text-[13px] font-bold text-slate-900">Hendra W. — Surabaya</span>
+            <span class="rounded-full border border-emerald-200/80 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">Pembeli Terverifikasi</span>
+          </div>
+          <div class="mt-1 flex gap-0.5">
+            <svg class="h-3.5 w-3.5 fill-amber-400 text-amber-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+            <svg class="h-3.5 w-3.5 fill-amber-400 text-amber-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+            <svg class="h-3.5 w-3.5 fill-amber-400 text-amber-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+            <svg class="h-3.5 w-3.5 fill-amber-400 text-amber-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+            <svg class="h-3.5 w-3.5 fill-amber-400 text-amber-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+          </div>
+          <p class="mt-1.5 text-[12px] leading-relaxed text-slate-700">
+            "Kamar mandi kos sering menggenang airnya karena rambut rontok. Pakai setengah botol ini tunggu 20 menit langsung lancar. Praktis dan hemat."
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 6. PROMO & PAKET PILIHAN (COUNTDOWN & SCARCITY) ═══ -->
+    <section id="promo-box" class="border-t border-slate-200 bg-[#0A2540] px-4 sm:px-5 py-6 sm:py-8 text-center text-white">
+      <span class="inline-block rounded-full border border-white/20 bg-white/10 px-2.5 py-0.5 text-[9.5px] sm:text-[10px] font-bold uppercase tracking-wider text-amber-300">
+        Penawaran Khusus
+      </span>
+
+      <h2 class="mt-2 text-[clamp(19px,5.5vw,22px)] font-black tracking-tight text-white">
+        PILIH PAKET GIA SERBUK 110G
+      </h2>
+      <p class="mt-1 text-[12.5px] text-slate-300">
+        Khusus Pemesanan Hari Ini — Bisa Bayar di Tempat (COD)
+      </p>
+
+      <!-- Price Display -->
+      <div class="mt-3.5 flex items-center justify-center gap-2.5">
+        <span class="text-[13px] text-slate-400 line-through">Rp{comparePrice.toLocaleString('id-ID')}</span>
+        <span class="text-[26px] font-black text-amber-400">Rp{Math.round(price).toLocaleString('id-ID')}</span>
+      </div>
+
+      <!-- 15-Minute Countdown Timer -->
+      <div class="mx-auto mt-3.5 max-w-[320px] rounded-xl border border-white/15 bg-white/10 p-2.5 sm:p-3">
+        <p class="text-[11px] font-medium text-slate-300">Promo Berakhir Dalam:</p>
+        <div class="mt-1.5 flex items-center justify-center gap-2 font-mono">
+          <div class="flex flex-col items-center">
+            <span id="countdown-minutes" class="flex h-10 w-11 items-center justify-center rounded bg-slate-950 text-[18px] font-black text-amber-400">14</span>
+            <span class="mt-0.5 text-[8.5px] uppercase tracking-wider text-slate-400">Menit</span>
+          </div>
+          <span class="text-[18px] font-bold text-amber-400">:</span>
+          <div class="flex flex-col items-center">
+            <span id="countdown-seconds" class="flex h-10 w-11 items-center justify-center rounded bg-slate-950 text-[18px] font-black text-amber-400">59</span>
+            <span class="mt-0.5 text-[8.5px] uppercase tracking-wider text-slate-400">Detik</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stock Scarcity Progress Bar -->
+      <div class="mx-auto mt-3 max-w-[320px] text-left">
+        <div class="flex justify-between text-[10.5px] font-bold text-slate-300">
+          <span id="stock-count-text">Tersisa 7 Botol Lagi</span>
+          <span class="text-amber-400">Stok Terbatas</span>
+        </div>
+        <div class="mt-1 h-2 w-full overflow-hidden rounded-full bg-white/20">
+          <div
+            id="stock-progress-bar"
+            class="h-full rounded-full bg-amber-400 transition-all duration-500"
+            style="width: 48%;"
+          ></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 7. FORMULIR PEMESANAN RESMI ═══ -->
+    <section id="order-form" class="scroll-mt-4 bg-white px-4 sm:px-5 pt-6 pb-6 text-left">
+      <div class="mb-3.5 text-center">
+        <span class="inline-block rounded-full border border-slate-300 bg-slate-100 px-2.5 py-0.5 text-[10.5px] font-bold uppercase tracking-wider text-slate-700">
+          Formulir Pemesanan Resmi
+        </span>
+        <h2 class="mt-1.5 text-[clamp(19px,5.5vw,22px)] font-black tracking-tight text-slate-900">
+          Lengkapi Data Pengiriman
+        </h2>
+        <p class="mt-1 text-[12.5px] text-slate-600 leading-relaxed">
+          Pilih paket di bawah dan isi alamat lengkap pengiriman. Bayar uang tunai langsung ke kurir saat paket tiba di rumah (COD).
+        </p>
+      </div>
+
+      <!-- Order Form Component Connected to D1 Database -->
+      <div class="rounded-2xl border border-slate-200 bg-slate-50/70 p-2.5 sm:p-3.5 shadow-xs">
+        <GeoIpResolvedForm mode="hybrid" productSlug={product.slug} />
+      </div>
+
+      <!-- Trust Badges (Clean SVG) -->
+      <div class="mt-4 grid grid-cols-3 gap-1 border-t border-slate-200 pt-3.5 text-center">
+        <div class="flex flex-col items-center px-0.5">
+          <svg class="h-4.5 w-4.5 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+          <span class="mt-1 text-[10.5px] font-bold text-slate-800">Data Aman</span>
+          <span class="text-[9.5px] text-slate-500">Privasi Terjaga</span>
+        </div>
+        <div class="flex flex-col items-center px-0.5">
+          <svg class="h-4.5 w-4.5 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+          <span class="mt-1 text-[10.5px] font-bold text-slate-800">Packing Rapi</span>
+          <span class="text-[9.5px] text-slate-500">Kardus &amp; Bubble</span>
+        </div>
+        <div class="flex flex-col items-center px-0.5">
+          <svg class="h-4.5 w-4.5 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <span class="mt-1 text-[10.5px] font-bold text-slate-800">Garansi Sampai</span>
+          <span class="text-[9.5px] text-slate-500">Bisa Bayar COD</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Social Proof Notification -->
+    <SocialProofToast
+      productLabel="GIA Serbuk Anti Tersumbat 110g"
+      productImage="/images/landing/gia-anti-sumbat/hero-giana-overclaim.webp"
+      heroSelector="#landing-hero"
+      formSelector="#order-form"
+    />
+  </main>
+</BaseLayout>
+
+<script is:inline>
+  // Countdown Timer Script (15 minutes with sessionStorage persistence)
+  function initCountdownTimer() {
+    const minEl = document.getElementById('countdown-minutes');
+    const secEl = document.getElementById('countdown-seconds');
+    if (!minEl || !secEl) return;
+
+    const DURATION_MS = 15 * 60 * 1000;
+    const STORAGE_KEY = 'gia_anti_sumbat_countdown_v1';
+    let targetTime = parseInt(sessionStorage.getItem(STORAGE_KEY) || '0', 10);
+    const now = Date.now();
+
+    if (!targetTime || targetTime <= now || targetTime - now > DURATION_MS) {
+      targetTime = now + DURATION_MS;
+      sessionStorage.setItem(STORAGE_KEY, targetTime.toString());
+    }
+
+    const updateTimer = () => {
+      const currentTime = Date.now();
+      let remainingMs = targetTime - currentTime;
+
+      if (remainingMs <= 0) {
+        targetTime = currentTime + DURATION_MS;
+        sessionStorage.setItem(STORAGE_KEY, targetTime.toString());
+        remainingMs = DURATION_MS;
+      }
+
+      const totalSeconds = Math.floor(remainingMs / 1000);
+      const mins = Math.floor(totalSeconds / 60);
+      const secs = totalSeconds % 60;
+
+      minEl.textContent = String(mins).padStart(2, '0');
+      secEl.textContent = String(secs).padStart(2, '0');
+    };
+
+    updateTimer();
+    setInterval(updateTimer, 1000);
+  }
+
+  // Stock Counter Scarcity Script
+  function initStockCounter() {
+    const stockText = document.getElementById('stock-count-text');
+    const stockBar = document.getElementById('stock-progress-bar');
+    if (!stockText || !stockBar) return;
+
+    const STORAGE_KEY = 'gia_anti_sumbat_stock_v1';
+    let stock = parseInt(sessionStorage.getItem(STORAGE_KEY) || '0', 10);
+
+    if (!stock || stock < 5 || stock > 12) {
+      stock = Math.floor(Math.random() * (12 - 6 + 1)) + 6;
+      sessionStorage.setItem(STORAGE_KEY, stock.toString());
+    }
+
+    const updateStockUI = (val) => {
+      stockText.textContent = `Tersisa ${val} Botol Lagi`;
+      const pct = Math.min(90, Math.max(30, Math.round((val / 15) * 100)));
+      stockBar.style.width = `${pct}%`;
+    };
+
+    updateStockUI(stock);
+
+    const delay = Math.floor(Math.random() * (60000 - 35000 + 1)) + 35000;
+    setTimeout(() => {
+      let current = parseInt(sessionStorage.getItem(STORAGE_KEY) || '0', 10);
+      if (current > 3) {
+        current -= 1;
+        sessionStorage.setItem(STORAGE_KEY, current.toString());
+        updateStockUI(current);
+      }
+    }, delay);
+  }
+
+  const initAll = () => {
+    initCountdownTimer();
+    initStockCounter();
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAll);
+  } else {
+    initAll();
+  }
+</script>

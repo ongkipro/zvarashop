@@ -1,0 +1,56 @@
+/*
+ * Landing page styles for GIA Serbuk Anti Tersumbat
+ * Direct-Response High-Converting Mobile-First Pattern
+ */
+
+@keyframes urgency-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(220, 38, 38, 0);
+  }
+}
+
+@keyframes live-dot-ping {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  75%, 100% {
+    opacity: 0;
+    transform: scale(2.2);
+  }
+}
+
+.animate-urgency-glow {
+  animation: 2s cubic-bezier(0.4, 0, 0.6, 1) infinite urgency-glow;
+}
+
+.animate-live-ping {
+  animation: 1.5s cubic-bezier(0, 0, 0.2, 1) infinite live-dot-ping;
+}
+
+/* Custom scroll behavior & typography smoothing */
+html {
+  scroll-behavior: smooth;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Box decoration clone for highlights */
+.highlight-yellow {
+  background-image: linear-gradient(to top, #ffd84d 0.28em, rgba(255, 216, 77, 0) 0.28em);
+  background-repeat: no-repeat;
+  background-position: 0 92%;
+  background-size: 100% 100%;
+}
+
+/* Mobile precision utilities */
+@media screen and (max-width: 640px) {
+  body {
+    -webkit-text-size-adjust: 100%;
+  }
+  input, select, textarea {
+    font-size: 16px;
+  }
+}

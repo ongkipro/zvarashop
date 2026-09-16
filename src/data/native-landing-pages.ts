@@ -91,4 +91,18 @@ export const nativeLandingPages: NativeLandingPage[] = [
     description: 'Landing page direct-response konversi tinggi untuk Lem Anti Bocor Jaysuing 300gr Waterproof Transparan.',
     isActive: true,
   },
+  {
+    slug: 'dt-kapsul',
+    title: 'DT Kapsul M-Say Herbal Metabolisme & Pencernaan BPOM',
+    productSlug: 'kapsul-dt-pelangsing-penurun-berat-badan-30-kapsul',
+    description: 'Landing page direct-response konversi tinggi untuk suplemen herbal pendukung metabolisme dan pencernaan lancar DT Kapsul.',
+    isActive: true,
+  },
+  {
+    slug: 'gia-anti-sumbat',
+    title: 'GIA Serbuk Anti Tersumbat 110g (Formula Kristal Melancarkan Pipa)',
+    productSlug: 'pemersih-saluran-tersumbat-110ml',
+    description: 'Landing page direct-response konversi tinggi untuk GIA Serbuk Anti Tersumbat 110g peluruh lemak dan rambut.',
+    isActive: true,
+  },
 ];
