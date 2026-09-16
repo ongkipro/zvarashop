@@ -11,6 +11,7 @@ import SocialProofToast from '../components/storefront/shared/SocialProofToast.a
 import { getStorefrontProduct, getStorefrontProducts } from '../lib/catalog';
 import { nativeLandingCanonicalPath } from '../lib/landing-pages';
 import { defaultCatalogContentId } from '../lib/catalog-feed';
+import { resolveFormModeContext } from '../lib/form-mode';
 import '../styles/form-hybrid.css';
 import '../styles/landing-pages/landing.css';
 import '../styles/landing-pages/gia-anti-sumbat.css';
@@ -19,6 +20,8 @@ export const prerender = false;
 
 const SLUG = 'gia-anti-sumbat';
 const PRODUCT_SLUG = 'pemersih-saluran-tersumbat-100ml';
+
+const formContext = await resolveFormModeContext(Astro.request);
 
 // Product resolution with strict DB fallback
 let product = await getStorefrontProduct(Astro.locals, PRODUCT_SLUG);
@@ -100,8 +103,8 @@ const comparePrice = cheapest?.comparePrice ?? Math.round(price * 1.8);
         </p>
       </div>
 
-      <!-- ═══ AUTHENTIC GIANA OVERCLAIM HERO IMAGE ═══ -->
-      <div class="relative mx-auto mt-4 w-full overflow-hidden border-y border-slate-200 bg-slate-900">
+      <!-- ═══ AUTHENTIC GIANA OVERCLAIM HERO IMAGE (Frameless & Borderless) ═══ -->
+      <div class="relative mx-auto mt-4 w-full overflow-hidden">
         <img
           src="/images/landing/gia-anti-sumbat/hero-giana-overclaim.webp"
           alt="GIANA Serbuk Anti Sumbat 110g melarutkan lemak dan rambut seketika di dalam pipa"
@@ -112,11 +115,6 @@ const comparePrice = cheapest?.comparePrice ?? Math.round(price * 1.8);
           width="1024"
           height="1024"
         />
-        <div class="border-t border-slate-800 bg-[#0A2540] px-3.5 py-2 text-center text-white">
-          <p class="text-[11px] sm:text-[12px] font-semibold text-cyan-200 leading-snug">
-            Formula Kristal Aktif GIANA: Melumatkan Lemak &amp; Sumbatan Pipa Seketika
-          </p>
-        </div>
       </div>
 
       <!-- Trust Badges (Clean Mobile Strip) -->
@@ -151,12 +149,12 @@ const comparePrice = cheapest?.comparePrice ?? Math.round(price * 1.8);
         </p>
       </div>
 
-      <!-- Overclaim Efficacy Graphic Asset -->
-      <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xs">
+      <!-- Overclaim Efficacy Graphic Asset (Frameless & Borderless) -->
+      <div class="-mx-4 sm:-mx-5 overflow-hidden">
         <img
           src="/images/landing/gia-anti-sumbat/real-product-2.webp"
           alt="Leburkan semua jenis sumbatan pipa: Lemak & Minyak, Gumpalan Rambut, Sisa Makanan, Kerak Sabun & Tisu dengan GIA Serbuk 110g"
-          class="aspect-square w-full rounded-xl object-cover block"
+          class="aspect-square w-full object-cover block"
           loading="lazy"
           decoding="async"
           width="1024"
@@ -206,12 +204,12 @@ const comparePrice = cheapest?.comparePrice ?? Math.round(price * 1.8);
         </p>
       </div>
 
-      <!-- Real Graphic Asset 6 (Before / After Real Sink & Toilet) -->
-      <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xs">
+      <!-- Real Graphic Asset 6 (Frameless & Borderless) -->
+      <div class="-mx-4 sm:-mx-5 overflow-hidden">
         <img
           src="/images/landing/gia-anti-sumbat/real-product-6.webp"
           alt="Contoh reaksi berbusa dan hasil sebelum sesudah pada wastafel dan kloset"
-          class="aspect-square w-full rounded-xl object-cover block"
+          class="aspect-square w-full object-cover block"
           loading="lazy"
           decoding="async"
           width="1024"
@@ -339,29 +337,32 @@ const comparePrice = cheapest?.comparePrice ?? Math.round(price * 1.8);
       </div>
     </section>
 
-    <!-- ═══ 7. FORMULIR PEMESANAN RESMI ═══ -->
-    <section id="order-form" class="scroll-mt-4 bg-white px-4 sm:px-5 pt-6 pb-6 text-left">
-      <div class="mb-3.5 text-center">
-        <span class="inline-block rounded-full border border-slate-300 bg-slate-100 px-2.5 py-0.5 text-[10.5px] font-bold uppercase tracking-wider text-slate-700">
-          Formulir Pemesanan Resmi
-        </span>
-        <h2 class="mt-1.5 text-[clamp(19px,5.5vw,22px)] font-black tracking-tight text-slate-900">
+    <!-- ═══ 7. FORMULIR PEMESANAN RESMI (CHECKOUT) ═══ -->
+    <section id="form-pemesanan" class="bg-white px-0 pt-7 pb-4 scroll-mt-4 w-full text-left">
+      <div class="px-4 pb-2 text-center">
+        <div class="inline-flex items-center gap-1.5 text-[11.5px] font-bold uppercase tracking-wider text-[#1E3A8A] mb-1">
+          <svg class="h-3.5 w-3.5 shrink-0 fill-none stroke-current stroke-2" viewBox="0 0 24 24"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73zm1 .27V12"/><path d="M3.29 7L12 12l8.71-5M7.5 4.27l9 5.15"/></svg>
+          <span>Formulir Pemesanan Resmi</span>
+        </div>
+        <h2 class="text-[21px] font-bold tracking-tight text-slate-950 leading-tight">
           Lengkapi Data Pengiriman
         </h2>
-        <p class="mt-1 text-[12.5px] text-slate-600 leading-relaxed">
-          Pilih paket di bawah dan isi alamat lengkap pengiriman. Bayar uang tunai langsung ke kurir saat paket tiba di rumah (COD).
+        <p class="text-[13px] text-slate-600 mt-1 max-w-[380px] mx-auto leading-relaxed">
+          Silakan pilih paket dan isi alamat tujuan pengiriman. Pembayaran tunai dilakukan ke kurir saat barang sampai (COD).
         </p>
       </div>
 
-      <!-- Order Form Component Connected to D1 Database -->
-      <div class="rounded-2xl border border-slate-200 bg-slate-50/70 p-2.5 sm:p-3.5 shadow-xs">
-        <GeoIpResolvedForm mode="hybrid" productSlug={product.slug} />
-      </div>
+      <GeoIpResolvedForm
+        mode={formContext.mode}
+        province={formContext.province}
+        productSlug={product.slug}
+        embedded={true}
+      />
 
       <!-- Trust Badges (Clean SVG) -->
-      <div class="mt-4 grid grid-cols-3 gap-1 border-t border-slate-200 pt-3.5 text-center">
+      <div class="mt-4 grid grid-cols-3 gap-1 border-t border-slate-200 px-4 pt-3.5 text-center">
         <div class="flex flex-col items-center px-0.5">
-          <svg class="h-4.5 w-4.5 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+          <svg class="h-4.5 w-4.5 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2zm10-10V7a4 4 0 0 0-8 0v4h8z"></path></svg>
           <span class="mt-1 text-[10.5px] font-bold text-slate-800">Data Aman</span>
           <span class="text-[9.5px] text-slate-500">Privasi Terjaga</span>
         </div>
@@ -383,7 +384,7 @@ const comparePrice = cheapest?.comparePrice ?? Math.round(price * 1.8);
       productLabel="GIA Serbuk Anti Tersumbat 110g"
       productImage="/images/landing/gia-anti-sumbat/hero-giana-overclaim.webp"
       heroSelector="#landing-hero"
-      formSelector="#order-form"
+      formSelector="#form-pemesanan"
     />
   </main>
 </BaseLayout>
