@@ -18,10 +18,13 @@ import '../styles/landing-pages/gia-anti-sumbat.css';
 export const prerender = false;
 
 const SLUG = 'gia-anti-sumbat';
-const PRODUCT_SLUG = 'pemersih-saluran-tersumbat-110ml';
+const PRODUCT_SLUG = 'pemersih-saluran-tersumbat-100ml';
 
 // Product resolution with strict DB fallback
 let product = await getStorefrontProduct(Astro.locals, PRODUCT_SLUG);
+if (!product) {
+  product = await getStorefrontProduct(Astro.locals, '82215');
+}
 if (!product) {
   const allProducts = await getStorefrontProducts(Astro.locals);
   product = allProducts.find((p) => p.slug.includes('saluran') || p.slug.includes('sumbat')) ?? allProducts[0] ?? null;

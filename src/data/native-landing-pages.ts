@@ -38,9 +38,9 @@ export const nativeLandingPages: NativeLandingPage[] = [
   {
     slug: 'pembersih-saluran-tersumbat',
     title: 'GlowHome Pembersih Saluran Tersumbat 500ml',
-    productSlug: 'pemersih-saluran-tersumbat-110ml',
+    productSlug: 'pemersih-saluran-tersumbat-100ml',
     description: 'Landing page konversi untuk campaign pembersih saluran GlowHome.',
-    isActive: true,
+    isActive: false,
   },
   {
     slug: 'tas-selempang-wanita-modern',
@@ -101,7 +101,7 @@ export const nativeLandingPages: NativeLandingPage[] = [
   {
     slug: 'gia-anti-sumbat',
     title: 'GIA Serbuk Anti Tersumbat 110g (Formula Kristal Melancarkan Pipa)',
-    productSlug: 'pemersih-saluran-tersumbat-110ml',
+    productSlug: 'pemersih-saluran-tersumbat-100ml',
     description: 'Landing page direct-response konversi tinggi untuk GIA Serbuk Anti Tersumbat 110g peluruh lemak dan rambut.',
     isActive: true,
   },

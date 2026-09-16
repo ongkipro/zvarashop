@@ -14,6 +14,6 @@ export const CMS_VERSION: CmsVersionInfo = {
   // Meta/Google delivery, delayed-Purchase context, and order replay dedupe.
   releaseTag: "2026.09-standalone-signals",
   coreEngine: "Astro 7 SSR + Cloudflare Workers",
-  schemaVersion: 57,
+  schemaVersion: 58,
   lastUpdated: "2026-09-01",
 };
