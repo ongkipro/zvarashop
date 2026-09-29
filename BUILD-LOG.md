@@ -5343,3 +5343,1065 @@ most of the day's evidence was empirical rather than documentary.
 - Verification after the final source edit: 630 tests (629 passed, 1 intentional
   skip), 412 checked files with zero diagnostics, successful Cloudflare build,
   and 29 Markdown files with all local links resolved.
+### Entry 89: Ad signal review — Google offline conversions had silently stopped
+
+- **Asked for.** A review and validation pass across Meta Pixel tracking,
+  Google conversion, the XML catalog feeds, the landing page, and the landing
+  page pixel — then fix what the review found.
+- **A-182, and it is the one that was costing money.**
+  `reconcileGoogleAdsConversions` selected every revenue-qualified order with no
+  outbox row; `buildGoogleClickConversion` then refused the ones carrying no
+  `gclid`/`gbraid`/`wbraid`. A refused order writes nothing, so it was still
+  unqueued — and still first in line — on the next hourly pass. Fifty organic
+  delivered COD orders, an ordinary week for a COD store, pinned the 50-row
+  window shut permanently and every Google-clicked order behind them was lost.
+  Silent, too: the cron logged `queuedGoogleAdsConversions: 0`, which is also
+  what a quiet week looks like. TRACKING_SPECS §10 already stated the rule
+  ("Only orders with a stored `gclid`, `gbraid`, or `wbraid` are queued") — it
+  simply lived in the builder alone. The discovery query now enforces it too.
+- **Why it was never caught.** `google-ads-offline.test.ts` exercised the pure
+  helpers only; `reconcileGoogleAdsConversions` had no database test at all.
+  The new one fails on the old query (0 queued across repeated passes) and
+  passes on the new one.
+- **A-183.** `catalogProductId` throws on an id predating the five-digit scheme,
+  which is right for a single ads payload and wrong inside a feed loop: both
+  feed routes catch and return a 500 stub, so one legacy row meant Merchant
+  Center and Meta Commerce fetched an empty catalog and disapproved every
+  product. Generators now read `catalogProductIdOrNull` and omit that item.
+  `defaultCatalogContentId` does the same rather than 500-ing a product page —
+  the page still sells, it just cannot be retargeted.
+- **A-184.** In the in-flight typed-section renderer, the final `return` in
+  `[slug].astro` was the form branch. That was a safe else while `type` was
+  `'html' | 'form'`; with seven kinds it is a trap — a typed section whose
+  stored config failed to parse would inject a second checkout form. A form now
+  renders only for `type === 'form'`.
+- **A-185.** Every landing-page refusal threw a bare `Error`, and both admin
+  routes render a bare `Error` as 500. An operator who left the title empty or
+  typed a `<` into a headline was told the server had broken.
+  `LandingPageValidationError` carries its own status: 400 for malformed input,
+  409 for a slug already held.
+- **A-186.** `MetaViewContentTracker.astro` was `MetaLandingTracker.astro` with
+  a `checkoutSelector` prop that was declared, forwarded into `define:vars`,
+  never read, and never supplied by its one caller. Deleted; `/produk/[slug]`
+  renders `MetaLandingTracker`.
+- **Documentation.** TRACKING_SPECS §5 still described the variant-level
+  `p{product_id}-v{variant_id}` catalog identity that ADR-017 replaced — the
+  document that *owns* the ad signal contract had been months stale while
+  `catalog-identity.test.ts` was actively failing any source that reintroduced
+  that shape. Rewritten to the product-level scheme the code implements, with
+  both corrections it has now absorbed recorded in place.
+- **Reviewed and deliberately left alone.** The `pushGtmEcomEvent` fallback is
+  copy-pasted into three inline trackers even though `GtmBase` defines
+  `window.__PS_PUSH_GTM_ECOM__` unconditionally ahead of them. `define:vars`
+  forces `is:inline`, which Astro never bundles, so the duplication is
+  structural and the copies are a safety net against load order — removing a
+  net to delete lines is the wrong trade. Likewise the strict `catalogProductId`
+  call sites on single-product surfaces (`form-config`, `/api/v1/products`, the
+  three form routes): failing closed there is the documented stance.
+- **Evidence.** `npm test` 595/595 (593 before, two added), `npm run check` 398
+  files / 0 errors, `npm run build` Cloudflare server bundle complete. Not run:
+  no browser session and no live Google Ads or Merchant Center fetch — the
+  offline fix is proven against a D1 fixture, not against the live API.
+
+### Entry 90: Ad signal audit, second pass — the headless Purchase had never worked
+
+- **A-187, and it is the same shape as entry 89's.** `/api/v1/tracking/events`
+  built its outbox event without `customData.orderNumber`.
+  `resolveMetaEventId` substitutes exactly that field for a Purchase, so
+  `sendMetaCapiEvent` refused every headless Purchase **before opening a
+  connection** — enqueued, five retries against the backoff ladder, `failed`,
+  while the route had already answered `200 { queued: true }`. Not a delivery
+  problem: `fetched === false` in the new test, so no retry could ever have
+  recovered them. A headless storefront's entire Purchase signal was discarded,
+  and §15's own integration checklist could not see it, because the route
+  reported success. The route now resolves the order in D1 like the first-party
+  one — the API key replaces the browser's `status_token` as authorisation, not
+  as the lookup — and takes `order_number`, identity and `product_value` from
+  the row. `findPurchaseOrder` moved to `src/lib/meta-purchase-order.ts` and is
+  exported as two deliberately unconfusable names, because an optional token
+  argument is a footgun on a public route.
+- **A-188.** `hasClickId()` counts a bare `utm_source` as reason to write the
+  cookie, and the middleware wrote the parsed URL straight over it. Click a
+  Google ad Monday, open the store's own `?utm_source=whatsapp` follow-up
+  Wednesday, take COD delivery Friday — and the `gclid` that was the only way
+  to attribute the sale was gone by Friday, silently.  `mergeClickIds` now
+  separates a click from a tag: a real click replaces attribution wholesale,
+  tags alone keep the stored click and describe the current visit.
+- **A-189, found only by opening the page.** At 390 px all three headline sizes
+  rendered at 20 px: `.lp-section h2` is specificity 0-1-1 and
+  `.lp-headline-large` is 0-1-0, so the operator's Kecil/Sedang/Besar control
+  did nothing. Scoped to `.lp-section .lp-headline-*`; measured at 18/20/24
+  after. This is exactly what DESIGN-SYSTEM means by measuring rather than
+  assuming, and no static check could have caught it.
+- **A-190.** Every operator ends a list with Enter, which left a trailing empty
+  item and made the server refuse the whole save. Filtered once at the save
+  payload — filtering while they type would make Enter impossible to press —
+  with the server boundary left strict for direct API callers. Also: a
+  re-upload no longer wipes an `alt` the operator had already written, and the
+  `alt` field no longer drops a `src` it did not set.
+- **A-191.** The landing validation messages are toasted verbatim into an
+  Indonesian admin; they were English. Translated, and the three tests
+  asserting on the old strings updated with them.
+- **A-192.** The two feed generators were ~95% identical and entry 89's fix had
+  to be written twice, in step, or one platform would still have been serving a
+  500 stub. Collapsed to one builder plus a three-field flavor. Proven
+  byte-identical on both feeds against a fixture covering sale pricing, an
+  absent taxonomy, an absolute image URL, escaped text and an unpublishable row.
+- **A-193, the evidence entry 89 said it did not have.** `astro dev` against
+  local D1, a seeded page with all five typed kinds plus legacy `html` and
+  `form`, headless Chrome at 390 px / DPR 2.625: semantic markup, shortcodes
+  parsed, one checkout form with 18 fields, zero horizontal overflow. Removing
+  the A-184 guard produced **three** checkout forms from two unusable typed
+  rows and restoring it produced one — so that fix is now proven in a browser,
+  not argued. Fixture rows deleted from the local D1 afterwards.
+- **Documentation.** Three stale claims in the document that owns this contract:
+  §11 still said "Why no cron" when `runScheduledMaintenance` has owned the
+  outbox clock for two releases; §12 described a headless Purchase path that
+  could not work; §7 described a click-id store that silently lost paid
+  attribution. All three rewritten against the code, with the correction kept
+  in place rather than erased.
+- **Evidence.** `npm test` 598/598, `npm run check` 400 files / 0 errors,
+  `npm run build` complete, plus the browser measurements above. Not run: no
+  live Meta, Google Ads or Merchant Center call was made — every fix is proven
+  against fixtures and a local D1. The admin landing editor was **not** driven
+  through a browser session; A-190 and A-191 are reasoned and type-checked, not
+  clicked.
+
+### Entry 91: The admin landing editor, finally opened
+
+Entry 90 closed by naming what it had not done: the admin editor was never
+driven through a browser, so A-190 and A-191 were reasoned and type-checked
+rather than clicked. This is that session.
+
+- **Method.** Headless Chrome over CDP on a throwaway profile — the developer's
+  running MCP browser holds its own profile lock — against `astro dev` and the
+  local D1. Signing in needed an account, so a clearly-named `auditbot` owner
+  was created with the application's own `hashAdminPassword`, used, and deleted.
+  The operator's `ongki` row was never read or modified, and the local D1 ends
+  the session exactly as it started: one account, zero landing pages.
+- **The flow works.** Login → `/admin/landing-pages/new` → title, slug, D1
+  product picker → insert Headline and Daftar angka → the numbered navigator
+  re-selects card 1 → save → redirect to `.../edit`. Zero console errors.
+  Worth recording: only the selected card exposes its editor, so inserting a
+  second section collapses the first to its preview. That is the design, not a
+  fault, but it is the first thing a script driving this UI gets wrong.
+- **A-195 — A-190 is real, and now shown A/B.** The input is the one every
+  operator produces: `"Buka kemasan\nLarutkan ke air\n"`, a closing Enter.
+  Without the save-time filter the server answered **400** and the toast read
+  "Daftar harus berisi minimal satu item teks tanpa tanda < atau >." — the
+  operator's whole page refused because they pressed Enter. With it, the save
+  succeeded and D1 holds exactly `["Buka kemasan","Larutkan ke air"]`.
+- **A-196 — entry 89's A-185 and entry 90's A-191, in the browser.** A headline
+  of `<script>alert(1)</script>` produced HTTP **400**, not the 500 it used to,
+  the toast read Indonesian, and the draft survived on screen. Correcting the
+  field saved and redirected.
+- **A-197 — the 390 px claim, measured.** The login page, the empty editor, and
+  an editor holding all seven section kinds each reported
+  `scrollWidth === clientWidth`. The only element past 390 px is Sonner's
+  `ol.toaster` at `right=406`, confirmed `position: fixed`, so
+  `horizontalScrollPossible` stays false. Draft values survived every insertion.
+- **Evidence.** `npm test` 598/598, `npm run check` 400 files / 0 errors,
+  `npm run build` complete, plus the browser measurements above. Still not run:
+  no live Meta, Google Ads or Merchant Center call was made — every ad-signal
+  fix in entries 89 and 90 remains proven against fixtures and a local D1, not
+  against the platforms themselves. Image upload was not exercised: it needs an
+  R2 bucket the local run does not bind.
+
+### Entry 92: Three Meta defects upstreamed from the zvarashop install
+
+Reported by another session working in the install repo. Every claim was
+re-verified here before anything moved, and the load-bearing one was probed
+against Meta's own library rather than taken on description.
+
+- **A-198, and it is the largest of the three.** `fbq('init', id,
+  advancedMatching)` is honoured **exactly once per pixel id**; a later init is
+  not merged, not an error, and not logged. Probed against the live
+  `fbevents.js`: an init carrying `{external_id}` followed by one carrying
+  `ph/fn/ln/ct/st/zp/country/external_id` left
+  `fbq.instance.pixelsByID[id].userData` holding **one** key. Three files
+  init'd behind `MetaPixelBase`'s bootstrap — `MetaThanksTracker.astro`,
+  `form-hybrid.ts`, `form-middle.ts` — so every matching object they built and
+  hashed was discarded, and the browser leg of a Purchase matched on
+  `external_id` alone while the server leg matched on eight. `MetaPixelBase`
+  now owns the single init behind `__PS_META_INIT__`; `/thanks` declares
+  `__PS_META_AWAIT_MATCHING__` in the head slot BaseLayout renders ahead of it,
+  bounded at 4 s so a failed status fetch costs the matching and never the
+  PageView. After: **eight** keys in `userData`.
+- **Two tests had to be rewritten, not repaired.** They asserted "the browser
+  must re-init the Pixel exactly once for this Purchase" — encoding the buggy
+  contract as the intended one, which is exactly why the defect survived them.
+  They now assert that the tracker issues *no* `fbq('init')` of its own and that
+  its eight keys reach `__PS_META_INIT__`. The source scan strips comment bodies
+  first, since this file now discusses `fbq('init')` at length on purpose.
+- **A-199.** `client_user_agent` removed from the Pixel init. It is a
+  Conversions API field, absent from Meta's Pixel advanced-matching reference,
+  and the browser attaches its own user agent regardless.
+- **A-200.** The conversion waited on the 2.5 s deferral. The stub queues the
+  call but transmits nothing until the library lands, and a buyer who reads
+  `/thanks` and closes it trips neither the interaction listeners nor the timer.
+  `__PS_LOAD_META_PIXEL__` mirrors the `__PS_LOAD_GOOGLE_TAG__` hatch the Google
+  leg has had since it was deferred — the asymmetry was the bug.
+- **A-201, wider here than as reported.** `orders.customer_email` holds
+  `<phone digits>@<store host>` for online payments, and the report attributed
+  that to `buyerEmail()`. It is also written directly by `submit-order.ts:269`
+  when a non-COD order is created, so the column is minted on two paths, not
+  one. `matchableCustomerEmail` guards all three CAPI legs. The predicate needs
+  the store's own host as well as an all-digits local part: numeric Gmail
+  addresses are ordinary in Indonesia, and a shape-only test would have thrown
+  away real match keys to catch fake ones.
+- **A-202, not done.** The install repo also added a deploy preflight after
+  `wrangler deploy` uploaded a stale working tree and reverted a live release.
+  AGENTS.md §1.4 says this repository deploys nothing, yet `package.json` still
+  carries `deploy` and `cf:deploy` and `wrangler.jsonc` resolves to the
+  `adsbookcms-your-store` placeholder with database id `00000000-…`. Confirmed
+  on disk. Either the scripts leave or the guard arrives; adding a deploy gate
+  to a repo whose contract disclaims deployment is the operator's call.
+- **Nothing was deployed.** The report's own warning — never `wrangler deploy`
+  for an install from this repo — is doubly right: the placeholders above are
+  what such a command would resolve against.
+- **Evidence.** `npm test` 599/599, `npm run check` 400 files / 0 errors,
+  `npm run build` complete, plus the before/after `fbevents.js` probe. Not run:
+  no live Meta call, so the eight keys are proven to reach the pixel's internal
+  state, not proven to raise Event Match Quality in Ads Manager.
+
+### Entry 93: Product audit — the public surface, and running the funnel instead of reading it
+
+Focused on AdsBookCMS itself rather than the install. Two findings, and the
+second was a hole in this session's own earlier fix.
+
+- **What the audit swept first, and found sound.** Every `/api/admin/*` route is
+  gated centrally by the middleware (401 without a session, 403 through
+  `canAccessAdminRoute`, an origin check on unsafe methods), and
+  `canAccessAdminRoute` is default-deny with the owner grant placed *after* the
+  role check — twelve admin routes carry no local check and are correct anyway.
+  Every SQL template interpolation is a constant column list or a clause built
+  from a fixed vocabulary; none carries user data. Checkout re-quotes shipping
+  server-side and refuses a mismatch, product price comes from
+  `product_variants`, and `submit_token` is uniquely indexed against replay.
+  The AutoLaris webhook records and acknowledges and never moves payment state.
+  The COD/channel fee math is correct, including the binary search that inverts
+  `x + ceil(x·rate) ≤ total` for a seller-borne percentage fee.
+- **A-203.** `/api/meta-event` was the only public POST with no rate limit, and
+  the one with the most to spend on an unauthenticated caller: each accepted
+  event writes a row to an outbox nothing prunes and then calls
+  graph.facebook.com, with the drain free to make ten more. `event_id`
+  deduplication stops a *replay*, never a flood — fresh ids are never
+  deduplicated. Purchase was already safe behind its order and status token, but
+  `PageView` and `ViewContent` were not, so fabricated funnel events could be
+  pushed into a merchant's pixel to degrade the optimisation data they are
+  paying Meta to learn from. 60/minute per IP, the `/api/shipping-rates`
+  ceiling, failing open.
+- **A-205, and it is why this entry exists.** Five tracking files had been
+  changed across entries 89–92 with unit tests and a synthetic probe page as
+  the only evidence. Watching the real funnel: an ad landing stored
+  `{gclid, utm_source, utm_campaign}`; a following `?utm_source=whatsapp` visit
+  left the `gclid` intact and replaced only the tags (A-188, live). The landing
+  page sent Pixel `PageView` and `ViewContent` with their CAPI pair. On
+  `/thanks` the Pixel `Purchase` carried `eid=INV-19001`, byte-identical to the
+  CAPI leg's `event_id`; `value=135000`, the goods rather than the 214000
+  invoice; and **eight** `ud[...]` keys on the wire. `__PS_META_INIT__`
+  returned `false` to a second caller. Zero console errors.
+- **A-204 — the run caught a hole in A-201.** The enqueued Purchase payload
+  still carried `email: '6281234567890@localhost'`. The guard checked the
+  configured `siteUrl` host; the address had been minted against the *request*
+  host, because there were two minting shapes for one concept —
+  `buyerEmail(…, siteUrl)` on the payment path, and a hand-rolled
+  `${customerPhone}@${new URL(request.url).hostname}` in `submit-order.ts`. Any
+  store reachable on a `workers.dev` address, a preview deployment, or a second
+  domain wrote addresses the guard could not see. `submit-order` now calls
+  `buyerEmail`, and the guard takes every host the store answers on for the rows
+  already written. Re-run after the fix: no `email` in the payload at all.
+  Reading the code had produced a fix that looked right and was not.
+- **Local environment.** A pixel id, a CAPI token, a landing page and an order
+  were seeded to run this, and all of them removed afterwards; the store's
+  pixel and token are `NULL` again and the operator's own fifteen orders were
+  never touched.
+- **Evidence.** `npm test` 601/601, `npm run check` 400 files / 0 errors,
+  `npm run build` complete, plus the browser run above. Not run: the pixel id
+  was syntactically valid but not a real one, so Meta rejected the events — what
+  is proven is what leaves the browser and what this app enqueues, not what
+  Meta's Events Manager then reports.
+
+### Entry 94: Validation audit — bounds, and a throw that took the storefront with it
+
+Asked to fix what needed fixing and firm up what lacked validation, in the
+product rather than an install.
+
+- **A-208 is the serious one, and it was found by asking which modules had no
+  test.** `getStorefrontProduct` called the *throwing* `catalogProductId`
+  inside its `.find` predicate — which runs against every product until one
+  matches. One row that predates the five-digit scheme therefore threw before
+  the real match was reached, and nothing catches it: the product page, the
+  landing page, all three form routes, `/api/form-config` and
+  `/api/v1/products/<slug>` each answered 500. **One legacy row took the entire
+  storefront down, not its own page.** Entry 89 fixed this class in the catalog
+  feeds; it was still live in the hottest path in the application.
+  Four more escapes went with it: `/api/v1/products` (`paginated.map` failed
+  the whole list — now filtered before `total`, keeping pagination honest),
+  `ProductForm.tsx` (a throw in a React render blanks the form and leaves the
+  operator unable to open or repair the product that needs it — the exact
+  failure `catalogProductIdOrNull`'s own comment describes, applied to
+  ProductCatalog and missed here), the detail endpoint (now 404, matching what
+  the list omits), and the three checkout form routes (which now sell without a
+  catalogue identity rather than refusing to sell). An allowlist scan in
+  `catalog-identity.test.ts` is what stops a sixth.
+- **A-206 / A-207.** `order-schema.ts` bounds every field the public checkout
+  takes. The landing-page path bounded none: `title`, `meta_title` and
+  `meta_description` went through untrimmed and unlimited, and two of them ship
+  inside `<title>` and `<meta name="description">` on every render of a page ads
+  point at. Astro escapes them, so this was never injection — it was an
+  unbounded body, a section list that is one D1 batch, an HTML section with no
+  ceiling, and a form mode nothing checked (an unknown mode does not fail; the
+  component falls through to its middle variant, so a typo silently produced a
+  different form). All bounded now, with the numbers taken from elsewhere in
+  the repository rather than invented — 200 is `content_name`'s cap, 500 is
+  `address`'s.
+  A landing page must also point at a product this store carries. It did not
+  have to, and the proof is in this file's own fixtures: they created pages
+  against product `10001`, which the fixture never inserted. Those tests had
+  been describing pages that would 404 for every visitor as normal behaviour.
+- **A-209.** `maskSecretValue` stands between three stored credentials and the
+  admin screen, and had no test. Its five-to-eight branch returned `ab••••de` —
+  four of five characters for a short secret. Long provider tokens made it
+  harmless in practice, but nothing guarantees a length, and a placeholder
+  pasted during setup is exactly the short value that branch handled worst.
+  Below 24 characters it is now mask alone; above, four either side, with a
+  fixed-width dot run so the length is not disclosed either.
+- **Swept and found sound, so left alone.** Admin API payloads that looked
+  unvalidated on a grep turn out to validate one layer down —
+  `parseSellerBankAccountInput`, `updateAdminCredential`'s 8–128 password rule
+  and username pattern, `product-mutation`. The webhook, the checkout price
+  boundary, admin authorization and the fee math were re-confirmed from entry 93.
+- **Evidence.** `npm test` 609/609 (601 before; two new test files for
+  previously untested modules), `npm run check` 400 files / 0 errors,
+  `npm run build` complete. Not run: no browser session this pass — the changes
+  are server-side validation and one admin render whose failure mode is a blank
+  form, which the type checker and the allowlist scan cover.
+
+### Entry 95: Province gating, and a deploy that refuses the product's own target
+
+- **A-202, resolved by reading the contract rather than by opinion.** Entry 92
+  left this open as "scripts out, or guard in". The scripts stay: `npm run
+  deploy` is the **install's** documented deploy path (README, INSTALLATION
+  §163, RELEASE §8), and AGENTS.md's "this repository deploys nothing" means no
+  CI deploy and no Cloudflare credentials here — not no script. RELEASE §7 then
+  settles it: it already *requires* the check — `--dry-run`, stop on
+  `adsbookcms-your-store` or an all-zero database id — and admits in the next
+  paragraph, "It is manual, and nothing verifies that an install ran it."
+  `preflight:deploy` is that verification, wired to both `predeploy` and
+  `precf:deploy` so it does not depend on which alias an operator types. It adds
+  no deploy step, no credentials, and no policy the release document does not
+  already state. In this repository it always refuses, which §1 says is correct.
+- **Province gating had no test, and it decides where COD is offered.**
+  `isProvinceExcluded` resolves a province to a code and returns `false` when it
+  cannot — so a province the module does not know is a province where COD is
+  **allowed**, whatever the operator disabled. That is only safe while every
+  province a buyer can reach checkout with resolves, and nothing asserted it.
+  It does hold today: all 38 provinces in `indonesia-districts.ts` resolve, and
+  the constant matches migration `0017`'s column default exactly. But the
+  district data is external (cahyadsn/wilayah, Kepmendagri 2025) and the ground
+  is not stable — Papua was split into six between 2022 and 2024, which this
+  list already had to catch up with once. A refresh that adds or renames a
+  province while the list stays put would silently open COD where the operator
+  closed it, with nothing to report it. Now asserted in both directions,
+  including that no province in the list is one the catalog can never produce.
+- **The fail-open is now a decision rather than an accident.** It is asserted
+  explicitly, and defensible only because the coupling test above proves every
+  reachable province resolves.
+- **A false lead, recorded because it cost time.** `shipping-fallback.ts` looked
+  untested by filename and turned out to be covered from `shipping-quote.test.ts`.
+  The useful question is not which files lack a same-named test but which
+  modules no test imports at all.
+- **Landing-builder queue closed honestly.** A-174/175/176/178 are done and
+  browser-proven. A-177 stays open — the size and WebP-signature gates are
+  tested and the editor path is wired, but no browser has stored an object,
+  because `ASSET_BUCKET` is an R2 binding the local run does not provide; it
+  closes on the first install. A-179 stays open for the admin half only: the
+  renderer's legacy compatibility is browser-proven, the four admin behaviours
+  are route-tested and not yet clicked.
+- **Evidence.** `npm test` 618/618, `npm run check` 400 files / 0 errors,
+  `npm run build` complete, and `npm run preflight:deploy` refuses this
+  repository with all four placeholder reasons. Not run: no deploy was executed
+  and no install's configuration was read — the preflight is proven against
+  fixtures and this repository's own file.
+
+### Entry 96: A forward backlog, written against the tree rather than a checklist
+
+Asked for a task list of what is done and what is not, extended to QA,
+security, Cloudflare, Meta Ads and Google Ads, and for the existing ADR/PRD
+documents to be developed where that helps.
+
+- **Extended `TASKS.md` rather than adding a file.** It is the canonical
+  execution queue and already holds 444 closed items; a second task document
+  would split the one source of truth this project keeps insisting on. The new
+  section opens with what is *already* true across ad signal, security and QA,
+  so the next reader does not re-audit ground BUILD-LOG 89–95 already covered.
+- **Twenty-two items, each grounded in something read from the tree.**
+  `wrangler.jsonc` shows what Cloudflare features are configured and what is
+  not (no Queues, no Analytics Engine, no Smart Placement, no limits, no tail
+  consumer). `middleware.ts` shows a solid header set with CSP set **only** on
+  the embed, for `frame-ancestors`. `npm audit` is clean. Twelve modules are
+  imported by no test — the remainder of the sweep that found A-208 and the
+  province gap. `/api/install` is the last public POST with no rate limit.
+- **A-227 is the one that matters most, and it explains an earlier entry.**
+  `HealthSignalId` is `capi-outbox | meta-capi | mengantar | autolaris` and
+  `OperationalAlertId` is `schema | capi-outbox`. The Google Ads offline outbox
+  has **neither** — no depth, no overdue count, no alert. That is precisely why
+  the head-of-line block in entry 89 was invisible: the hourly cron logged
+  `queuedGoogleAdsConversions: 0`, which is also exactly what a quiet week
+  looks like. The Meta side has been modelled properly the whole time; the
+  Google side has been running blind.
+- **Two existing documents were wrong once the backlog was written, so they
+  were corrected rather than left to drift.** `OBSERVABILITY.md` §3 lists the
+  paths that degrade silently and did not list this one; it does now, beside
+  the Meta row it should be modelled on. `UNIMPLEMENTED_SPECS.md` §3 listed
+  external blockers for Mengantar and AutoLaris only, which implied Meta and
+  Google had none — five rows added covering signal acceptance, both catalog
+  feeds, offline conversion acceptance, and the EEA/UK consent gap.
+- **No ADR was written.** Five items are marked **needs an ADR**: the browser
+  runner in CI, the CSP nonce-vs-hash choice, credential rotation, Queues
+  versus the D1 outbox, and the consent-mode position. Each records a decision
+  that has not been made. An ADR for an undecided question is a guess with a
+  number on it, and this repository's ADRs are append-only — the cost of
+  writing one early is paid by everyone who reads it later as settled.
+- **Evidence.** `npm test` 618/618, `npm run check` 400 files / 0 errors.
+  Nothing executable changed in this entry; it is planning and three document
+  corrections.
+
+### Entry 97: Making the documents true before pausing
+
+A documentation pass, not a code pass. `npm test` 618/618 and `npm run check`
+400 files / 0 errors both before and after; nothing executable moved.
+
+- **Two documents were wrong because of code this session changed, not because
+  anyone edited them.** `STOREFRONT_INTEGRATION.md` §4.8 still described a
+  headless `Purchase` with no order resolution — the behaviour that could never
+  reach Meta — and §4.6/4.7 did not know that a row with no catalogue identity
+  is now omitted from the list and 404s on detail. Both corrected, with a note
+  telling an existing integrator that nothing in their code changes; the events
+  simply start arriving.
+- **`ARCHITECTURE.md` G7 read as more than it says.** Its closure covers schema
+  and the *Meta* CAPI outbox; the Google Ads outbox arrived later with the same
+  retry discipline and no observability at all. The register stays historical
+  and closed — this is a caveat beneath it pointing at OBSERVABILITY §3 and
+  A-227, so "outbox observability" is not read as a solved category. G9's cited
+  path was also two directories stale and now matches disk.
+- **Two invariants added to `AGENTS.md`**, because both are traps someone will
+  otherwise walk into again: one `fbq('init')` per pixel id with `MetaPixelBase`
+  owning it, and the catalogue identity failing closed for an ads payload while
+  degrading everywhere the throw would outlive the row.
+- **`STATUS.md` opens with a handoff block** rather than making the next reader
+  reconstruct the state from six BUILD-LOG entries: what is committed, the one
+  line of what changed, that A-227 is the most valuable next item, that live
+  verification is the gap local work cannot close, and that `npm run deploy`
+  refuses here on purpose.
+- **Restamped only what was actually read.** Seven documents this session
+  changed carry the new date and SHA. `DESIGN-SYSTEM.md`,
+  `MENGANTAR_INTEGRATION_SPEC.md`, `PLAN.md`, `PRD-ADMIN-LOGIN.md` and the
+  `docs/` set keep their older stamps, because restamping a document nobody
+  verified is precisely the lie the header exists to prevent.
+
+### Entry 175: Parity with the live stores, and a dictionary to audit by
+
+Nine merges on 2026-09-07, every one screened against `zvarashop` and
+`permatamall` and taken only where the product had nothing of its own to
+lose. `npm test` 618 → 656, `npm run check` 411 files / 0 errors throughout.
+Each behaviour below was already running in production on at least one
+install; what changed is that the product now carries it, so the four
+installs that track `main` gained it the same day and the two that fork it
+have nothing left to teach.
+
+- **`docs/ROUTE-MAP.md` / `docs/route-map.xml` became a dictionary.** Beyond
+  URL → file, every route now names the `src/lib` modules it imports, the D1
+  tables that surface touches (one level: its own SQL plus its direct imports',
+  and only tables a migration actually created), and the tests where a
+  regression would show; a `<modules>` section reads the same book from the
+  module side. All derived, none typed, drift-tested. On its first run it
+  named the 14 of 99 modules with no sibling test. `README.md`, `AGENTS.md`
+  §2 and `ARCHITECTURE.md` §3 point at it and stop carrying counts of their
+  own — they had 52 migrations and 593 tests when the tree had 56 and 628.
+- **Checkout deduplication** (`0053` had shipped the columns without the
+  guard). A double-tap or a retried POST used to create two orders, two
+  invoices and two Purchases from one sale. `persistOrder` now fingerprints
+  the checkout and reuses the live order inside a two-hour window. The
+  installs shipped it untested; the test here was verified by disabling the
+  guard.
+- **Meta identity carried to a Purchase sent hours later.** Three capture
+  points store `_fbp`, `_fbc`, external id, IP and user agent on the order;
+  the paid-order Purchase and the headless tracking endpoint read them back.
+  Country is sent; Meta reads its absence as a missing key, not a default.
+  Ported by hand: the installs' copies of `submit-order.ts` and
+  `paid-order-purchase.ts` predate `buyerEmail` and `matchableCustomerEmail`,
+  and copying them would have traded a fix for a feature.
+- **CAPI outbox hardened.** Two drains — a visitor's `waitUntil` and the
+  cron — used to select the same due rows and both transmit them; an install
+  showed `attempts` of 9 against a budget of 5. Rows are now claimed with one
+  `UPDATE … RETURNING` and a five-minute lease, Purchases first. Settled rows
+  are purged after thirty days (one install carried 3,464 with nothing left
+  to send). `requeueRecoverableEvents` offers terminal rows back after an
+  outage once a live probe proves the destination reachable; the predicate is
+  structural, because a destination misconfiguration that honestly exhausted
+  107 rows is exactly as recoverable as a dead token. Tests run on a real
+  in-memory SQLite: the claim is a property of how the database serializes
+  two writers, and a mock returning rows on demand would prove nothing.
+- **AutoLaris submits digital orders and reconciles them hourly.** The
+  webhook was retired (ADR-022) and nothing scheduled the Advice inquiry, so
+  a QRIS/VA payment could be created and never learned about. The cron now
+  asks Advice for each pending transaction and marks it paid on `rc: "00"`
+  alone — `02` stays pending, anything else is unproven and moves nothing —
+  then hands the order to the Purchase path. The health card reads `paid_at`.
+  `RELEASE.md`, `STATUS.md` and `UNIMPLEMENTED_SPECS.md` said the opposite
+  and were corrected, honest that a settled response is still unobserved.
+- **The Pixel ID field refuses a Business Manager ID.** `^\d{5,25}$` accepted
+  one and both signal legs died silently for a day on an install. Meta is
+  asked for a field only an AdsPixel node carries; a resolvable non-pixel is
+  refused and named, an inconclusive answer warns and never blocks. Each ads
+  setting now reports its source — database, environment or none — and a
+  Google Ads destination is taken whole from one source, closing a defect
+  where a database ID could pair with an environment label.
+- **A new operator inherits no notification backlog** (`0054` had shipped the
+  column unread). The floor is stamped in the `INSERT` that creates them;
+  every read filters above it. Notifications are purged after ninety days —
+  the `// lazy:` note in the module had named exactly that ceiling.
+- **The deploy preflight refuses a stale tree.** `wrangler deploy` uploads the
+  working tree, and that reverted production twice — once on 2026-08-28, once
+  during this session. `evaluateDeployPreflight` now refuses a HEAD behind its
+  upstream (after fetching), uncommitted tracked changes, detached HEAD and an
+  untracked branch; the placeholder refusal stays and cannot be overridden.
+  `RELEASE.md` §7 rewritten to match.
+- **A Purchase is a submitted order with the order's own catalog identity.**
+  An abandoned lead's status token used to be enough to send Meta a Purchase;
+  both routes now gate on eligibility (COD at submit, prepaid when paid, never
+  abandoned/failed/cancelled/returned/refunded) and replace the caller's
+  `content_ids` with the order's `products.id` list in the feed's own shape.
+- **Two small truths.** Every page shipped two robots directives, and on
+  `/thanks` and `/payment` they disagreed; `astro-seo` now owns the one tag.
+  The feeds sent the store name as every product's brand though
+  `products.brand` has existed since `0051`.
+
+What this pass did **not** take: the installs' Meta Pixel loading strategy
+(they load synchronously "for immediate detection"; the product defers and
+measured Purchase 2522 ms → 45 ms — a decision for the owner, not a port),
+their `aria-label` sweep (browser-visible, routes to the designer lane), and
+their landing pages (ADR-016). `zvarashop` and `zanobyshop` remain forks; with
+their proven behaviour upstream, bringing them forward is a merge of pages and
+config and needs its own release session.
+
+### Entry 176: A full-system audit, and what it found in the paths already called done
+
+2026-09-25, uncommitted working tree on `6e30950` (which already carried the
+2026-09-16/17 Ninja retirement, install-token limit and ten new test files).
+Five read-only lanes covered the whole tree — money path, security boundary,
+ad signal and cron, storefront and admin UI, documents against disk — and
+every finding was re-read against the code before anything changed.
+`npm test` 731 → 741, `astro check` 0/0/0, build complete, route map
+regenerated. Tasks A-270 … A-281 done, A-282 … A-286 open.
+
+**The worst finding was a role boundary, not a bug in a feature.** Legacy
+`html` landing sections render with `set:html` on the store's origin, which is
+the admin's origin, and `advertiser` could write them. A `<script>` there runs
+in the owner's session when they preview the page, and a same-origin request
+passes the CSRF check. `docs/AUDIT-2026-08-23.md` §6.4 had dismissed it because
+the *editor preview* sanitises — the public render never did. Now only owner
+and admin may introduce or change HTML; an advertiser can still edit the typed
+sections around HTML an owner wrote.
+
+**Rate limits that peek cannot brake a burst.** Login and the install token
+both peeked, then spent only on failure, so a parallel wave read one stale
+count: simulated, 500 wrong tokens against a limit of 10 were all evaluated.
+The install token now spends first; login gained two wave buckets spent up
+front and cleared by a correct password.
+
+**Money.** A COD order whose payment was cancelled could still be pushed to
+Mengantar — the dispatch predicate only asked "is it COD". Manual-transfer
+orders could never be marked paid, so they could never ship. Headless
+QRIS/VA stored an order with no payment instruction. Three routes added the
+provider's COD fee to shipping on top of the store's own COD fee — the double
+charge storefront checkout had already removed. Orders paid by the hourly
+Advice check, or already with the courier, could be hard-deleted, because only
+a *manual* reconciliation left the audit row the guard looked for. CS
+conversion skipped the COD-province policy. A prepaid buyer could check out on
+the city-average placeholder courier, which the admin cannot reroute on a paid
+order — a sale that could never ship.
+
+**Signal.** The CAPI outbox deduplicated on `event_id` alone while a
+Purchase's `event_id` is its sequential order number and `/api/meta-event`
+accepts any well-formed id for a funnel event: one PageView posted as
+`INV-<next>` silently cancelled that order's server Purchase. `0057` keys on
+`(event_name, event_id)`, as Meta does. The embed widget copies the parent's
+`_fbp` onto every iframe URL, and `_fbp` counted as a fresh click, so an embed
+reload erased a stored `gclid`. Retries restamped `event_time` as the retry
+time; immediate delivery read a row the drain could claim at the same moment.
+The Google outbox had a health signal (A-227) but no alert, and one
+account-level 403 terminated ten conversions an hour. One throwing step in the
+hourly job skipped every step after it, including payment reconciliation.
+
+**Storefront.** Home and both sitemaps called the admin listing, which runs the
+native-page reconcile — a D1 write on every crawler hit — and linked pages
+whose product was off (404). A CMS slug could shadow nothing and be shadowed by
+a static route (`/kontak`), listed everywhere and never served; the reserved
+list is now tested against `src/pages/`. The product page emitted two Product
+JSON-LD blocks. Only the first middle form on a page was wired; a second one
+submitted natively as a GET carrying the buyer's name, phone and address in
+the URL.
+
+**Multi-tenant remnants removed** at the owner's request: `X-Tenant-Slug`,
+the `PUBLIC_TENANT_SLUG` fallback ADR-002 had already ordered removed, the
+unused `tenantSlug` prop, `INSTALLATION.md` §10's one-repo-many-Workers table,
+the withdrawn fleet-updater requirements in `PRD.md` A22, and TASKS A6 (closed
+on ADR-020). `store_id` columns stay: removing them needs table rebuilds for
+no behavioural gain.
+
+**Documents.** ARCHITECTURE listed 21 tables (28) and an active stock trigger
+(inert since ADR-023); OBSERVABILITY said the cron ran every five minutes
+(hourly) and named two log labels that do not exist; RELEASE said schema 51
+(58); STOREFRONT_INTEGRATION said the default daily quota was 100,000
+(10,000) and that the checkout limiter was KV (D1). ADR-025 records two
+decisions the code already carried: the composed default home (amending
+ADR-007) and hourly Advice paid-marking (amending ADR-022).
+
+**Proven in a browser, and not.** Local dev server with headless Chrome:
+`/`, a product page, `/middle-form`, `/hybrid-form` and `/thanks` run with no
+console error, and a middle-form submit is intercepted. Not exercised: a page
+carrying two middle forms, any admin page (no local operator credential was
+used), and anything touching a live provider or a deploy.
+
+### Entry 177: An install with no terminal in it
+
+2026-09-25, same working tree. The owner asked for an install that stands on
+its own like WordPress's. Most of it already did — runtime migrations, the
+`/install` wizard, identity and provider keys in D1. What was left was the
+part before the Worker existed, and three things that forced a terminal even
+after it: six required secrets, a placeholder domain in `routes` that failed
+the first deploy, and `workers_dev: false`, which left a new Worker with no
+address to open `/install` at.
+
+Cloudflare's Deploy to Cloudflare button covers the first part — copy the
+public repository into the operator's GitHub, provision the declared bindings,
+build and deploy with Workers Builds — and the product only had to become a
+template that survives it (ADR-026). `wrangler.jsonc` got real default names,
+kept its all-zero ids for the button to replace, dropped `routes`, and turned
+`workers_dev` on (that address answers `noindex`). `secrets.required` is now
+just `INSTALL_TOKEN`; `AUTH_SECRET` is generated once into `install_secrets`
+when unset, the way WordPress writes its own salts, with the env secret still
+winning for every install that has one.
+
+The deploy preflight had to change shape rather than be bypassed. It refused
+the template's *names*, which a one-click operator may now legitimately keep;
+the real signal of a merge that overwrote an install's config was always the
+all-zero *ids*, and a missing id is worse still — Wrangler would provision a
+fresh, empty database for a live store. Under Workers Builds the stale-clone
+git checks stand down: the build is the pushed commit.
+
+After install the dashboard lists what a store still needs before it can take
+an order — product, warehouse, Mengantar key — plus two optional steps, each
+computed from D1 on render.
+
+Verified locally: build, `wrangler deploy --dry-run`, and a fresh local D1
+started with only `INSTALL_TOKEN` walked `/` → `/install` → `/hello` →
+dashboard, with a 64-character key generated into `install_secrets` and the
+checklist reporting three required steps (headless Chrome, 390 px, no overflow,
+no console error). Not verified: the button itself against a real account —
+A-292, which needs the owner.
+
+### Entry 178: A store that runs whole on one machine, and what running it found
+
+2026-09-25, same working tree. The owner asked to perfect local development
+before anything touches Cloudflare. The gap was concrete: a local Worker could
+render pages, but checkout needs a Mengantar quote, online payment needs
+AutoLaris, and dispatch needs both — so the paths that matter most could only
+be exercised against real providers.
+
+`scripts/dev-providers.ts` answers both APIs on 127.0.0.1 in their own wire
+shapes: area search over the bundled 7,285-district index, deterministic rates
+per courier, pickup addresses, shipments with waybills, `/api/h2h/submit`,
+`/advice` and a local lever to settle a transaction. `dev-providers.test.ts`
+drives the product's real `MengantarClient` and `AutoLarisClient` against it,
+so the stand-in cannot drift from the parsers. `npm run dev:local` builds,
+starts it, and runs `wrangler dev --local` with its own state, a fixed install
+token and the scheduled handler exposed. One trap on the way: with
+`secrets.required` in `wrangler.jsonc`, Wrangler loads only the declared names
+from an env file, so the provider settings go in as `--var`.
+
+The first full run in headless Chrome found six defects, none visible to the
+unit suite. The warehouse page, without a Mengantar key, pinned an origin with
+an empty Area ID and then refused to save with "choose an origin first" — and
+the new setup checklist asked for the warehouse *before* Mengantar. A buyer
+email minted on a dotless host (`localhost`) failed AutoLaris' own email rule.
+`/payment` for a failed QRIS instruction still ran a 24-hour countdown, offered
+the total to copy, called it a "Virtual Account", and printed the provider's
+reason twice. And a store address could not be `http://localhost`, so every
+absolute link in a local store pointed at a host that does not exist; plain
+http is now accepted for loopback hosts only.
+
+Also closed: outbox alerts hold only for failures in the last 24 hours (A-283);
+Google partial failures are classified by their `ConversionUploadError` code,
+checked against the v25 proto (A-284), and the Google queue finally has a
+30-day retention purge; the admin catalogue and landing-page picker load the
+newest 200 products instead of silently stopping at 50; checkout label ids are
+unique per form.
+
+Verified: 754 tests, `astro check` 0/0/0, build, and the browser run —
+install, login, warehouse, R2 upload, product, middle and full checkout (COD),
+QRIS → settle → hourly job → `paid`, dispatch of four orders (two accepted with
+waybills, one refused as unpaid, one failed for a missing courier), and a
+landing page carrying two middle forms: six distinct label ids, and the second
+form submitted through the script to `/thanks` rather than as a native GET.
+
+### Entry 179: One dropdown language in the admin, and a courier that is not there
+
+2026-09-25. The owner asked for the COD province list and every other admin
+dropdown to be tidied with shadcn/ui, date pickers excepted.
+
+The province policy was 38 checkbox tiles in six island columns, always
+visible. It is now one multi-select: chips show the current policy, typing
+filters by name or code, the list is grouped by island, and the quick actions
+(all of Java, everything outside Java, reset) stay. The Combobox, InputGroup
+and Popover sources came from the base-nova registry by hand — `shadcn add`
+tried to `npm install cn`, a registry alias rather than a package, and would
+have overwritten three customised primitives.
+
+Seven native `<select>`s in React islands became `Select`; static Astro pages
+use a `NativeSelect.astro` built on shadcn's native-select pattern, so no page
+is hydrated for a dropdown. Scanning them found one defect: the template form
+offered a "Wide" layout the server schema refuses outright.
+
+Asked to add SPX through Mengantar: Mengantar's public API does not carry SPX
+(local `mengantar-documentation`, 2026-09-25), so it is recorded as A-296 and
+not built. Verified: 754 tests, `astro check` 0/0/0, build, and headless
+Chrome on six admin pages at 1280 and 390 px.
+
+## 2026-09-25 — SPX courier through Mengantar
+
+A-296 reopened and built. The "Mengantar does not carry SPX" verdict above
+trusted the local documentation; a read-only probe of the live API disproved
+it. `/order/estimate?courier=all` returns `spx` (Jakarta Selatan Rp13.700,
+1–3 days; Jayapura Rp34.000, 3–4 days; COD covered both ways) with an
+undocumented `unsupportedOriginSpx` flag. The single-courier estimate rejects
+every SPX spelling tried (`Invalid courier`) while accepting `JT` and `Sap`
+case-sensitively; Mengantar confirmed `spx` for create-order to the operator,
+which is the evidence the code now rests on.
+
+The quote was already reaching `estimateRates`; `courier_rules` dropped it
+because no store had an SPX row. SPX joins `DEFAULT_COURIER_RULES`, migration
+`0059` adds an enabled, COD-on row to every store with a policy (schema version
+60), `unsupportedOriginSpx` hides the quote, and the admin labels it
+"SPX Express". Verified: 755 tests, `astro check` 0/0/0, build, and the real
+client plus rule filter against the live estimate offering `spx=13700` for
+COD. Not verified: an SPX `POST /order` (no live order was created) and the
+admin expedition page in a browser.
+
+## 2026-09-25 — Pos Indonesia COD refusal at dispatch
+
+Mengantar's documentation gates COD on `pos` per account: under an 82%
+delivered rate (rolling 21–60 days, all couriers) `POST /order` answers 403
+with `status` `new_seller`, `insufficient` or `blocked` and one shared message.
+The quote does not show it, and dispatch surfaced only the generic message.
+`MengantarClient` now raises `MengantarPosCodIneligibleError` for those three
+statuses (a bare 403 stays a plain error), and dispatch writes the reason with
+the delivered rate to the order and switches off COD on the Pos rule so the
+storefront stops taking COD Pos orders that cannot ship (A-297). Verified: two
+dispatch tests (the refusal, and an unrelated 403 leaving the policy alone),
+the first failing when the rule update is removed; full suite, check and
+build below. Not verified: a live refusal from a genuinely blocked account.
+
+## 2026-09-25 — Dummy data for dev:local, and a form audit on it
+
+`npm run dev:seed` fills a running `dev:local` store through its own HTTP
+surface — install, the `/hello` form, the admin APIs, the public checkout —
+so the seed doubles as a smoke test (A-298). Writing it surfaced two things
+that are correct, not bugs: checkout folds an identical buyer, variant and
+total into the earlier order (the seed now varies phone numbers per run), and
+checkout allows 10 submissions per IP per minute (the seed waits the window
+out). A 302 from `/api/install` on a claimed store briefly read as a second
+install; a probe confirmed the store refuses it and a second admin cannot log
+in.
+
+The audit then swept 57 pages at 390 and 1280 px and drove the checkout and
+admin forms by hand (A-299). The real defect: the checkout button's own
+readiness rules (8 characters of phone, 3 of address, 3 of name) disagreed
+with the endpoints (a valid mobile number, 10, 2), and the middle-form endpoint
+kept a regex of its own that refused valid 9–10-digit numbers. One
+`missingCheckoutContact` now drives both forms and both endpoints share
+`isValidWa62`. Two copy claims were false (`/payment` said the admin checks
+AutoLaris and the CMS updates every minute; checkout said stock is
+re-validated), and eleven controls lacked an accessible name. The invented
+buyer names in `SocialProofToast` are recorded as A-300 for a decision, not
+changed. Verified: 758 tests, `astro check` 0/0/0, build, and each fix re-run
+in the browser against a rebuilt store.
+
+Not verified: the Chrome DevTools MCP browser could not be used (its profile
+was held by another process); a `pkill` meant for this audit's own headless
+Chrome also ended that process.
+
+## 2026-09-25 — More dummy products, and dead code removed
+
+`dev:seed` gained six products and `--images=<dir>`, which uploads
+`<dir>/<slug>.webp|jpg|png` in place of the flat colour. The folder is read at
+run time and never committed: photos borrowed from another install stay on the
+developer's machine, as AGENTS.md §3 requires.
+
+A scan for exports nothing imports found ten; each was confirmed by grep and
+removed, including all of `autolaris-balance.ts`, which had been orphaned by
+the manual reconciliation queue. The suite loses that module's one test (757);
+nothing else changed behaviour. Verified: 757 tests, `astro check` 0/0/0,
+build, docs check, and `tsc --noUnusedLocals --noUnusedParameters` clean.
+
+## 2026-09-25 — Every admin dropdown on shadcn, rate checker rebuilt, UI clean-up
+
+Asked to put every dropdown on shadcn and to tidy the UI. A scan found the
+action menus, filters and selects already on shadcn; three kecamatan searches
+were hand-built lists. They now share one `DistrictCombobox`. Driving it in a
+browser found the one real defect of the change: inside the abandoned-lead
+dialog a mouse or tap on an option did nothing, because the popup was portaled
+to `<body>` under the dialog's `pointer-events: none`. It now portals into the
+dialog. Recovering a lead end to end produced INV-10022 and INV-10023.
+
+`/admin/check` became the `RateCheckTools` island, and three pieces of the old
+page were not doing what they said: a "connected" badge that was always on, a
+"Reguler" filter that could never match, and a fixed "AdsBookCMS" warehouse
+note. The tests written for the extracted logic caught "1 - 3 days hari".
+Across admin, navigation and titles moved to Indonesian, eyebrows, emoji and a
+decorative status dot went, and InputGroup controls stopped being framed twice
+by the admin input rules. Mobile zoom was measured, not assumed: every input
+and popup at 390 px is already 16 px.
+
+Verified: 764 tests, `astro check` 0/0/0, build, docs check; in headless
+Chrome at 390 and 1280 px no horizontal overflow on the changed pages, the
+rate checker, warehouse picker and lead recovery driven by mouse, and a
+visible focus ring on the combobox. Not verified on a real iPhone.
+
+## 2026-09-26 — Admin desktop precision: one page width, one radius
+
+Asked to make the admin precise on desktop. Measured before changing: at
+1920px the 25 admin pages had five different content edges, because nine
+pages and two islands set their own centred `max-w-*` inside AdminShell's
+`max-w-[1560px]`; `/admin/orders` also scrolled 34px sideways at 1280px behind
+a `flex-nowrap` filter row. The shell's box is now the only page width, guarded
+by a test, and both filter rows wrap. Measured after: one edge on every page at
+every width, no overflow.
+
+Radius: `.admin-shell` said `0.75rem` and shadcn's `:root` said `0.625rem`, so
+every portaled menu was shaped differently from its trigger, and cards added
+fixed `0.875rem`/`1rem` on top. One `0.375rem` token now drives both, cards use
+`rounded-xl`. Remaining English page titles and dashboard labels moved to
+Indonesian. Verified: 765 tests, `astro check` 0/0/0, build; headless Chrome
+widths at 1280/1440/1920, inputs 16px on 30 pages at 390px, no mobile overflow
+on the changed pages, screenshots of dashboard, orders, order detail and
+expeditions.
+
+## 2026-09-26 — Admin control contract, and a full-system recheck
+
+Asked to stop explaining the same layout problem screen by screen. The pattern
+behind every report was one thing: shadcn controls sized per call. The
+primitives now own height (40px), radius and colour; filter rows, search and
+kecamatan search each have one component; a test refuses the old overrides.
+The test caught its own author: the first clean-up had silently skipped every
+control whose `className` came after an arrow-function prop, because the tag
+scanner stopped at the `>` of `=>`. It reads tags brace-aware now, and a
+planted violation fails it.
+
+Two defects surfaced beyond layout. `admin.css` lacked shadcn's base
+`border-color`, so bare borders drew in currentColor (black). `/admin/settings`
+told operators AutoLaris confirmation was manual, which the hourly job has not
+been since A-275; an auto-settled payment was labelled "Operator tidak
+tersedia". Both corrected.
+
+Full recheck after the change: 769 tests, `astro check` 0/0/0, build; 57 pages
+at 390 and 1280px with no console error, failed request, overflow or unlabeled
+control (the six flags are correct 404/400s — a draft product, an unknown
+page, `/embed/form` without a mode); one content edge on every admin page at
+1280/1440/1920; inputs 16px on 30 pages; Meta Ads saved, reloaded and
+restored, test-event guidance inline, one `fbq('init')` at runtime, both
+catalogue feeds valid. Not checked on a real phone.
+
+## 2026-09-26 — Admin type anatomy, button tiers, phone layout (`499f2ee`)
+
+Measured before changing anything: twelve font sizes from 9 to 30px and
+weights up to 900 on desktop, about 250 labels at 10px on a phone. The weights
+were a second defect hiding in the first: `foundation.css` loads Inter 400,
+600 and 700, so every `font-medium` primitive rendered at 400 and 800/900 at
+700. Admin now loads 500 itself and uses five sizes (12/14/16/20/24), weights
+400/500/600 and a 12px floor; a guard refuses the rest.
+
+Buttons had the same drift as the inputs before them: 32 static `.btn-*` call
+sites set their own height, so 44/36/32px buttons stood beside 40px ones. The
+class owns geometry now. `buttonVariants()` returns a merged string — on Astro
+pages the unmerged `border-transparent` had beaten `border-border`, drawing
+every outline button borderless.
+
+Phone: filters and KPI tiles two-up, a landing source filter that wrapped
+"CMS Manual" onto two lines replaced by `FilterSelect`, a duplicate "Tambah
+produk" removed, and `StoreMark` showing a store's initial where the 4:1
+product wordmark had been squeezed into a square. 774 tests.
+
+A later sweep across twelve viewports (320–2560px) found no overflow; the one
+defect, dashboard header links built by hand that wrapped at 768px, is fixed
+and a guard refuses hand-built link buttons. The rate checker lost its optional
+COD value field — with no value sent the provider fee column was always empty.
+
+## 2026-09-26 — Checkout to thanks, tracking re-verified end to end
+
+Each checkout form driven in headless Chrome from its legacy URL to `/thanks`,
+with `connect.facebook.net` and `googletagmanager.com` answered by local stubs
+that record every `fbq` and `dataLayer` call, so nothing reached either
+platform. The first run showed PageView, ViewContent and Purchase but no
+AddToCart or InitiateCheckout anywhere: the checkout scripts set the event's
+once-flag, then awaited advanced-matching hashes, and on an origin without Web
+Crypto the digest threw — Pixel, CAPI and GTM all lost the event, and the flag
+stopped any retry. Hashing now omits a key it cannot compute; the event fires.
+The same origin exposed the thanks page sending Google `sha256_phone_number:
+""`; its hash now returns `undefined`. In a secure context the hashes are all
+present.
+
+Verified: 308 with query kept on all three legacy routes; five events on three
+legs per form; one Purchase per order on reload; QRIS silent until paid via the
+hourly Advice job, then the same `INV-` Purchase; `gclid` and `_fbc` on every
+order; Purchase value is the product value (shipping and fees excluded, as
+TRACKING_SPECS §10 intends). 777 tests, `astro check` 0 errors. Not verified:
+CAPI delivery to Meta and a live Google Ads account.
+
+## 2026-09-26 — Social proof from real orders (A-300)
+
+The purchase toast on product and landing pages rotated twenty invented buyers
+with a verified badge — a fabricated purchase claim, and the kind an ad
+platform or a consumer regulator reads as misleading. The owner chose a real
+aggregate over removal, and made it store-wide: a store runs many landing
+pages, and one number per store is true on all of them. `recentOrderCount`
+counts the store's orders in the last 24 hours at render, excluding void
+(`stock_restored_at`), cancelled and returned; below three, or on a failed
+query, the toast does not render. It shows once per page view — a timer
+repeating one real sentence would read as a stream of orders that did not
+happen. The product thumbnail gave way to a bag icon, since a store-wide
+number beside one product's photo reads as that product's number.
+
+Verified: SSR renders "34 orang memesan dalam 24 jam terakhir" on a product
+page and a landing page (34 is this local store's real count); on a phone the
+toast shows below the hero, hides after 8s and does not return; the landing
+page used for the check keeps it hidden because its form is on screen from
+the top, as designed. 776 tests — three tests of the deleted rotation code
+went with it, three new ones cover the threshold, the query and the absence
+of invented buyers.
+
+## 2026-09-26 — Confirmations, bank form, one COD figure (A-305, A-313)
+
+`window.confirm` guarded four destructive actions and could not say what
+would happen in the admin's own terms; `useConfirm` is a promise-returning
+shadcn Dialog, so each call site stayed one line. Verified in the browser:
+"Hapus pesanan INV-10036?" opens, Batal closes it and the order remains.
+
+The seller bank form had four fields squeezed into one row; it is stacked now,
+and the bank select shows logos in the list and the trigger. The owner asked
+whether the COD fee is simply 3,33% — it is (3% × 1.11), so the copy says so
+on the settings page and to the buyer at checkout, from a label derived from
+the two rates. The charge stays two rounded-up parts, as Mengantar bills it;
+a test holds it within Rp2 of the flat figure. 778 tests. One unrelated test
+failed once and did not recur in five further runs; it was not identified.
+
+
+## 2026-09-26 — Alerts name their store; lessons from a live install pass
+
+A full pass on the taniniaga install (merge to `fc4015f`, live health, pixel and
+performance checks) turned up four things that belong to the product:
+
+- **An alert did not say which store raised it.** Several installs can share one
+  `OPS_ALERT_WEBHOOK_URL`, and the body carried the signal and reason only. It
+  now carries `store` (the request origin, or `PUBLIC_SITE_URL` from the cron)
+  and one readable line under `text` and `content`, so a Slack, Google Chat or
+  Discord incoming-webhook URL renders it without a relay. Every earlier field
+  is kept. OBSERVABILITY §5 also listed field names the code never sent
+  (`event_id`, `state`, `transition_at`); it now documents the real body.
+- **`wrangler triggers deploy` reads the built config.** Run after editing
+  `triggers.crons` without a build, it reports "Deployed triggers" and
+  re-applies the old schedule. RELEASE §1 says so.
+- **Favicons are brand assets once a store replaces them.** The ownership
+  manifest called them product-owned, which a copy-type update would have
+  overwritten. INSTALLATION §11 lists them with the alert webhook as manual steps.
+- **Two console findings are Meta's, not ours.** Events Manager's automatic
+  event setup (`smartsetup`) scrapes `Rp` prices and warns about currency, and a
+  Conversions API Gateway (`openbridge`) adds a second server leg. TRACKING_SPECS
+  §3 records both.
+
+**Evidence.** Two new tests in `operational-alerts.test.ts`, mutation-checked:
+dropping the `source` hand-off fails the webhook test.
+
+## 2026-09-27 — Landing page table fits its column
+
+The desktop landing-page table ran sideways on a store with long titles: the
+shadcn cell is `whitespace-nowrap`, and five columns plus a labelled "Duplikasi
+Page" button gave a long title nowhere to go. It is now a fixed four-column
+table — Landing Page, Produk Terkait, Status, Aksi. The source badge rides
+beside the slug, title and product wrap to two lines then clamp, the product id
+drops to its own line, and duplicate moved into the row menu, which lost the
+Preview and Edit entries the row already shows as icons.
+
+**Evidence.** Rendered at 1024 and 1440 px with a local store carrying the
+live install's long titles: table width equal to its container, no page
+overflow; the row menu opens with its four actions. 780 tests, `astro check`
+clean; the 12 px type floor test caught an `11px` first draft.
+
+## 2026-09-28 — Native slugs reserved; the pixel bootstrap keeps its hooks
+
+Bringing carukesi forward surfaced two product gaps, both silent:
+
+- **A CMS landing page could take a native page's slug.** The CMS refused only
+  the product's own route list, and the docs told an install to add its native
+  slug to that product-owned list — a divergence every merge then fights.
+  `isReservedLandingSlug` now refuses the product list, every entry in the
+  native register (active or not: the file exists either way) and a new
+  `installRouteSlugs` for an install's other route files, such as a legacy slug
+  that 301s. Both lists live in `src/data/native-landing-pages.ts`, which the
+  install already owns.
+- **A bootstrap without `__PS_META_INIT__` passed every test.** carukesi
+  rewrote `MetaPixelBase` on 2026-08-28 to load fbevents immediately; the
+  rewrite kept one init, so the init-count checks stayed green while `/thanks`
+  and both forms handed their matching to a hook that no longer existed. A
+  runtime test now requires both hooks, no early init on an awaiting page, and
+  a refused second init; it fails against the carukesi file.
+- `ViewContent` from `MetaLandingTracker` also carries `contents`, the one part
+  of carukesi's tracker change worth keeping.
+
+**Evidence.** Two new tests (782). The hook test was run against carukesi's
+bootstrap and failed on `__PS_META_INIT__ must be exposed`.
+
+## 2026-09-28 — A pixel can be refused for its own domain
+
+After carukesi was brought forward, its landing page sent CAPI events as usual
+but no browser event ever left: fbevents logged that the pixel is unavailable
+on the site because of its traffic permission settings, and made no
+`facebook.com/tr` request. The outbox read `sent` and the health panel read
+healthy, because CAPI is not subject to that list. TRACKING_SPECS §3 now names
+the symptom and the one check that catches it after a domain goes live. The fix
+belongs to Events Manager, not to this repository.
+
+## 2026-09-28 — Native pages reach the sitemap without an operator
+
+The native register reached `landing_pages` only when someone opened the
+landing-page list, so eleven pages deployed to carukesi stayed out of its
+sitemap — and could not take a product page — until an operator happened to.
+The hourly cron now runs the same re-sync. It first had to stop writing when
+nothing changed: every run bumped `updated_at` on every native row, and that
+column is the sitemap's `lastmod`, so crawlers were told each page had changed
+whenever the list was opened. The upsert now writes only a real difference.
+
+**Evidence.** New test: an unchanged re-sync leaves `updated_at` alone and a
+changed description moves it; dropping the upsert's `WHERE` fails it. 783 tests.
+
+## 2026-09-29 — The hourly Advice run could never reach a new payment
+
+The run asked AutoLaris about the 25 **oldest** pending-or-expired QRIS/VA
+instructions, with no age bound. An instruction nobody pays stays eligible
+forever, so on zvarashop — 96 eligible, none ever paid — the window sat on the
+same August rows every hour and nothing created after 11 September was asked
+about. A buyer who paid and closed the payment page before it polled would never
+have been marked paid; the order would not have been released and its Purchase
+would never have reached Meta. The live run confirmed the shape: `checked: 25`,
+all `pending`, all from 28 Aug–11 Sep.
+
+The selection now takes every pending instruction plus those expired within the
+last 24 hours, newest first, still 25 a run. Older expiries are left to the
+audited manual reconciliation in `/admin/payments`.
+
+**Evidence.** New test on a real SQLite: thirty long-expired rows, one expired
+two hours ago, one pending — the run returns the pending and the recent one and
+none of the thirty; restoring the old query fails it. 784 tests.
