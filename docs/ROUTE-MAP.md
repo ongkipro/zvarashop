@@ -38,7 +38,7 @@ The [Modules](#modules) section is the same book read from the other side.
 | `/produk/[slug]` | GET | public | — | `src/pages/produk/[slug].astro` | `catalog` `catalog-feed` `env` `form-mode` `landing-pages` `social-proof` | `landing_pages` `landing_sections` `orders` `product_variants` `products` `stores` | `catalog.test.ts` `catalog-feed.test.ts` `env.test.ts` `form-mode.test.ts` `landing-pages.test.ts` |
 | `/senter-led-mini` | GET | public | — | `src/pages/senter-led-mini.astro` | `catalog` `catalog-feed` `env` `form-mode` `landing-pages` `social-proof` | `landing_pages` `landing_sections` `orders` `product_variants` `products` `stores` | `catalog.test.ts` `catalog-feed.test.ts` `env.test.ts` `form-mode.test.ts` `landing-pages.test.ts` |
 | `/tas-selempang-wanita-modern` | GET | public | — | `src/pages/tas-selempang-wanita-modern.astro` | `catalog` `catalog-feed` `env` `form-mode` `landing-pages` `social-proof` | `landing_pages` `landing_sections` `orders` `product_variants` `products` `stores` | `catalog.test.ts` `catalog-feed.test.ts` `env.test.ts` `form-mode.test.ts` `landing-pages.test.ts` |
-| `/thanks` | GET | public | — | `src/pages/thanks.astro` | `catalog` `cn` `public-store` `ui-variants` | `product_variants` `products` `stores` | `catalog.test.ts` `cn.test.ts` `public-store.test.ts` `ui-variants.test.ts` |
+| `/thanks` | GET | public | — | `src/pages/thanks.astro` | `catalog` `cn` `public-store` `thanks-whatsapp` `ui-variants` | `product_variants` `products` `stores` | `catalog.test.ts` `cn.test.ts` `public-store.test.ts` `thanks-whatsapp.test.ts` `ui-variants.test.ts` |
 
 ## Content page (9)
 
@@ -202,7 +202,7 @@ The [Modules](#modules) section is the same book read from the other side.
 
 ## Modules
 
-104 modules under `src/lib`; 7 without a sibling test.
+105 modules under `src/lib`; 7 without a sibling test.
 `used by` lists routes importing the module directly — a module used by nothing
 is either transitive (imported by another lib) or dead, and only reading tells which.
 
@@ -255,7 +255,7 @@ is either transitive (imported by another lib) or dead, and only reading tells w
 | `install` | 6 | `admin_credentials` `courier_rules` `stores` | ✓ | `/api/install` |
 | `json-ld` | 14 | — | ✓ | — |
 | `json-script` | 1 | — | ✓ | — |
-| `landing-pages` | 32 | `landing_pages` `landing_sections` `products` | ✓ | `/dt-kapsul` `/gia-anti-sumbat` `/holder-hp` `/lampu-dinding-solar` `/lem-jaysuing` `/nature-gemuk-badan` `/pembersih-kerak-panci` `/produk/[slug]` `/senter-led-mini` `/tas-selempang-wanita-modern` `/sitemap` `/[slug]` `/contoh-landing` `/landing-page` `/sitemap.xml` `/api/admin/landing-pages` `/api/admin/landing-pages/[id]` |
+| `landing-pages` | 33 | `landing_pages` `landing_sections` `products` | ✓ | `/dt-kapsul` `/gia-anti-sumbat` `/holder-hp` `/lampu-dinding-solar` `/lem-jaysuing` `/nature-gemuk-badan` `/pembersih-kerak-panci` `/produk/[slug]` `/senter-led-mini` `/tas-selempang-wanita-modern` `/sitemap` `/[slug]` `/contoh-landing` `/landing-page` `/sitemap.xml` `/api/admin/landing-pages` `/api/admin/landing-pages/[id]` |
 | `location-cache` | 5 | — | ✓ | `/api/locations` |
 | `location-search` | 14 | — | ✓ | `/api/locations` `/api/v1/geo/districts` |
 | `manual-payment-reconciliation` | 6 | `admin_credentials` `orders` `payment_reconciliation_audits` `payment_transactions` `stores` | ✓ | `/api/admin/payment-reconciliation` |
@@ -284,7 +284,7 @@ is either transitive (imported by another lib) or dead, and only reading tells w
 | `product-mutation` | 9 | `order_items` `product_variants` `products` `storefront_content` | ✓ | `/api/admin/products` |
 | `provider-config` | 5 | `stores` | ✓ | `/api/locations` `/api/payment-methods` `/api/submit-order` `/api/v1/checkout` `/api/admin/ongkir` `/api/admin/settings` `/api/admin/shipping` |
 | `province` | 12 | — | ✓ | `/api/submit-middle-order` `/api/v1/checkout` `/api/admin/expeditions` |
-| `public-store` | 1 | `stores` | ✓ | `/thanks` `/kontak` `/[slug]` |
+| `public-store` | 2 | `stores` | ✓ | `/thanks` `/kontak` `/[slug]` |
 | `rate-check` | 10 | — | ✓ | — |
 | `rate-limit` | 12 | `rate_limits` | ✓ | `/hello` `/api/install` `/api/locations` `/api/meta-event` `/api/order-status` `/api/record-abandoned-order` `/api/shipping-rates` `/api/submit-middle-order` `/api/submit-order` `/api/v1/checkout` `/api/v1/tracking/events` `/api/webhooks/autolaris` `/api/admin/upload-r2` |
 | `receiver-performance` | 5 | — | ✓ | `/api/admin/orders/[id]` |
@@ -307,6 +307,7 @@ is either transitive (imported by another lib) or dead, and only reading tells w
 | `tenant-content` | 3 | — | ✓ | `/` `/api/v1/storefront` |
 | `tenant-contract` | 3 | — | ✓ | — |
 | `tenant` | 10 | `stores` | ✓ | `/install` `/api/install` `/api/admin/settings` |
+| `thanks-whatsapp` | 5 | — | ✓ | `/thanks` |
 | `traffic-source` | 3 | — | ✓ | — |
 | `ui-variants` | 5 | — | ✓ | `/thanks` |
 | `utils` | 0 | — | **none** | — |
