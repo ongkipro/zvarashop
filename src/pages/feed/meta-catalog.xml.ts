@@ -7,7 +7,7 @@ export const prerender = false;
 export const GET: APIRoute = async ({ locals }) => {
   const tenantConfig = locals.tenant;
   const origin = tenantConfig.siteUrl.replace(/\/$/, "");
-  const siteTitle = tenantConfig.name || "ZvaraShop";
+  const siteTitle = tenantConfig.name || "AdsBookCMS Merchant Store";
   const siteDescription = tenantConfig.description || tenantConfig.tagline || "Solusi Produk Berkualitas";
 
   try {

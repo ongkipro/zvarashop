@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -16,14 +17,18 @@ import {
   MessageCircle,
   PackageSearch,
   RefreshCw,
-  Search,
   UserRoundPlus,
+  ListChecks,
 } from "lucide-react";
 import { buildWaUrl } from "@/lib/crm-template";
 import { formatIdr } from "@/lib/format-idr";
+import { courierServiceLabel } from "@/lib/courier-names";
+import { etaLabel } from "@/lib/rate-check";
 import { groupLocationResults } from "@/lib/location-search";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { SearchInput } from "@/components/admin/filter-bar";
+import { FilterSelect } from "@/components/admin/filter-bar";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
@@ -49,6 +54,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import { DistrictCombobox, type DistrictOption } from "@/components/admin/DistrictCombobox";
 
 type FollowUpStatus = "new" | "contacted" | "qualified" | "not_interested";
 
@@ -112,11 +118,6 @@ const followUpVariants: Record<
   contacted: "outline",
   qualified: "default",
   not_interested: "destructive",
-};
-
-const followUpClassNames: Partial<Record<FollowUpStatus, string>> = {
-  contacted:
-    "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300",
 };
 
 const followUpIcons = {
@@ -265,9 +266,16 @@ function ConversionDialog({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [fieldError, setFieldError] = useState<{ id: string; message: string } | null>(null);
-  const [locationQuery, setLocationQuery] = useState("");
-  const [locations, setLocations] = useState<LocationOption[]>([]);
-  const [locationLoading, setLocationLoading] = useState(false);
+  // The combobox shows labels; the order needs the full row behind one.
+  const locationRows = useRef(new Map<string, LocationOption>());
+  const searchLocations = useCallback(async (query: string, signal: AbortSignal): Promise<DistrictOption[]> => {
+    const payload = await readJson(
+      await fetch(`/api/locations?search=${encodeURIComponent(query)}`, { headers: { Accept: "application/json" }, signal }),
+    );
+    const rows = groupLocationResults((payload.items || payload.locations || []) as LocationOption[]).map((group) => group.items[0]);
+    for (const row of rows) locationRows.current.set(String(row.id), row);
+    return rows.map((row) => ({ id: String(row.id), label: row.label }));
+  }, []);
   const [rates, setRates] = useState<ShippingRate[]>([]);
   const [ratesLoading, setRatesLoading] = useState(false);
   const errorRef = useRef<HTMLDivElement>(null);
@@ -289,8 +297,6 @@ function ConversionDialog({
     if (!lead) return;
     setError("");
     setFieldError(null);
-    setLocationQuery("");
-    setLocations([]);
     setRates([]);
     setForm({
       customerName: lead.customerName,
@@ -306,37 +312,6 @@ function ConversionDialog({
       courierServiceId: "",
     });
   }, [lead]);
-
-  useEffect(() => {
-    if (!lead || locationQuery.trim().length < 2) {
-      setLocations([]);
-      return;
-    }
-    const controller = new AbortController();
-    const timer = window.setTimeout(async () => {
-      setLocationLoading(true);
-      try {
-        const payload = await readJson(
-          await fetch(`/api/locations?search=${encodeURIComponent(locationQuery.trim())}`, {
-            headers: { Accept: "application/json" },
-            signal: controller.signal,
-          }),
-        );
-        const rows = (payload.items || payload.locations || []) as LocationOption[];
-        setLocations(groupLocationResults(rows).map((group) => group.items[0]));
-      } catch (reason) {
-        if (!(reason instanceof Error && reason.name === "AbortError")) {
-          setError(reason instanceof Error ? reason.message : "Lokasi gagal dicari.");
-        }
-      } finally {
-        if (!controller.signal.aborted) setLocationLoading(false);
-      }
-    }, 300);
-    return () => {
-      window.clearTimeout(timer);
-      controller.abort();
-    };
-  }, [lead, locationQuery]);
 
   useEffect(() => {
     if (!lead || !form.destinationAreaId || !form.variantId) {
@@ -477,7 +452,11 @@ function ConversionDialog({
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_7rem]">
               <div className="space-y-1.5">
                 <label htmlFor="lead-variant" className="text-sm font-medium">Produk & varian</label>
-                <Select value={form.variantId} onValueChange={(value) => setForm({ ...form, variantId: value ?? "", courierServiceId: "" })}>
+                <Select
+                  items={Object.fromEntries(products.filter((product) => product.is_active).flatMap((product) => product.variants.map((variant) => [String(variant.id), `${product.title} · ${variant.title} (${formatIdr(variant.price)})`])))}
+                  value={form.variantId}
+                  onValueChange={(value) => setForm({ ...form, variantId: value ?? "", courierServiceId: "" })}
+                >
                   <SelectTrigger id="lead-variant" aria-invalid={fieldError?.id === "lead-variant"} aria-describedby={fieldError?.id === "lead-variant" ? "lead-variant-error" : undefined}><SelectValue placeholder="Pilih produk" /></SelectTrigger>
                   <SelectContent>
                     {products.filter((product) => product.is_active).flatMap((product) => product.variants.map((variant) => (
@@ -509,27 +488,31 @@ function ConversionDialog({
             </label>
             <div className="space-y-2">
               <label className="text-sm font-medium" htmlFor="lead-location">Kecamatan tujuan</label>
-              <div className="relative">
-                <Input id="lead-location" value={locationQuery} onChange={(event) => setLocationQuery(event.target.value)} placeholder="Ketik minimal 2 huruf" aria-invalid={fieldError?.id === "lead-location"} aria-describedby={fieldError?.id === "lead-location" ? "lead-location-error" : "lead-location-help"} />
-                {locationLoading && <Loader2 className="absolute right-3 top-2.5 size-4 animate-spin text-muted-foreground" aria-hidden="true" />}
-              </div>
+              <DistrictCombobox
+                id="lead-location"
+                minChars={2}
+                placeholder="Ketik minimal 2 huruf"
+                value={form.destinationAreaId ? { id: form.destinationAreaId, label: [form.district, form.city].filter(Boolean).join(", ") } : null}
+                onChange={(option) => {
+                  const row = option ? locationRows.current.get(option.id) : undefined;
+                  setForm({
+                    ...form,
+                    district: row?.district ?? "",
+                    city: row?.city ?? "",
+                    province: row?.province ?? "",
+                    postalCode: row?.postal_code || "",
+                    destinationAreaId: row ? String(row.id) : "",
+                    courierServiceId: "",
+                  });
+                }}
+                search={searchLocations}
+                invalid={fieldError?.id === "lead-location"}
+                describedBy={fieldError?.id === "lead-location" ? "lead-location-error" : "lead-location-help"}
+              />
               <p id="lead-location-help" className="text-xs text-muted-foreground">
                 {form.destinationAreaId ? `${form.district}, ${form.city}, ${form.province}` : "Pilih hasil pencarian agar ongkir dapat dihitung."}
               </p>
               {fieldError?.id === "lead-location" && <p id="lead-location-error" className="text-xs text-destructive">{fieldError.message}</p>}
-              {locations.length > 0 && (
-                <div className="max-h-40 overflow-y-auto rounded-lg border bg-popover p-1 text-popover-foreground" role="listbox" aria-label="Hasil pencarian kecamatan">
-                  {locations.map((location) => (
-                    <Button key={location.id} type="button" variant="ghost" role="option" aria-selected={form.destinationAreaId === location.id} className="h-auto min-h-11 w-full justify-start whitespace-normal px-3 py-2 text-left" onClick={() => {
-                      setForm({ ...form, district: location.district, city: location.city, province: location.province, postalCode: location.postal_code || "", destinationAreaId: String(location.id), courierServiceId: "" });
-                      setLocationQuery(location.label);
-                      setLocations([]);
-                    }}>
-                      {location.label}
-                    </Button>
-                  ))}
-                </div>
-              )}
             </div>
             <div className="space-y-2">
               <p className="text-sm font-medium">Kurir & ongkir</p>
@@ -537,10 +520,10 @@ function ConversionDialog({
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Pilihan kurir dan ongkir">
                   {rates.map((rate) => {
                     const selected = form.courierServiceId === String(rate.courier_service_id);
-                    return <Button key={rate.courier_service_id} type="button" variant={selected ? "secondary" : "outline"} role="radio" aria-checked={selected} className="h-auto min-h-14 items-start justify-start whitespace-normal p-3 text-left" onClick={() => setForm({ ...form, courierServiceId: String(rate.courier_service_id) })}>
+                    return <Button key={rate.courier_service_id} type="button" variant={selected ? "secondary" : "outline"} role="radio" aria-checked={selected} className="h-auto items-start justify-start whitespace-normal p-3 text-left" onClick={() => setForm({ ...form, courierServiceId: String(rate.courier_service_id) })}>
                       <span>
-                        <span className="block font-semibold">{rate.courier_code} · {rate.courier_service}</span>
-                        <span className="mt-0.5 block text-xs text-muted-foreground">{formatIdr(rate.shipping_cost)}{rate.estimated_days ? ` · ${rate.estimated_days}` : ""}</span>
+                        <span className="block font-semibold">{courierServiceLabel(rate.courier_code, rate.courier_service)}</span>
+                        <span className="mt-0.5 block text-xs text-muted-foreground">{formatIdr(rate.shipping_cost)}{etaLabel(rate.estimated_days ?? "") ? ` · ${etaLabel(rate.estimated_days ?? "")}` : ""}</span>
                       </span>
                     </Button>;
                   })}
@@ -549,8 +532,8 @@ function ConversionDialog({
             </div>
           </section>
           <DialogFooter className="mx-0 mb-0 border-t px-0 pt-5 pb-0">
-            <Button type="button" variant="outline" size="xl" onClick={() => onClose()} disabled={saving}>Batal</Button>
-            <Button type="submit" size="xl" disabled={saving}>
+            <Button type="button" variant="outline" onClick={() => onClose()} disabled={saving}>Batal</Button>
+            <Button type="submit" disabled={saving}>
               {saving && <Loader2 className="animate-spin" aria-hidden="true" />}
               Jadikan order
             </Button>
@@ -646,7 +629,7 @@ export function AbandonedOrders() {
         <AlertCircle className="mx-auto size-8 text-destructive" aria-hidden="true" />
         <h2 className="mt-3 font-semibold">Pesanan tertinggal gagal dimuat</h2>
         <p className="mt-1 text-sm text-muted-foreground">{error}</p>
-        <Button className="mt-4" size="xl" variant="outline" onClick={() => void load()}><RefreshCw />Coba lagi</Button>
+        <Button className="mt-4" variant="outline" onClick={() => void load()}><RefreshCw />Coba lagi</Button>
       </CardContent>
     </Card>
   );
@@ -663,13 +646,7 @@ export function AbandonedOrders() {
               below the select despite items-end. */}
           <div className="flex w-full flex-col gap-1.5 sm:w-72">
             <label htmlFor="abandoned-search" className="text-sm font-medium">Cari lead</label>
-            <span className="relative block">
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-              {/* sm:h-9 matches the select trigger. Below sm, admin.css gives
-                  every input a 3rem floor, so the trigger is raised to match it
-                  rather than the input being shrunk under a touch target. */}
-              <Input id="abandoned-search" className="pl-9 sm:h-9" value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); }} placeholder="Produk, nama, WhatsApp, atau ABN" />
-            </span>
+            <SearchInput id="abandoned-search" value={search} onValueChange={(value) => { setSearch(value); setPage(1); }} placeholder="Produk, nama, WhatsApp, atau ABN" />
           </div>
           {/* gap, not space-y. Tailwind v4 puts space-y's margin on
               :not(:last-child), and Base UI's Select renders a hidden input as
@@ -678,17 +655,13 @@ export function AbandonedOrders() {
               gap ignores the out-of-flow input. */}
           <div className="flex w-full flex-col gap-1.5 sm:w-52">
             <label htmlFor="follow-up-filter" className="text-sm font-medium">Status follow-up</label>
-            <Select value={status} onValueChange={(value) => { setStatus((value || "all") as FollowUpStatus | "all"); setPage(1); }}>
-              <SelectTrigger id="follow-up-filter" className="w-full sm:h-9 sm:min-h-9">
-                {/* Base UI renders the raw value when Value has no children,
-                    so the trigger read "all" instead of "Semua status". */}
-                <SelectValue>{status === "all" ? "Semua status" : followUpLabels[status]}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Semua status</SelectItem>
-                {Object.entries(followUpLabels).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <FilterSelect
+              id="follow-up-filter"
+              icon={ListChecks}
+              value={status}
+              onValueChange={(value) => { setStatus(value as FollowUpStatus | "all"); setPage(1); }}
+              options={[{ value: "all", label: "Semua status" }, ...Object.entries(followUpLabels).map(([value, label]) => ({ value, label }))]}
+            />
           </div>
             {/* The count used to float under the card. On the row's trailing
                 edge it fills space that was simply blank. */}
@@ -741,13 +714,7 @@ export function AbandonedOrders() {
                     <p className="truncate font-mono text-xs text-muted-foreground">{lead.customerPhone}</p>
                   </div>
                   <div className="min-w-0">
-                    <Badge
-                      variant={followUpVariants[lead.followUpStatus]}
-                      className={followUpClassNames[lead.followUpStatus]}
-                    >
-                      <FollowUpIcon aria-hidden="true" />
-                      {followUpLabels[lead.followUpStatus]}
-                    </Badge>
+                    <Badge variant={followUpVariants[lead.followUpStatus]}><FollowUpIcon aria-hidden="true" />{followUpLabels[lead.followUpStatus]}</Badge>
                     {/* Only when there is something to report. "Belum ada follow-up
                         tercatat" repeated on every untouched lead, restating the
                         badge beside it. */}
@@ -758,11 +725,11 @@ export function AbandonedOrders() {
                     </p>
                   </div>
                   <div className="flex flex-col gap-2 sm:flex-row lg:justify-end">
-                    <Button type="button" variant="outline" size="lg" className="min-h-11 w-full sm:w-auto lg:min-h-9" disabled={updatingId === lead.id} onClick={() => {
+                    <Button type="button" variant="outline" size="lg" className="w-full sm:w-auto" disabled={updatingId === lead.id} onClick={() => {
                       window.open(buildWaUrl(phone, message), "_blank", "noopener,noreferrer");
                       void followUp(lead);
                     }}><ExternalLink />{updatingId === lead.id ? "Mencatat…" : "Follow up WA"}</Button>
-                    <Button type="button" size="lg" className="min-h-11 w-full sm:w-auto lg:min-h-9" onClick={() => setSelectedLead(lead)}><UserRoundPlus />Jadikan order</Button>
+                    <Button type="button" size="lg" className="w-full sm:w-auto" onClick={() => setSelectedLead(lead)}><UserRoundPlus />Jadikan order</Button>
                   </div>
                 </div>
               );
@@ -774,7 +741,7 @@ export function AbandonedOrders() {
         <Pagination aria-label="Halaman pesanan tertinggal" className="justify-between">
           <PaginationContent className="w-full justify-between gap-3">
             <PaginationItem>
-              <Button type="button" variant="outline" size="xl" disabled={refreshing || pagination.page <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))}>
+              <Button type="button" variant="outline" disabled={refreshing || pagination.page <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))}>
                 <ChevronLeft /> <span className="hidden sm:inline">Sebelumnya</span>
               </Button>
             </PaginationItem>
@@ -782,7 +749,7 @@ export function AbandonedOrders() {
               <span className="text-sm font-medium text-muted-foreground" aria-current="page">Halaman {pagination.page} dari {pagination.totalPages}</span>
             </PaginationItem>
             <PaginationItem>
-              <Button type="button" variant="outline" size="xl" disabled={refreshing || pagination.page >= pagination.totalPages} onClick={() => setPage((current) => current + 1)}>
+              <Button type="button" variant="outline" disabled={refreshing || pagination.page >= pagination.totalPages} onClick={() => setPage((current) => current + 1)}>
                 <span className="hidden sm:inline">Berikutnya</span> <ChevronRight />
               </Button>
             </PaginationItem>

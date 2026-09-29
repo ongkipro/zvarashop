@@ -8,12 +8,12 @@ export type CmsVersionInfo = {
 };
 
 export const CMS_VERSION: CmsVersionInfo = {
-  version: "1.5.0",
+  version: "1.4.0",
   channel: "production",
-  // Standalone ZvaraShop release candidate: repository authority, hardened
-  // Meta/Google delivery, delayed-Purchase context, and order replay dedupe.
-  releaseTag: "2026.09-standalone-signals",
+  // 1.4.0: stock stops gating a sale (ADR-023). The working tree has since added
+  // 0056-0059; bump releaseTag with the next release (RELEASE.md §4).
+  releaseTag: "2026.08-stock-unlimited",
   coreEngine: "Astro 7 SSR + Cloudflare Workers",
-  schemaVersion: 58,
-  lastUpdated: "2026-09-01",
+  schemaVersion: 60,
+  lastUpdated: "2026-09-25",
 };

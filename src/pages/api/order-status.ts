@@ -1,6 +1,6 @@
 import type { APIRoute } from "astro";
 import {
-  createAutoLarisDigitalOrderForPayment,
+  createAutoLarisPaymentForOrder,
   RETRYABLE_PAYMENT_STATUSES,
 } from "../../lib/autolaris-payment.ts";
 import { isAutoLarisCheckoutChannel } from "../../lib/autolaris-client.ts";
@@ -94,7 +94,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
             rateLimitHeaders(perOrder.remaining, perOrder.resetAt),
           );
         }
-        await createAutoLarisDigitalOrderForPayment(database, locals, {
+        await createAutoLarisPaymentForOrder(database, locals, {
           orderId,
           channelCode: orderStatus.payment.channel_code,
         });

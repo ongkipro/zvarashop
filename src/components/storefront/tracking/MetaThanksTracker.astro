@@ -2,17 +2,15 @@
 import { META_EXTERNAL_ID_COOKIE } from '../../../lib/click-ids';
 interface Props {
   tenantName: string;
-  tenantSlug: string;
 }
 
-const { tenantName, tenantSlug } = Astro.props;
+const { tenantName } = Astro.props;
 ---
 
 <script
   is:inline
   define:vars={{
     tenantName,
-    tenantSlug,
     metaExternalIdCookie: META_EXTERNAL_ID_COOKIE,
   }}
 >
@@ -49,12 +47,20 @@ const { tenantName, tenantSlug } = Astro.props;
       const normalized = String(input || '')
         .trim()
         .toLowerCase();
-      if (!normalized || !globalThis.crypto?.subtle) return '';
-      const bytes = new TextEncoder().encode(normalized);
-      const digest = await crypto.subtle.digest('SHA-256', bytes);
-      return Array.from(new Uint8Array(digest))
-        .map((b) => b.toString(16).padStart(2, '0'))
-        .join('');
+      // undefined, never '': an empty string travels as a present-but-blank
+      // match key (sha256_phone_number: "") on both the Pixel and Google
+      // enhanced conversions, where an omitted key is simply not matched on.
+      // Web Crypto is absent outside a secure context.
+      if (!normalized || !globalThis.crypto?.subtle) return undefined;
+      try {
+        const bytes = new TextEncoder().encode(normalized);
+        const digest = await crypto.subtle.digest('SHA-256', bytes);
+        return Array.from(new Uint8Array(digest))
+          .map((b) => b.toString(16).padStart(2, '0'))
+          .join('');
+      } catch {
+        return undefined;
+      }
     };
 
     if (new URLSearchParams(window.location.search).get('preview') === '1') return;
@@ -65,25 +71,17 @@ const { tenantName, tenantSlug } = Astro.props;
 
     const pick = (key, fallback = '') => String(state?.[key] ?? fallback);
     const pickNum = (key, fallback = 0) => Number(state?.[key] ?? fallback);
-    // Read the guard before the event goes out, write it after. `once()` used to
-    // do both at the moment the tracker *decided* to fire, so a page that died
-    // before the deferred pixel flushed — or a browser that threw on a
-    // localStorage write — burned the order permanently on BOTH legs. Meta
-    // deduplicates on event_id and `capi_event_outbox.event_id` is UNIQUE, so a
-    // retry on a later visit is idempotent; a lost conversion is not.
-    const guardKey = (key) => `meta_once_${key}`;
-    const alreadyFired = (key) => {
+    // Storage that throws (blocked site data, quota) must not cost the
+    // Purchase: for COD the server leg below is the only one. Meta still
+    // deduplicates a repeat on event_id.
+    const once = (key) => {
+      const fullKey = `meta_once_${key}`;
       try {
-        return localStorage.getItem(guardKey(key)) === '1';
-      } catch {
-        return false;
-      }
-    };
-    const markFired = (key) => {
-      try {
-        localStorage.setItem(guardKey(key), '1');
-        sessionStorage.setItem(guardKey(key), '1');
+        if (localStorage.getItem(fullKey) === '1') return false;
+        localStorage.setItem(fullKey, '1');
+        sessionStorage.setItem(fullKey, '1');
       } catch {}
+      return true;
     };
     const getCookieValue = (name) =>
       document.cookie
@@ -109,7 +107,7 @@ const { tenantName, tenantSlug } = Astro.props;
     // Product ID is the catalog identity published by both feeds. Variant ID is
     // retained separately for checkout and reporting, never folded into it.
     const productId = pick('product_id', '');
-    let contentIds = productId ? [productId] : [];
+    const contentId = productId;
     const phone = pick('phone', '');
     const name = pick('name', '');
     const province = pick('province', '');
@@ -127,83 +125,11 @@ const { tenantName, tenantSlug } = Astro.props;
 
     const data = {
       content_name: productName,
-      content_ids: contentIds.length ? contentIds : undefined,
+      content_ids: contentId ? [contentId] : undefined,
       content_type: 'product',
       value: Number(conversionValue || 1),
       currency: 'IDR',
     };
-
-    // Kept byte-identical to `src/lib/meta-identity.ts`, which the server CAPI
-    // leg uses. This script cannot import it — `define:vars` forces
-    // `is:inline`, which Astro never bundles — so `meta-identity.test.ts`
-    // reads this file and fails if the two drift apart.
-    const normalizeMetaText = (value) => {
-      const cleaned = String(value || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
-      return cleaned || undefined;
-    };
-    const toE164Digits = (value) => {
-      let digits = String(value || '').replace(/\D/g, '');
-      if (!digits) return undefined;
-      if (digits.startsWith('00')) digits = digits.slice(2);
-      if (digits.startsWith('620')) digits = `62${digits.slice(3)}`;
-      else if (digits.startsWith('0')) digits = `62${digits.slice(1)}`;
-      else if (digits.startsWith('8')) digits = `62${digits}`;
-      return digits.length >= 8 && digits.length <= 15 ? digits : undefined;
-    };
-    const nameParts = String(name || '').trim().split(/\s+/).filter(Boolean);
-    const normalizedPhone = toE164Digits(phone);
-    const storedExternalId = getCookieValue(metaExternalIdCookie);
-    const externalId = /^[a-f0-9]{32}$/.test(storedExternalId)
-      ? storedExternalId
-      : normalizedPhone;
-    const firstName = normalizeMetaText(nameParts[0]);
-    const lastName = nameParts.length > 1 ? normalizeMetaText(nameParts.slice(1).join('')) : undefined;
-    // The CAPI leg below (postMeta's user_data) hashes ct/st/zp/country on
-    // this exact Purchase already. Dropping them from the browser Pixel leg
-    // — as this used to — sent Meta two different match keys for the same
-    // order: a full one server-side, a phone-and-name-only one client-side.
-    const metaCity = normalizeMetaText(city);
-    const metaState = normalizeMetaText(province);
-    const metaZip = normalizeMetaText(postalCode);
-    // Indonesia. `id` is its ISO 3166-1 alpha-2 code, which is what Meta's
-    // customer information parameters require — "use the lowercase, 2-letter
-    // country codes in ISO 3166-1 alpha-2", re-verified 2026-08-28. It is a
-    // country code, not an identifier, and it is never the full country name:
-    // this value is SHA-256'd, so `indonesia` would hash to a key matching
-    // nobody, silently. Google wants the same country in uppercase (`ID`),
-    // which is why the enhanced-conversions block below does not reuse this.
-    const metaCountry = normalizeMetaText('id');
-
-    // Identity is known from sessionStorage at page load — it does not depend on
-    // the order-status round trip — so the Pixel is initialised with it straight
-    // away. This used to run inside fire() as a *second* `fbq('init', pixelId,
-    // …)`, and fbevents ignores every init after the first: the hashes below
-    // were computed on every Purchase and discarded on every Purchase, leaving
-    // the browser leg matching on `external_id` alone.
-    const pixelReady = (async () => {
-      const advancedMatching = {
-        ph: normalizedPhone ? await hashSha256Hex(normalizedPhone) : undefined,
-        fn: firstName ? await hashSha256Hex(firstName) : undefined,
-        ln: lastName ? await hashSha256Hex(lastName) : undefined,
-        ct: metaCity ? await hashSha256Hex(metaCity) : undefined,
-        st: metaState ? await hashSha256Hex(metaState) : undefined,
-        zp: metaZip ? await hashSha256Hex(metaZip) : undefined,
-        country: metaCountry ? await hashSha256Hex(metaCountry) : undefined,
-        external_id: externalId ? await hashSha256Hex(externalId) : undefined,
-      };
-      if (typeof window.__PS_META_INIT__ === 'function') {
-        window.__PS_META_INIT__(advancedMatching);
-      }
-      // fbevents is deferred behind a 2.5 s timer for pages that are measured on
-      // speed. This one is measured on conversions, and the buyer is one tap
-      // from WhatsApp, so the download starts now and overlaps the verification
-      // fetch instead of queueing behind it.
-      if (typeof window.__PS_LOAD_META_PIXEL__ === 'function') {
-        window.__PS_LOAD_META_PIXEL__();
-      }
-    })().catch((error) => {
-      console.error('meta-browser-matching', error);
-    });
 
     const fire = async () => {
       // Every Purchase must resolve to a server-known order. Online orders must
@@ -211,9 +137,6 @@ const { tenantName, tenantSlug } = Astro.props;
       const orderPk = pick('order_pk', '');
       const statusToken = pick('status_token', '');
       if (!orderPk || !statusToken) return;
-      // Guard 2, read early: a refresh or a revisit must not cost another
-      // /api/order-status round trip on top of not firing.
-      if (orderId && alreadyFired(`${eventName}_order_${orderId}`)) return;
       let finalEventId = '';
       try {
         const resp = await fetch('/api/order-status', {
@@ -246,33 +169,93 @@ const { tenantName, tenantSlug } = Astro.props;
           // corrected too or the two legs would report different revenue.
           data.value = serverProductValue;
         }
-        const serverContentIds = Array.isArray(statusData.content_ids)
-          ? statusData.content_ids.filter((id) => typeof id === 'string' && /^\d{5,16}$/.test(id))
-          : [];
-        if (!serverContentIds.length) return;
-        contentIds = serverContentIds;
-        data.content_ids = serverContentIds;
       } catch {
         return;
       }
       // Guard 1: cegah event success dobel untuk event yang sama.
-      if (alreadyFired(`${eventName}_${finalEventId}`)) return;
+      if (!once(`${eventName}_${finalEventId}`)) return;
+      // Guard 2: cegah success event dobel untuk order yang sama walau thanks page dibuka/refresh lagi.
+      if (orderId && !once(`${eventName}_order_${orderId}`)) return;
 
-      // The Pixel's one init already carries this buyer's match keys. Awaiting
-      // `pixelReady` only proves `__PS_META_INIT__` was *called* — the init it
-      // schedules lands a microtask later — so the Purchase goes out through
-      // the hook that waits for the init to have actually been issued rather
-      // than relying on the verification fetch above having taken long enough.
-      await pixelReady;
-      if (typeof window.__PS_META_TRACK__ === 'function') {
-        window.__PS_META_TRACK__(eventName, data, { eventID: finalEventId });
+      // Kept byte-identical to `src/lib/meta-identity.ts`, which the server CAPI
+      // leg uses. This script cannot import it — `define:vars` forces
+      // `is:inline`, which Astro never bundles — so `meta-identity.test.ts`
+      // reads this file and fails if the two drift apart.
+      const normalizeMetaText = (value) => {
+        const cleaned = String(value || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+        return cleaned || undefined;
+      };
+      const toE164Digits = (value) => {
+        let digits = String(value || '').replace(/\D/g, '');
+        if (!digits) return undefined;
+        if (digits.startsWith('00')) digits = digits.slice(2);
+        if (digits.startsWith('620')) digits = `62${digits.slice(3)}`;
+        else if (digits.startsWith('0')) digits = `62${digits.slice(1)}`;
+        else if (digits.startsWith('8')) digits = `62${digits}`;
+        return digits.length >= 8 && digits.length <= 15 ? digits : undefined;
+      };
+      const nameParts = String(name || '').trim().split(/\s+/).filter(Boolean);
+      const normalizedPhone = toE164Digits(phone);
+      const storedExternalId = getCookieValue(metaExternalIdCookie);
+      const externalId = /^[a-f0-9]{32}$/.test(storedExternalId)
+        ? storedExternalId
+        : normalizedPhone;
+      const firstName = normalizeMetaText(nameParts[0]);
+      const lastName = nameParts.length > 1 ? normalizeMetaText(nameParts.slice(1).join('')) : undefined;
+      // The CAPI leg below (postMeta's user_data) hashes ct/st/zp/country on
+      // this exact Purchase already. Dropping them from the browser Pixel leg
+      // — as this used to — sent Meta two different match keys for the same
+      // order: a full one server-side, a phone-and-name-only one client-side.
+      const metaCity = normalizeMetaText(city);
+      const metaState = normalizeMetaText(province);
+      const metaZip = normalizeMetaText(postalCode);
+      const metaCountry = normalizeMetaText('id');
+      try {
+        if (window.fbq) {
+          // Handed to the ONE init `MetaPixelBase` owns, never to a second
+          // `fbq('init')` of our own: fbevents honours advanced matching once
+          // per pixel id and silently discards every later call, so this
+          // Purchase used to reach Meta matched on `external_id` alone while
+          // the server leg matched on eight keys. `/thanks` sets
+          // `__PS_META_AWAIT_MATCHING__` in the head slot BaseLayout renders
+          // ahead of the pixel, which is what leaves the single init still
+          // unspent by the time these hashes exist.
+          //
+          // `client_user_agent` is deliberately absent. It is a Conversions
+          // API field; Meta's Pixel advanced-matching reference does not list
+          // it, and the browser sends its own user agent with the request
+          // regardless.
+          const advancedMatching = {
+            ph: normalizedPhone ? await hashSha256Hex(normalizedPhone) : undefined,
+            fn: firstName ? await hashSha256Hex(firstName) : undefined,
+            ln: lastName ? await hashSha256Hex(lastName) : undefined,
+            ct: metaCity ? await hashSha256Hex(metaCity) : undefined,
+            st: metaState ? await hashSha256Hex(metaState) : undefined,
+            zp: metaZip ? await hashSha256Hex(metaZip) : undefined,
+            country: metaCountry ? await hashSha256Hex(metaCountry) : undefined,
+            external_id: externalId ? await hashSha256Hex(externalId) : undefined,
+          };
+          if (typeof window.__PS_META_INIT__ === 'function') {
+            window.__PS_META_INIT__(advancedMatching);
+          }
+          // The library is deferred behind an interaction listener and a
+          // 2.5 s timer. A buyer who reads this page and closes it triggers
+          // neither, so the conversion pulls the download forward itself —
+          // the same thing the Google conversion has always done.
+          if (typeof window.__PS_LOAD_META_PIXEL__ === 'function') {
+            window.__PS_LOAD_META_PIXEL__();
+          }
+          window.fbq('track', eventName, data, { eventID: finalEventId });
+        }
+      } catch (error) {
+        console.error('meta-browser-purchase', error);
       }
 
       try {
         pushGtmEcomEvent('purchase', {
           currency: 'IDR',
           value: Number(conversionValue || 1),
-          item_id: contentIds[0] || productId,
+          item_id: productId,
           item_name: productName,
           item_variant: pick('variant_unique_id', '') || undefined,
           transaction_id: orderId || undefined,
@@ -331,7 +314,7 @@ const { tenantName, tenantSlug } = Astro.props;
         order_number: finalEventId,
         status_token: statusToken,
         lp_name: pick('lp_name', ''),
-        content_ids: contentIds.length ? contentIds : undefined,
+        product_id: productId || undefined,
         content_name: productName,
         value: Number(conversionValue || 1),
         currency: 'IDR',
@@ -353,12 +336,6 @@ const { tenantName, tenantSlug } = Astro.props;
         },
         payment_status: verifiedPaymentStatus,
       });
-
-      // Claim the order only now that every leg has been handed off. Written
-      // before the dispatch — as it was — an interrupted page kept the claim and
-      // lost the conversion; a revisit could never recover it.
-      markFired(`${eventName}_${finalEventId}`);
-      if (orderId) markFired(`${eventName}_order_${orderId}`);
     };
 
     void fire();

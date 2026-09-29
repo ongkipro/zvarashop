@@ -2,9 +2,10 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
-  isSyntheticBuyerEmail,
+  buildMetaAdvancedMatching,
   metaNameParts,
   normalizeMetaText,
+  resolveMetaCountry,
   sha256Hex,
   toE164Digits,
 } from "./meta-identity.ts";
@@ -87,15 +88,13 @@ test("the Pixel bootstrap mints and hashes one stable first-party external ID", 
   );
   assert.ok(match, "MetaPixelBase must keep its inline bootstrap");
 
-  const cookies = new Map<string, string>();
+  let cookie = "";
   const documentStub = {
     get cookie() {
-      return [...cookies].map(([name, value]) => `${name}=${value}`).join("; ");
+      return cookie;
     },
     set cookie(value: string) {
-      const [pair] = value.split(";");
-      const separator = pair.indexOf("=");
-      cookies.set(pair.slice(0, separator), pair.slice(separator + 1));
+      cookie = value.split(";")[0];
     },
     createElement: () => ({}),
     head: { appendChild: () => undefined },
@@ -133,9 +132,8 @@ test("the Pixel bootstrap mints and hashes one stable first-party external ID", 
   );
   await tracked.promise;
 
-  const externalId = cookies.get("adsbook_meta_external_id") || "";
+  const externalId = cookie.split("=")[1];
   assert.match(externalId, /^[a-f0-9]{32}$/);
-  assert.match(cookies.get("_fbp") || "", /^fb\.1\.\d{10,20}\..+$/);
   const init = calls.find((args: unknown[]) => args[0] === "init");
   const pageView = calls.find((args: unknown[]) => args[0] === "track");
   const initData = init?.[2] as Record<string, unknown> | undefined;
@@ -145,134 +143,133 @@ test("the Pixel bootstrap mints and hashes one stable first-party external ID", 
   assert.equal(pageViewOptions?.eventID, windowStub.__META_PAGEVIEW_EVENT_ID__);
 });
 
-test("the Pixel bootstrap establishes fbp before an immediate CAPI tracker runs", () => {
-  const readIndex = PIXEL_BASE.indexOf("let fbp = readCookieValue('_fbp')");
-  const writeIndex = PIXEL_BASE.indexOf("writeMetaCookie('_fbp', fbp)");
-  const initHookIndex = PIXEL_BASE.indexOf("window.__PS_META_INIT__ =");
-  assert.ok(readIndex >= 0, "MetaPixelBase must read an existing first-party fbp");
-  assert.ok(writeIndex > readIndex, "MetaPixelBase must mint a missing fbp");
-  assert.ok(
-    initHookIndex > writeIndex,
-    "fbp must exist before page trackers can post the matching CAPI event",
+test("the Pixel bootstrap exposes the hooks /thanks and the forms call, and inits once", async () => {
+  // `/thanks`, form-middle and form-hybrid hand their advanced matching to
+  // `window.__PS_META_INIT__` and pull the library forward with
+  // `__PS_LOAD_META_PIXEL__`, each behind `?.`. A bootstrap without them fails
+  // nothing — the matching is dropped in silence. An install once shipped
+  // exactly that rewrite, with one init and so past the init-count checks.
+  const match = PIXEL_BASE.match(
+    /<script\b[^>]*\bis:inline\b[^>]*>([\s\S]*)<\/script>/,
   );
-  assert.match(PIXEL_BASE, /fbp = `fb\.1\.\$\{Date\.now\(\)\}\.\$\{randomPart\}`/);
-});
+  assert.ok(match, "MetaPixelBase must keep its inline bootstrap");
 
-test("the payment provider's minted address never becomes a match key", () => {
-  // `buyerEmail()` mints `<phone digits>@<store host>` so an online payment
-  // provider has an address to accept, and it is stored on the order. It was
-  // being read straight into the CAPI leg's `em`: two of this install's orders
-  // already carry one. Nobody owns that address, and Meta scores match quality
-  // on the keys it is given, so supplying it is worse than omitting it.
-  assert.equal(isSyntheticBuyerEmail("6281234567890@zvara.shop", "6281234567890"), true);
-  // Stored in either form, through the same normaliser both legs use.
-  assert.equal(isSyntheticBuyerEmail("081234567890@zvara.shop", "6281234567890"), true);
-  assert.equal(isSyntheticBuyerEmail("6281234567890@zvara.shop", "081234567890"), true);
+  const calls: unknown[][] = [];
+  const windowStub: Record<string, any> = {
+    location: { protocol: "https:" },
+    addEventListener: () => undefined,
+    setTimeout: () => 1,
+    // The page declares it will supply matching, as /thanks does.
+    __PS_META_AWAIT_MATCHING__: true,
+    fbq: (...args: unknown[]) => calls.push(args),
+  };
+  const documentStub = {
+    cookie: "",
+    createElement: () => ({}),
+    head: { appendChild: () => undefined },
+  };
+  new Function(
+    "pixelId", "metaExternalIdCookie", "window", "document", "crypto", "TextEncoder", "Uint8Array",
+    match[1],
+  )("1234567890", "adsbook_meta_external_id", windowStub, documentStub, globalThis.crypto, TextEncoder, Uint8Array);
 
-  // A real address survives, including one whose local part is digits but is
-  // not this buyer's number — dropping that would be inventing a rule.
-  assert.equal(isSyntheticBuyerEmail("budi.santoso@gmail.com", "6281234567890"), false);
-  assert.equal(isSyntheticBuyerEmail("123456789@gmail.com", "6281234567890"), false);
-  assert.equal(isSyntheticBuyerEmail(undefined, "6281234567890"), false);
-  assert.equal(isSyntheticBuyerEmail("6281234567890@zvara.shop", undefined), false);
-});
-
-test("the CAPI route sends the resolved email through that guard, not around it", () => {
-  // One guard at the boundary where both halves of the pair are known. Placing
-  // it on the resolved value also covers the headless route's payload.email.
-  const route = readFileSync("src/pages/api/meta-event.ts", "utf8");
-  assert.match(route, /isSyntheticBuyerEmail\(resolvedEmail,\s*resolvedPhone\)/);
-  assert.doesNotMatch(
-    route,
-    /email:\s*purchaseOrder\?\.customer_email\s*\|\|\s*payload\.email/,
-    "the raw order email must not reach userData unguarded",
-  );
-});
-
-test("MetaPixelBase is the only file allowed to call fbq('init')", () => {
-  // fbevents honours `init` for a pixel id exactly once and silently ignores
-  // every later call. Three files used to call it — the pixel bootstrap, and
-  // then both checkout scripts and the thanks tracker behind it — so every
-  // advanced-matching object any of them built after page load was discarded.
-  // Nothing errored: the pixel kept firing events, matched on `external_id`
-  // alone, while the CAPI leg carried seven keys for the same person.
-  // Whole-line comments only: these files explain the rule in prose that quotes
-  // the very call being banned, and a stripper clever enough to also handle
-  // trailing comments would start eating `https://` out of string literals.
-  const withoutComments = (source: string) =>
-    source
-      .split("\n")
-      .filter((line) => !/^\s*(\/\/|\/?\*)/.test(line))
-      .join("\n");
-
-  const trackingSources = [
-    "src/components/storefront/tracking/MetaThanksTracker.astro",
-    "src/components/storefront/tracking/MetaLandingTracker.astro",
-    "src/components/storefront/tracking/MetaViewContentTracker.astro",
-    "src/components/storefront/tracking/MetaPageViewTracker.astro",
-    "src/scripts/form-hybrid.ts",
-    "src/scripts/form-middle.ts",
-  ];
-  for (const path of trackingSources) {
-    assert.doesNotMatch(
-      withoutComments(readFileSync(path, "utf8")),
-      /fbq\(\s*["']init["']/,
-      `${path} must hand advanced matching to __PS_META_INIT__, not re-init the pixel`,
-    );
+  for (let i = 0; i < 50 && typeof windowStub.__PS_META_INIT__ !== "function"; i += 1) {
+    await new Promise((resolve) => setImmediate(resolve));
   }
-  const baseInits = withoutComments(PIXEL_BASE).match(/fbq\(\s*["']init["']/g) ?? [];
+  assert.equal(typeof windowStub.__PS_META_INIT__, "function", "__PS_META_INIT__ must be exposed");
+  assert.equal(typeof windowStub.__PS_LOAD_META_PIXEL__, "function", "__PS_LOAD_META_PIXEL__ must be exposed");
+  assert.equal(calls.filter((args) => args[0] === "init").length, 0, "an awaiting page is not init'd early");
+
+  assert.equal(windowStub.__PS_META_INIT__({ ph: "hashed-phone" }), true);
+  assert.equal(windowStub.__PS_META_INIT__({ fn: "late" }), false, "a second init is refused");
+  const inits = calls.filter((args) => args[0] === "init");
+  assert.equal(inits.length, 1);
+  assert.equal((inits[0][2] as Record<string, unknown>).ph, "hashed-phone");
+});
+
+test("the browser Pixel's advanced-matching object hashes every field CAPI also hashes for the same event", async () => {
+  // This is the gap that motivated the shared builder: AddToCart and
+  // InitiateCheckout already send city/province/postal_code/country to the
+  // server CAPI leg on the same event (meta-event.ts -> sendMetaCapiEvent),
+  // but the browser Pixel's `fbq('init', pixelId, advancedMatching)` object
+  // read only phone and name. A field CAPI hashes and the Pixel drops means
+  // the two legs describe the same person with different keys.
+  const am = await buildMetaAdvancedMatching({
+    customer_name: "Siti Nur Aisyah",
+    customer_phone: "081234567890",
+    city: "Jakarta Selatan",
+    province: "DKI Jakarta",
+    postal_code: "12430",
+    country: "id",
+    external_id: "0123456789abcdef0123456789abcdef",
+  });
+  for (const key of ["ph", "fn", "ln", "ct", "st", "zp", "country", "external_id"] as const) {
+    assert.match(am[key] ?? "", /^[a-f0-9]{64}$/, `${key} must be a SHA-256 hex hash`);
+  }
+  assert.notEqual(am.ph, am.external_id);
   assert.equal(
-    baseInits.length,
-    2,
-    "MetaPixelBase owns the single init — one call with user data, one without",
+    am.external_id,
+    await sha256Hex("0123456789abcdef0123456789abcdef"),
   );
 });
 
-test("the confirmation page's advanced matching reaches the pixel through the one init", () => {
-  // The CAPI leg (postMeta's user_data, further down MetaThanksTracker) has
-  // always sent ct/st/zp/country for Purchase. The browser Pixel must describe
-  // the same person with the same keys, and the only call fbevents honours is
-  // MetaPixelBase's — so the tracker contributes to it rather than repeating it.
-  const handover = THANKS_TRACKER.slice(
-    THANKS_TRACKER.indexOf("const advancedMatching = {"),
-    THANKS_TRACKER.indexOf("window.__PS_META_INIT__(advancedMatching)"),
+test("advanced matching omits a field entirely rather than hashing an empty string", async () => {
+  // AddToCart fires before an address is known; InitiateCheckout re-inits with
+  // the fuller object. A hash of "" is a match key for nobody and would still
+  // count toward Meta's parameter-coverage metric as if it mattered.
+  const am = await buildMetaAdvancedMatching({
+    customer_name: "Andi",
+    customer_phone: "081234567890",
+  });
+  assert.equal(am.ct, undefined);
+  assert.equal(am.st, undefined);
+  assert.equal(am.zp, undefined);
+  assert.equal(am.country, undefined);
+  assert.match(am.ph ?? "", /^[a-f0-9]{64}$/);
+  // Upgrading sessions without the first-party visitor cookie retain the
+  // historical phone-derived external_id until the next Pixel bootstrap.
+  assert.equal(am.external_id, am.ph);
+});
+
+test("the inline thanks tracker's browser Pixel leg hashes city, state, zip and country like the server CAPI leg does", () => {
+  // The CAPI leg (postMeta's user_data, further down this same file) has
+  // always sent ct/st/zp/country for Purchase. The browser Pixel's advanced
+  // matching used to stop at ph/fn/ln, so the two legs of one Purchase
+  // described the same person with different keys.
+  //
+  // The keys must also reach `MetaPixelBase`'s single init rather than a
+  // second `fbq('init')`, which fbevents discards without a word. The
+  // behavioural half of that is in `meta-purchase-dedup.test.ts`; the source
+  // scan below is what stops one from being reintroduced here.
+  // Comments in this file discuss `fbq('init')` at length — deliberately, it
+  // is the trap being guarded — so the scan is of code with comment bodies
+  // removed, not of prose.
+  const trackerCode = THANKS_TRACKER.replace(/^\s*\/\/.*$/gm, "");
+  assert.doesNotMatch(
+    trackerCode,
+    /fbq\(\s*['"]init['"]/,
+    "the thanks tracker must hand matching to __PS_META_INIT__, never re-init the Pixel",
   );
-  assert.ok(handover, "MetaThanksTracker must build advanced matching for __PS_META_INIT__");
-  for (const key of ["ph:", "fn:", "ln:", "ct:", "st:", "zp:", "country:", "external_id:"]) {
+  assert.match(
+    trackerCode,
+    /__PS_META_INIT__\(advancedMatching\)/,
+    "the hashed matching object must reach MetaPixelBase's single init",
+  );
+  assert.doesNotMatch(
+    trackerCode,
+    /client_user_agent/,
+    "client_user_agent is a Conversions API field, not a Pixel advanced-matching key",
+  );
+  const initCall = THANKS_TRACKER.slice(
+    THANKS_TRACKER.indexOf("const advancedMatching = {"),
+    THANKS_TRACKER.indexOf("window.fbq('track', eventName, data"),
+  );
+  for (const key of ["ct:", "st:", "zp:", "country:"]) {
     assert.ok(
-      handover.includes(key),
-      `MetaThanksTracker.astro's advanced matching is missing ${key}`,
+      initCall.includes(key),
+      `MetaThanksTracker.astro's browser Pixel init call is missing ${key}`,
     );
   }
-  // A Conversions API field, not a Pixel match key: the live library stores it
-  // on `userData` with no censored-format entry, so it counts for nothing.
-  assert.doesNotMatch(
-    THANKS_TRACKER,
-    /client_user_agent/,
-    "client_user_agent belongs to the CAPI leg, which derives it server-side",
-  );
-  // `/thanks` is what makes the base wait for these hashes; without the flag the
-  // base initialises on external_id alone and the handover arrives too late.
-  assert.match(
-    readFileSync("src/pages/thanks.astro", "utf8"),
-    /__PS_META_AWAIT_MATCHING__\s*=\s*true/,
-    "thanks.astro must declare __PS_META_AWAIT_MATCHING__ before MetaPixelBase runs",
-  );
-});
-
-test("both ad libraries give a conversion a way past their deferral timer", () => {
-  // gtag.js and fbevents.js are both deferred to first interaction or 2.5 s.
-  // On /thanks the first interaction is the WhatsApp hand-off, so a conversion
-  // that waits for the timer can lose the race with the buyer leaving. The
-  // Google leg has had this escape hatch since its deferral shipped; the Meta
-  // leg did not, and its Purchase sat in the fbq queue.
-  assert.match(GOOGLE_ADS_BASE, /window\.__PS_LOAD_GOOGLE_TAG__\s*=\s*loadGtag/);
-  assert.match(PIXEL_BASE, /window\.__PS_LOAD_META_PIXEL__\s*=\s*loadPixel/);
-  assert.match(
-    THANKS_TRACKER,
-    /window\.__PS_LOAD_META_PIXEL__\(\)/,
-    "the confirmation page must pull fbevents forward instead of queueing behind its timer",
-  );
 });
 
 test("Google enhanced conversions call `set` before `event`, not a nested user_data param", () => {
@@ -313,4 +310,65 @@ test("Google enhanced-conversion names are nested where gtag reads them", () => 
     THANKS_TRACKER.includes("nameParts.slice(1).join(' ')"),
     "Google last name must keep the space Meta strips",
   );
+});
+
+
+// `country` was validated by the contract, hashed by `meta-capi`, sent by the
+// `/thanks` browser leg and forwarded by the headless route — and dropped by
+// `/api/meta-event`, which carries every first-party PageView, ViewContent and
+// `/thanks` Purchase. The two legs of one order therefore described the buyer
+// with different key sets, and Meta scored match quality on the shorter one.
+
+test("country is an order's own key, the edge country otherwise, and never a guess", () => {
+  assert.equal(resolveMetaCountry(undefined, "SG", true), "id", "a resolved order is domestic");
+  assert.equal(resolveMetaCountry("us", "SG", true), "id", "the order outranks a caller claim");
+  assert.equal(resolveMetaCountry(undefined, "SG", false), "sg", "the edge country is truthful");
+  assert.equal(resolveMetaCountry("id", null, false), "id", "a validated claim is honoured");
+  // A hash of a non-country matches nobody, and Meta scores match quality on
+  // the keys it was given — an absent key is strictly better than a wrong one.
+  assert.equal(resolveMetaCountry(undefined, "XX", false), undefined, "Cloudflare's unknown");
+  assert.equal(resolveMetaCountry(undefined, "T1", false), undefined, "Cloudflare's Tor");
+  assert.equal(resolveMetaCountry(undefined, "indonesia", false), undefined, "not alpha-2");
+  assert.equal(resolveMetaCountry(undefined, null, false), undefined, "nothing to say");
+});
+
+test("both CAPI ingestion routes forward country to the outbox", () => {
+  for (const [label, path] of [
+    ["src/pages/api/meta-event.ts", "../pages/api/meta-event.ts"],
+    ["src/pages/api/v1/tracking/events.ts", "../pages/api/v1/tracking/events.ts"],
+  ] as const) {
+    const source = readFileSync(new URL(path, import.meta.url), "utf8");
+    const userData = source.slice(source.indexOf("userData: {"), source.indexOf("customData: {"));
+    assert.match(
+      userData,
+      /country: resolveMetaCountry\(/,
+      `${label} builds user_data without country — the Pixel leg sends it and this leg would not`,
+    );
+  }
+});
+
+test("buildMetaAdvancedMatching omits keys instead of throwing when Web Crypto is unavailable", async () => {
+  // Plain-http origins have no crypto.subtle; the checkout AddToCart used to
+  // die here on every leg. Omit the hashes, never substitute raw values.
+  const subtle = Object.getOwnPropertyDescriptor(globalThis.crypto, "subtle");
+  Object.defineProperty(globalThis.crypto, "subtle", { value: undefined, configurable: true });
+  try {
+    const am = await buildMetaAdvancedMatching({ customer_name: "Budi Santoso", customer_phone: "081234567890", city: "Jakarta" });
+    assert.equal(am.ph, undefined);
+    assert.equal(am.fn, undefined);
+    assert.equal(am.ct, undefined);
+    assert.ok(!JSON.stringify(am).includes("81234567890"), "raw phone must never stand in for its hash");
+    assert.ok(!JSON.stringify(am).toLowerCase().includes("budi"), "raw name must never stand in for its hash");
+  } finally {
+    if (subtle) Object.defineProperty(globalThis.crypto, "subtle", subtle);
+  }
+});
+
+test("the thanks tracker's hash returns undefined, never '', when it cannot hash", () => {
+  // '' reached Google as sha256_phone_number: "" and the Pixel as ph: "" —
+  // present-but-blank match keys — on any origin without Web Crypto.
+  const source = readFileSync("src/components/storefront/tracking/MetaThanksTracker.astro", "utf8");
+  const body = source.slice(source.indexOf("const hashSha256Hex"), source.indexOf("};", source.indexOf("const hashSha256Hex")));
+  assert.ok(body.length > 0, "hashSha256Hex not found");
+  assert.doesNotMatch(body, /return\s+''|return\s+""/);
 });

@@ -470,9 +470,9 @@ export type AutoLarisPaymentInquiryResult = {
 /**
  * Reads one AutoLaris transaction's state straight from the provider.
  *
- * Deliberately read-only: this operator action writes nothing to D1. The hourly
- * reconciler owns guarded automatic transitions for explicit settlement words;
- * ambiguous and shipping-oriented statuses remain evidence only.
+ * Deliberately read-only at this operator boundary: it writes nothing to D1.
+ * The hourly scheduled reconciliation owns automatic paid transitions through
+ * the same Advice adapter.
  */
 export async function inquireAutoLarisPaymentStatus(
   database: D1Database,

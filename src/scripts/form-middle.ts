@@ -1,8 +1,9 @@
+import { buildMetaAdvancedMatching } from "../lib/meta-identity.ts";
 import { META_EXTERNAL_ID_COOKIE } from "../lib/click-ids.ts";
 import { normalizePhone } from "../lib/validation";
 import { formatIdr } from "../lib/format-idr";
 import { pushGtmEcomEvent } from "../lib/gtm";
-import { isValidWa62 } from "../lib/validation";
+import { isValidWa62, missingCheckoutContact } from "../lib/validation";
 import { navigateAfterCheckout } from "../lib/checkout-navigation";
 import {
   AbandonedLeadCaptureGate,
@@ -56,22 +57,40 @@ const findMiddleConfigEl = (formRoot: HTMLElement | null) => {
 
 export function initPromoSessionStock(root?: Document | HTMLElement) {
   const scope = root || document;
-  const formRoot = scope.querySelector<HTMLElement>("[data-middle-form-root]");
-  const configEl = findMiddleConfigEl(formRoot);
-  const parsedConfig = configEl?.textContent
-    ? (JSON.parse(configEl.textContent) as MiddleFormConfig)
-    : null;
-  if (!formRoot || !parsedConfig) return;
-  applyPromoStock(formRoot, parsedConfig.productSlug);
+  scope.querySelectorAll<HTMLElement>("[data-middle-form-root]").forEach((formRoot) => {
+    const configEl = findMiddleConfigEl(formRoot);
+    const parsedConfig = configEl?.textContent
+      ? (JSON.parse(configEl.textContent) as MiddleFormConfig)
+      : null;
+    if (parsedConfig) applyPromoStock(formRoot, parsedConfig.productSlug);
+  });
 }
 
+const initializedMiddleRoots = new WeakSet<HTMLElement>();
+
+/**
+ * Every middle form on the page, not only the first. Astro emits this module
+ * once however many form sections a landing page carries, so wiring only
+ * `querySelector`'s match left a second form to submit natively — a GET that
+ * put the buyer's name, phone and address in the URL and created no order.
+ */
 export function initMiddleOrderForm(
   config?: MiddleFormConfig,
   root?: Document | HTMLElement,
 ) {
   const scope = root || document;
-  const formRoot = scope.querySelector<HTMLElement>("[data-middle-form-root]");
-  const configEl = findMiddleConfigEl(formRoot || null);
+  scope.querySelectorAll<HTMLElement>("[data-middle-form-root]").forEach((formRoot) => {
+    if (initializedMiddleRoots.has(formRoot)) return;
+    initializedMiddleRoots.add(formRoot);
+    initMiddleOrderFormInstance(formRoot, config);
+  });
+}
+
+function initMiddleOrderFormInstance(
+  formRoot: HTMLElement,
+  config?: MiddleFormConfig,
+) {
+  const configEl = findMiddleConfigEl(formRoot);
   const parsedConfig =
     config ||
     (configEl?.textContent
@@ -93,12 +112,30 @@ export function initMiddleOrderForm(
       .split("; ")
       .find((row) => row.startsWith(`${name}=`))
       ?.split("=")[1] || "";
-  // There is deliberately no browser advanced-matching call here. fbevents
-  // accepts `fbq('init', pixelId, …)` once per page and silently ignores every
-  // later one, so re-initing when a name and phone appear mid-form hashed the
-  // buyer on every AddToCart and threw the result away. Identity that becomes
-  // known after the Pixel bootstrap belongs to the CAPI leg, which `trackMeta`
-  // below already sends it to under the same `event_id`.
+  const ensureMetaAdvancedMatching = async (
+    extraUserData?: Record<string, unknown>,
+  ) => {
+    const pixelId = (window as any).__META_PIXEL_ID__;
+    if (!(window as any).fbq || !pixelId) return;
+    const advancedMatching = await buildMetaAdvancedMatching({
+      ...extraUserData,
+      external_id:
+        getCookieValue(META_EXTERNAL_ID_COOKIE) || extraUserData?.external_id,
+    });
+    const signature = JSON.stringify(advancedMatching);
+    if ((window as any).__META_AM_SIGNATURE__ === signature) return;
+    (window as any).__META_AM_SIGNATURE__ = signature;
+    // Routed into the one init `MetaPixelBase` owns, never a second `fbq('init')`.
+    // fbevents honours advanced matching once per pixel id and discards later
+    // calls silently, so this used to hash a full matching object and throw it
+    // away. On a form page the pixel has already initialised by the time the
+    // buyer types anything, so this returns false and the browser leg keeps the
+    // `external_id` it was initialised with — the phone and name still reach
+    // Meta on the CAPI leg, which reads them server-side and is not subject to
+    // this constraint. Deleting the call instead would lose the one case that
+    // does land: a buyer who fills the form before the pixel has initialised.
+    (window as any).__PS_META_INIT__?.(advancedMatching);
+  };
   const postMetaEvent = (payload: Record<string, unknown>) =>
     fetch("/api/meta-event", {
       method: "POST",
@@ -121,6 +158,7 @@ export function initMiddleOrderForm(
     const variantUniqueId = String(selected?.value || "");
     const value = Number(selected?.dataset.price || 1);
     if ((window as any).fbq) {
+      await ensureMetaAdvancedMatching(extraUserData);
       (window as any).fbq(
         "track",
         eventName,
@@ -262,16 +300,23 @@ export function initMiddleOrderForm(
 
   const timerKey = `promo_end_${productSlug}_middle`;
   const now = Date.now();
-  const stored = Number(localStorage.getItem(timerKey) || 0);
+  // A storage that throws (blocked site data) must not take the order form
+  // down with a promo countdown; it just restarts per visit.
+  let stored = 0;
+  try {
+    stored = Number(localStorage.getItem(timerKey) || 0);
+  } catch {}
   const end = stored > now ? stored : now + 30 * 60 * 1000;
-  localStorage.setItem(timerKey, String(end));
+  try {
+    localStorage.setItem(timerKey, String(end));
+  } catch {}
 
   const form = formRoot?.querySelector("form") as HTMLFormElement | null;
   const nameInput = formRoot?.querySelector(
-    "#customer-name",
+    '[data-field="customer-name"]',
   ) as HTMLInputElement | null;
   const phoneInput = formRoot?.querySelector(
-    "#middle-phone",
+    '[data-field="middle-phone"]',
   ) as HTMLInputElement | null;
   const errorEl = formRoot?.querySelector(
     "#middle-error",
@@ -429,17 +474,17 @@ export function initMiddleOrderForm(
         disabled: true,
         label: submitButton.dataset.loadingLabel || "Memproses Pesanan...",
       };
-    const hasName = Boolean(nameInput && nameInput.value.trim().length >= 3);
-    const hasPhone = Boolean(phoneInput && phoneInput.value.trim().length >= 8);
-    const hasAddress = Boolean(
-      addressInput && addressInput.value.trim().length >= 3,
-    );
+    const missing = missingCheckoutContact({
+      name: nameInput?.value || "",
+      phone: phoneInput?.value || "",
+      address: addressInput?.value || "",
+    });
 
-    if (!hasName)
+    if (missing === "name")
       return { disabled: true, label: "Lengkapi Nama Terlebih Dahulu" };
-    if (!hasPhone)
+    if (missing === "phone")
       return { disabled: true, label: "Lengkapi No. WA Terlebih Dahulu" };
-    if (!hasAddress)
+    if (missing === "address")
       return { disabled: true, label: "Lengkapi Alamat Terlebih Dahulu" };
 
     return { disabled: false, label: "Buat Order Sekarang" };
@@ -815,9 +860,21 @@ export function initMiddleOrderForm(
       variant_label: label,
       guard_token: guardToken,
     };
-    sessionStorage.setItem("thanks_state", JSON.stringify(state));
+    // The order already exists in D1, so nothing here may throw: a storage
+    // write that fails must not cost the buyer their confirmation, and the
+    // CAPI Purchase is only ever triggered from `/thanks`.
+    try {
+      sessionStorage.setItem("thanks_state", JSON.stringify(state));
+    } catch {
+      // The fragment locator below carries the order on its own.
+    }
     setSubmitting(true, "Mengalihkan...");
 
-    navigateAfterCheckout("/thanks");
+    // The fragment is never sent to a server or a referrer, which is why it
+    // already carries the payment instructions; `/thanks` needs the same
+    // carrier to survive a lost tab or a storage write that never landed.
+    navigateAfterCheckout(
+      `/thanks#o=${encodeURIComponent(String(state.order_pk ?? ""))}&t=${encodeURIComponent(String(state.status_token ?? ""))}`,
+    );
   });
 }

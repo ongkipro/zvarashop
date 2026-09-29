@@ -6,12 +6,13 @@ import { getStorefrontProduct } from '../lib/catalog';
 import { getLandingPageBySlug, parseShortcodes } from '../lib/landing-pages';
 import { getStoreSupportWhatsapp } from '../lib/public-store';
 import { resolveAdminSession } from '../lib/admin-session';
-import { getEnvValue, getRuntimeEnv } from '../lib/env';
+import { resolveAuthSecret } from '../lib/auth-secret';
+import { getRuntimeEnv } from '../lib/env';
 import '../styles/form-hybrid.css';
 import '../styles/landing-pages/landing.css';
 import { defaultCatalogContentId } from '../lib/catalog-feed';
 import SocialProofToast from '../components/storefront/shared/SocialProofToast.astro';
-import { cardImageSrc } from '../lib/image-derivative';
+import { recentOrderCount } from '../lib/social-proof';
 
 export const prerender = false;
 
@@ -32,10 +33,11 @@ if (previewRequested) {
     isPreview = true;
   } else {
     const env = getRuntimeEnv(Astro.locals);
+    const database = env?.OMS_DB as D1Database | undefined;
     const session = await resolveAdminSession(
-      env?.OMS_DB as D1Database | undefined,
+      database,
       Astro.request,
-      getEnvValue('AUTH_SECRET', env),
+      await resolveAuthSecret(env, database),
     );
     isPreview = session !== null && !session.mustChangePassword;
   }
@@ -49,6 +51,8 @@ const product = await getStorefrontProduct(Astro.locals, page.product_id);
 if (!product) {
   return Astro.rewrite('/404');
 }
+// The store's real orders (A-300); under the threshold the toast renders nothing.
+const socialProofOrders = await recentOrderCount(getRuntimeEnv(Astro.locals)?.OMS_DB as D1Database | undefined);
 
 // When this page has taken over the product's page, the product URL is its
 // only address, so a direct visit to the landing slug is sent there.
@@ -131,8 +135,7 @@ const productSchemaJson = JSON.stringify(productSchema).replace(/</g, '\\u003c')
       section is merchant-authored, so the hero blocker is left unset and only
       the checkout form suppresses the toast. */}
   <SocialProofToast
-    productLabel={product.productName}
-    productImage={cardImageSrc(product.heroImage)}
+    orderCount={socialProofOrders}
     heroSelector=""
     formSelector="#checkout-form"
   />
@@ -143,18 +146,21 @@ const productSchemaJson = JSON.stringify(productSchema).replace(/</g, '\\u003c')
         const parsedHtml = parseShortcodes(section.content_html ?? '', product, csPhone);
         return <section class="lp-section" set:html={parsedHtml} />;
       }
-
+      const config = section.content_config;
+      if (section.type === 'headline' && config && 'text' in config) return <section class={`lp-section lp-align-${config.align ?? 'left'}`}><h2 class={`lp-headline-${config.size ?? 'medium'}`}>{config.text}</h2></section>;
+      if (section.type === 'paragraph' && config && 'text' in config) return <section class={`lp-section lp-align-${config.align ?? 'left'}`}><p class="lp-body">{config.text}</p></section>;
+      if ((section.type === 'numbered_list' || section.type === 'bullet_list') && config && 'items' in config) {
+        return <section class="lp-section">{section.type === 'numbered_list' ? <ol>{config.items.map((item) => <li>{item}</li>)}</ol> : <ul>{config.items.map((item) => <li>{item}</li>)}</ul>}</section>;
+      }
+      if (section.type === 'image' && config && 'src' in config) return <section class="lp-section"><img src={config.src} alt={config.alt} loading="lazy" decoding="async" /></section>;
+      // Only a form section renders a form. While `type` was `'html' | 'form'`
+      // the final `return` was a safe else; with seven kinds it is a trap —
+      // any typed section whose stored config failed to parse would fall
+      // through and inject a second checkout form into the page instead of
+      // rendering nothing.
+      if (section.type !== 'form') return null;
       const formConfig = section.form_config ?? {};
-      return (
-        <div id={section.id === firstFormSectionId ? 'checkout-form' : `checkout-form-${section.id}`} class="scroll-mt-8">
-          <GeoIpResolvedForm
-            productSlug={product.slug}
-            mode={formConfig.mode}
-            embedded={true}
-            selectedVariantId={formConfig.selected_variant_id}
-          />
-        </div>
-      );
+      return <div id={section.id === firstFormSectionId ? 'checkout-form' : `checkout-form-${section.id}`} class="scroll-mt-8"><GeoIpResolvedForm productSlug={product.slug} mode={formConfig.mode} embedded={true} selectedVariantId={formConfig.selected_variant_id} /></div>;
     })
   }
   {

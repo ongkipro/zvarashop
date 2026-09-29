@@ -4,10 +4,13 @@ import {
   AUTOLARIS_CHANNEL_OPTIONS,
   parseAutoLarisPaymentResponse,
 } from "./autolaris-client.ts";
-import { summarizePaymentBuckets } from "./autolaris-balance.ts";
+import { envTenantConfig } from "./tenant.ts";
 import {
-  createAutoLarisDigitalOrderForPayment,
+  buyerEmail,
+  createAutoLarisPaymentForOrder,
   effectivePaymentStatus,
+  isSyntheticBuyerEmail,
+  matchableCustomerEmail,
   reconcileAutoLarisPaymentStatuses,
 } from "./autolaris-payment.ts";
 
@@ -22,31 +25,29 @@ function createAutoLarisOrderDatabase(autoLarisApiKey: string | null) {
     customer_name: "Buyer",
     customer_phone: "081331000000",
     customer_email: "buyer@example.test",
-    address: "Jl. Testing 1",
+    address: "Buyer Street",
     province: "Jawa Timur",
-    city: "Sidoarjo",
-    district: "Waru",
-    postal_code: "61256",
+    city: "Nganjuk",
+    district: "Sawahan",
+    postal_code: "64475",
     total_amount: 118_400,
     payment_method: "qris",
     payment_fee_bearer: "seller",
-    store_name: "Zvara Shop",
-    warehouse_name: "Gudang Zvara",
-    warehouse_contact_name: "Zvara Ops",
+    store_name: "QA Store",
+    warehouse_name: "QA Warehouse",
+    warehouse_contact_name: "Warehouse PIC",
     warehouse_contact_phone: "08123456789",
-    warehouse_address: "Jl. Gudang 2",
+    warehouse_address: "Warehouse Street",
     warehouse_city: "Surabaya",
     warehouse_province: "Jawa Timur",
   };
-  const items = [
-    {
-      quantity: 1,
-      unit_price: 118_400,
-      weight_grams: 500,
-      product_title: "Produk Uji",
-      variant_title: "Default",
-    },
-  ];
+  const item = {
+    quantity: 2,
+    unit_price: 50_000,
+    weight_grams: 600,
+    product_title: "QA Product",
+    variant_title: "500 ml",
+  };
 
   const database = {
     prepare(sql: string) {
@@ -73,7 +74,7 @@ function createAutoLarisOrderDatabase(autoLarisApiKey: string | null) {
         },
         async all() {
           if (sql.includes("FROM order_items oi")) {
-            return { success: true, results: items, meta: {} };
+            return { success: true, results: [item], meta: {} };
           }
           throw new Error(`Unexpected all query: ${sql}`);
         },
@@ -145,14 +146,15 @@ function createAutoLarisOrderDatabase(autoLarisApiKey: string | null) {
 }
 
 const QA_LOCALS = {
-  tenant: { siteUrl: "https://store.example.test" },
+  tenant: { ...envTenantConfig, siteUrl: "https://store.example.test" },
   runtimeEnv: {
     AUTOLARIS_ORDER_ORIGIN_ID: "3517100",
     AUTOLARIS_ORDER_DESTINATION_ID: "3518010",
   },
+  cfContext: { waitUntil() {} } as App.Locals["cfContext"],
 } as App.Locals;
 
-test("payment orchestration submits one non-physical digital order to AutoLaris", async (context) => {
+test("payment orchestration sends one complete Create Order payload to AutoLaris", async (context) => {
   const originalFetch = globalThis.fetch;
   context.after(() => {
     globalThis.fetch = originalFetch;
@@ -179,7 +181,7 @@ test("payment orchestration submits one non-physical digital order to AutoLaris"
     });
   };
 
-  const payment = await createAutoLarisDigitalOrderForPayment(database, QA_LOCALS, {
+  const payment = await createAutoLarisPaymentForOrder(database, QA_LOCALS, {
     orderId: 41,
     channelCode: "QRIS",
   });
@@ -188,19 +190,54 @@ test("payment orchestration submits one non-physical digital order to AutoLaris"
     requestedUrl,
     "https://autolaris.example.test/api/h2h/submit",
   );
-  // `INV-10041` is not a legal provider reference; the digits are.
-  assert.equal(requestedBody?.reff_id, "10041");
-  assert.equal(requestedBody?.courir_id, 1);
-  assert.equal(requestedBody?.origin, 3517100);
-  assert.equal(requestedBody?.destination, 3518010);
-  assert.equal(requestedBody?.cod_value, "0");
-  assert.equal(requestedBody?.callback_url, "");
-  assert.deepEqual(requestedBody?.order_details, [
-    { name: "Produk Uji - Default", qty: "1", unit_price: "118400" },
-  ]);
+  assert.deepEqual(
+    {
+      reff_id: requestedBody?.reff_id,
+      channel_code: requestedBody?.channel_code,
+      courir_id: requestedBody?.courir_id,
+      origin: requestedBody?.origin,
+      destination: requestedBody?.destination,
+      weight: requestedBody?.weight,
+      length: requestedBody?.length,
+      width: requestedBody?.width,
+      height: requestedBody?.height,
+      shipper_name: requestedBody?.shipper_name,
+      shipper_email: requestedBody?.shipper_email,
+      receiver_name: requestedBody?.receiver_name,
+      receiver_address: requestedBody?.receiver_address,
+      callback_url: requestedBody?.callback_url,
+      grand_total: requestedBody?.grand_total,
+      cod_value: requestedBody?.cod_value,
+      remark: requestedBody?.remark,
+      order_details: requestedBody?.order_details,
+    },
+    {
+      reff_id: "10041",
+      channel_code: "QRIS",
+      courir_id: 1,
+      origin: 3517100,
+      destination: 3518010,
+      weight: "1200",
+      length: "1",
+      width: "1",
+      height: "1",
+      shipper_name: "Warehouse PIC",
+      shipper_email: "buyer@example.test",
+      receiver_name: "Buyer",
+      receiver_address: "Buyer Street, Sawahan, Nganjuk, Jawa Timur, 64475",
+      callback_url: "",
+      grand_total: "118400",
+      cod_value: "0",
+      remark: "INV-10041",
+      order_details: [
+        { name: "QA Product - 500 ml", qty: "2", unit_price: "50000" },
+      ],
+    },
+  );
   assert.equal(payment.qrPayload, "QR-PAYLOAD");
   assert.equal(payment.adminFee, 824);
   assert.equal(payment.totalAmount, 118_400);
+  assert.equal(payment.expiresAt, "2026-09-03T09:42:00.000Z");
 });
 
 test("payment orchestration records failure without a provider call when AutoLaris is unconfigured", async (context) => {
@@ -215,7 +252,7 @@ test("payment orchestration records failure without a provider call when AutoLar
     return new Response(null, { status: 500 });
   };
 
-  const payment = await createAutoLarisDigitalOrderForPayment(database, QA_LOCALS, {
+  const payment = await createAutoLarisPaymentForOrder(database, QA_LOCALS, {
     orderId: 41,
     channelCode: "QRIS",
   });
@@ -223,6 +260,31 @@ test("payment orchestration records failure without a provider call when AutoLar
   assert.equal(providerCalls, 0);
   assert.equal(payment.status, "failed");
   assert.match(payment.failedReason || "", /belum dikonfigurasi/i);
+});
+
+test("Create Order fails before fetch when AutoLaris mirror area ids are missing", async (context) => {
+  const originalFetch = globalThis.fetch;
+  context.after(() => {
+    globalThis.fetch = originalFetch;
+  });
+  const { database } = createAutoLarisOrderDatabase("qa-key");
+  let providerCalls = 0;
+  globalThis.fetch = async () => {
+    providerCalls += 1;
+    return new Response(null, { status: 500 });
+  };
+  const locals = {
+    ...QA_LOCALS,
+    runtimeEnv: {},
+  } as App.Locals;
+
+  const payment = await createAutoLarisPaymentForOrder(database, locals, {
+    orderId: 41,
+    channelCode: "QRIS",
+  });
+  assert.equal(providerCalls, 0);
+  assert.equal(payment.status, "failed");
+  assert.match(payment.failedReason || "", /origin AutoLaris tidak lengkap/i);
 });
 
 test("AutoLaris response parsing preserves provider instructions and billed total", () => {
@@ -251,6 +313,37 @@ test("AutoLaris response parsing preserves provider instructions and billed tota
   });
 });
 
+test("AutoLaris Create Order response preserves VA instructions and Jakarta expiry", () => {
+  const payment = parseAutoLarisPaymentResponse(
+    {
+      rc: "00",
+      data: {
+        transaction_id: "986771",
+        biaya_admin: 6500,
+        total: 106500,
+        payment_info: {
+          expired: "2026-09-04 08:15:30",
+          va: "1234567890123456",
+          qr: "",
+          url: "https://pay.example.test/986771",
+        },
+      },
+    },
+    100000,
+  );
+  assert.deepEqual(payment, {
+    transactionId: "986771",
+    virtualAccount: "1234567890123456",
+    qr: undefined,
+    paymentCode: undefined,
+    url: "https://pay.example.test/986771",
+    amount: 100000,
+    admin: 6500,
+    total: 106500,
+    expiresAt: "2026-09-04T01:15:30.000Z",
+  });
+});
+
 test("AutoLaris channels map QRIS separately from bank transfer channels", () => {
   const qris = AUTOLARIS_CHANNEL_OPTIONS.find((option) => option.code === "QRIS");
   assert.equal(qris?.paymentMethod, "qris");
@@ -264,20 +357,6 @@ test("AutoLaris channels map QRIS separately from bank transfer channels", () =>
     AUTOLARIS_CHANNEL_OPTIONS.map((option) => String(option.code)).includes("DANA"),
     false,
   );
-});
-
-test("recorded balance separates paid funds, pending bills, fees, and failures", () => {
-  const summary = summarizePaymentBuckets([
-    { status: "paid", transaction_count: 2, billed_total: 350000, admin_fees: 5000 },
-    { status: "pending", transaction_count: 1, billed_total: 175000, admin_fees: 2500 },
-    { status: "failed", transaction_count: 3, billed_total: 0, admin_fees: 0 },
-  ]);
-  assert.deepEqual(summary, {
-    paidFunds: 350000,
-    pendingBilled: 175000,
-    recordedFees: 7500,
-    failedCount: 3,
-  });
 });
 
 test("a failed instruction is regenerated on the next request, a live one is left alone", async (context) => {
@@ -306,14 +385,14 @@ test("a failed instruction is regenerated on the next request, a live one is lef
     });
   };
 
-  const first = await createAutoLarisDigitalOrderForPayment(database, QA_LOCALS, { orderId: 41, channelCode: "QRIS" });
+  const first = await createAutoLarisPaymentForOrder(database, QA_LOCALS, { orderId: 41, channelCode: "QRIS" });
   assert.equal(first.status, "failed");
   assert.equal(providerCalls, 1);
 
   // The provider recovers; the buyer asks again and gets a real instruction on
   // the same transaction row.
   providerAnswers = true;
-  const second = await createAutoLarisDigitalOrderForPayment(database, QA_LOCALS, { orderId: 41, channelCode: "QRIS" });
+  const second = await createAutoLarisPaymentForOrder(database, QA_LOCALS, { orderId: 41, channelCode: "QRIS" });
   assert.equal(providerCalls, 2);
   // The retry carries a fresh, digits-only provider reference derived from the order sequence.
   assert.match(String(state.transaction?.reference_id), /^10041\d{6}$/);
@@ -323,7 +402,7 @@ test("a failed instruction is regenerated on the next request, a live one is lef
   assert.equal(state.transaction?.id, 91);
 
   // A live instruction is never regenerated.
-  const third = await createAutoLarisDigitalOrderForPayment(database, QA_LOCALS, { orderId: 41, channelCode: "QRIS" });
+  const third = await createAutoLarisPaymentForOrder(database, QA_LOCALS, { orderId: 41, channelCode: "QRIS" });
   assert.equal(providerCalls, 2);
   assert.equal(third.qrPayload, "QR-PAYLOAD-B");
 });
@@ -350,12 +429,12 @@ test("a pending instruction past its expiry reads as expired and is regenerated"
       },
     });
 
-  const live = await createAutoLarisDigitalOrderForPayment(database, QA_LOCALS, { orderId: 41, channelCode: "VABCA" });
+  const live = await createAutoLarisPaymentForOrder(database, QA_LOCALS, { orderId: 41, channelCode: "VABCA" });
   assert.equal(live.status, "pending");
   assert.ok(new Date(live.expiresAt || "").getTime() > Date.now());
 
   state.transaction!.expires_at = new Date(Date.now() - 60_000).toISOString();
-  const expired = await createAutoLarisDigitalOrderForPayment(database, QA_LOCALS, { orderId: 41, channelCode: "VABCA" });
+  const expired = await createAutoLarisPaymentForOrder(database, QA_LOCALS, { orderId: 41, channelCode: "VABCA" });
   assert.equal(providerCalls, 2, "an expired row is treated like a failed one");
   assert.equal(expired.status, "pending");
   assert.ok(new Date(expired.expiresAt || "").getTime() > Date.now());
@@ -371,6 +450,82 @@ test("payment status expiry is derived at read time, never stored", () => {
   // A final state is final regardless of the clock.
   assert.equal(effectivePaymentStatus("paid", past), "paid");
   assert.equal(effectivePaymentStatus("failed", past), "failed");
+});
+
+/**
+ * The provider needs an email; a COD checkout collects none. So two places mint
+ * `<phone digits>@<store host>` — `buyerEmail` and `submit-order.ts` — and both
+ * write it into `orders.customer_email`, where all three CAPI legs read it
+ * straight into Meta's `em`.
+ *
+ * Meta scores Event Match Quality on the keys it is given. A fabricated `em`
+ * does not merely fail to match; it spends a match key on a value no Meta user
+ * carries, which reads as real signal that never resolves.
+ */
+test("a minted provider email is recognised, a real one is never thrown away", () => {
+  const site = "https://permatamall.shop";
+
+  // Both shapes the system actually mints.
+  assert.equal(isSyntheticBuyerEmail("6281234567890@permatamall.shop", site), true);
+  assert.equal(isSyntheticBuyerEmail("081234567890@permatamall.shop", site), true);
+  assert.equal(matchableCustomerEmail("6281234567890@permatamall.shop", site), undefined);
+
+  // A numeric local part is ordinary in Indonesia — plenty of real Gmail
+  // addresses are the owner's phone number. Dropping one would throw away a
+  // genuine match key, so the store's own host has to be part of the test.
+  assert.equal(isSyntheticBuyerEmail("081234567890@gmail.com", site), false);
+  assert.equal(
+    matchableCustomerEmail("081234567890@gmail.com", site),
+    "081234567890@gmail.com",
+  );
+  assert.equal(isSyntheticBuyerEmail("siti@permatamall.shop", site), false);
+
+  // Absent, blank and unparseable inputs answer without throwing inside a
+  // conversion path.
+  assert.equal(isSyntheticBuyerEmail(null, site), false);
+  assert.equal(isSyntheticBuyerEmail("   ", site), false);
+  assert.equal(isSyntheticBuyerEmail("6281234567890@permatamall.shop", "not a url"), false);
+  assert.equal(matchableCustomerEmail(undefined, site), undefined);
+  assert.equal(matchableCustomerEmail("  siti@example.com  ", site), "siti@example.com");
+
+  // The guard has to recognise exactly what buyerEmail produces, or the two
+  // drift and the fabricated address reaches Meta again.
+  const minted = buyerEmail(null, "0812-3456-7890", site);
+  assert.equal(minted, "081234567890@permatamall.shop");
+  assert.equal(isSyntheticBuyerEmail(minted, site), true);
+  // A stored, real address passes straight through both directions.
+  assert.equal(buyerEmail("siti@example.com", "081234567890", site), "siti@example.com");
+});
+
+/**
+ * Found by watching a live `/thanks` enqueue its own CAPI payload, not by
+ * reading the code — the first version of this guard checked one host and the
+ * fabricated address sailed past it.
+ *
+ * The cause was two minting shapes for one concept: `buyerEmail` used the
+ * configured `siteUrl`, while `submit-order.ts` hand-rolled the same string
+ * against `new URL(request.url).hostname`. A store reachable on a workers.dev
+ * address, a preview deployment, or any second domain therefore wrote
+ * addresses the guard did not recognise. Minting is unified now; the guard
+ * still takes every host the store answers on, for the rows already written.
+ */
+test("a store answering on more than one host is still recognised", () => {
+  const configured = "https://permatamall.shop";
+  const requestHost = "https://adsbookcms-permata.workers.dev/api/meta-event";
+
+  const legacy = "6281234567890@adsbookcms-permata.workers.dev";
+  assert.equal(isSyntheticBuyerEmail(legacy, configured), false, "one host cannot see it");
+  assert.equal(isSyntheticBuyerEmail(legacy, configured, requestHost), true);
+  assert.equal(matchableCustomerEmail(legacy, configured, requestHost), undefined);
+
+  // Widening the check must not start swallowing real addresses.
+  assert.equal(
+    matchableCustomerEmail("081234567890@gmail.com", configured, requestHost),
+    "081234567890@gmail.com",
+  );
+  // An unset or unparseable host contributes nothing rather than throwing.
+  assert.equal(isSyntheticBuyerEmail(legacy, undefined, null, "not a url", requestHost), true);
+  assert.equal(isSyntheticBuyerEmail(legacy, undefined, null, "not a url"), false);
 });
 
 function createAdviceReconciliationDatabase() {
@@ -406,14 +561,16 @@ function createAdviceReconciliationDatabase() {
               results:
                 state.transactionStatus === "pending" &&
                 state.orderPaymentStatus === "pending"
-                  ? [{
-                      transaction_id: 91,
-                      order_id: 41,
-                      order_number: "INV-10041",
-                      customer_name: "Buyer",
-                      provider_transaction_id: "986770",
-                      total_amount: 118_400,
-                    }]
+                  ? [
+                      {
+                        transaction_id: 91,
+                        order_id: 41,
+                        order_number: "INV-10041",
+                        customer_name: "Buyer",
+                        provider_transaction_id: "986770",
+                        total_amount: 118_400,
+                      },
+                    ]
                   : [],
               meta: {},
             };
@@ -453,16 +610,17 @@ function createAdviceReconciliationDatabase() {
   return { database, state };
 }
 
-test("scheduled Advice reconciliation moves an explicit settlement exactly once", async (context) => {
+test("scheduled Advice reconciliation moves a paid order exactly once", async (context) => {
   const originalFetch = globalThis.fetch;
   context.after(() => {
     globalThis.fetch = originalFetch;
   });
   const { database, state } = createAdviceReconciliationDatabase();
   let providerCalls = 0;
+  let requestedBody: Record<string, unknown> | undefined;
   globalThis.fetch = async (_input, init) => {
     providerCalls += 1;
-    assert.deepEqual(JSON.parse(String(init?.body)), { transaction_id: "986770" });
+    requestedBody = JSON.parse(String(init?.body)) as Record<string, unknown>;
     return Response.json({ rc: "00", ket: "PAID", data: { awb: "" } });
   };
 
@@ -471,18 +629,32 @@ test("scheduled Advice reconciliation moves an explicit settlement exactly once"
     QA_LOCALS,
     new Date("2026-09-02T17:00:00.000Z"),
   );
-  assert.deepEqual(first.paidOrderIds, [41]);
+  assert.deepEqual(requestedBody, { transaction_id: "986770" });
+  assert.deepEqual(first, {
+    checked: 1,
+    pending: 0,
+    unproven: 0,
+    failed: 0,
+    paidOrderIds: [41],
+    // Empty on a recognised settlement: the capture exists for the words the
+    // allowlist does not know yet.
+    unrecognisedPaidStatuses: [],
+  });
   assert.equal(state.transactionStatus, "paid");
   assert.equal(state.orderPaymentStatus, "paid");
   assert.equal(state.notifications, 1);
 
-  const duplicate = await reconcileAutoLarisPaymentStatuses(database, QA_LOCALS);
+  const duplicate = await reconcileAutoLarisPaymentStatuses(
+    database,
+    QA_LOCALS,
+    new Date("2026-09-02T18:00:00.000Z"),
+  );
   assert.equal(providerCalls, 1);
   assert.deepEqual(duplicate.paidOrderIds, []);
   assert.equal(state.notifications, 1);
 });
 
-test("scheduled Advice leaves PENDING and DELIVERED payment state untouched", async (context) => {
+test("scheduled Advice reconciliation leaves pending money untouched", async (context) => {
   const originalFetch = globalThis.fetch;
   context.after(() => {
     globalThis.fetch = originalFetch;
@@ -490,14 +662,94 @@ test("scheduled Advice leaves PENDING and DELIVERED payment state untouched", as
   const { database, state } = createAdviceReconciliationDatabase();
   globalThis.fetch = async () =>
     Response.json({ rc: "02", ket: "PENDING", data: { awb: "" } });
-  const pending = await reconcileAutoLarisPaymentStatuses(database, QA_LOCALS);
-  assert.equal(pending.pending, 1);
 
-  globalThis.fetch = async () =>
-    Response.json({ rc: "00", ket: "DELIVERED", data: { awb: "" } });
-  const delivered = await reconcileAutoLarisPaymentStatuses(database, QA_LOCALS);
-  assert.equal(delivered.unproven, 1);
+  const result = await reconcileAutoLarisPaymentStatuses(database, QA_LOCALS);
+  assert.equal(result.pending, 1);
+  assert.deepEqual(result.paidOrderIds, []);
   assert.equal(state.transactionStatus, "pending");
   assert.equal(state.orderPaymentStatus, "pending");
   assert.equal(state.notifications, 0);
+});
+
+// No settled Advice response has ever been observed against a real payment, so
+// the paid allowlist — PAID, SETTLED, LUNAS — is a conservative reading. If
+// the provider answers with its success code and a word outside that guess, the
+// order must not settle (a guess may not move money) but the observation must
+// not be discarded either: it is exactly the capture that closes SCR1, and it
+// used to be counted as `unproven` beside genuine failures and thrown away.
+
+test("the provider's success code with an unknown word is captured, not settled", async (context) => {
+  const originalFetch = globalThis.fetch;
+  context.after(() => {
+    globalThis.fetch = originalFetch;
+  });
+  const { database, state } = createAdviceReconciliationDatabase();
+  globalThis.fetch = async () =>
+    Response.json({ rc: "00", ket: "TERBAYAR", data: { awb: "" } });
+
+  const result = await reconcileAutoLarisPaymentStatuses(
+    database,
+    QA_LOCALS,
+    new Date("2026-09-09T17:00:00.000Z"),
+  );
+
+  // Nothing moved: an unrecognised word cannot settle a payment.
+  assert.equal(state.transactionStatus, "pending");
+  assert.equal(state.orderPaymentStatus, "pending");
+  assert.equal(result.unproven, 1);
+  assert.deepEqual(result.paidOrderIds, []);
+  // But the exact word is carried out, so the allowlist can be revised from
+  // observation rather than from another guess.
+  assert.deepEqual(result.unrecognisedPaidStatuses, ["TERBAYAR"]);
+});
+
+test("a genuine failure is not mistaken for settlement evidence", async (context) => {
+  const originalFetch = globalThis.fetch;
+  context.after(() => {
+    globalThis.fetch = originalFetch;
+  });
+  const { database } = createAdviceReconciliationDatabase();
+  globalThis.fetch = async () =>
+    Response.json({ rc: "99", ket: "FAILED", data: { awb: "" } });
+
+  const result = await reconcileAutoLarisPaymentStatuses(
+    database,
+    QA_LOCALS,
+    new Date("2026-09-09T17:00:00.000Z"),
+  );
+  assert.equal(result.unproven, 1);
+  assert.deepEqual(
+    result.unrecognisedPaidStatuses,
+    [],
+    "only the success code makes a word worth capturing",
+  );
+});
+
+test("a pending read stays a silent no-op", async (context) => {
+  const originalFetch = globalThis.fetch;
+  context.after(() => {
+    globalThis.fetch = originalFetch;
+  });
+  const { database, state } = createAdviceReconciliationDatabase();
+  globalThis.fetch = async () =>
+    Response.json({ rc: "02", ket: "PENDING", data: { awb: "" } });
+
+  const result = await reconcileAutoLarisPaymentStatuses(
+    database,
+    QA_LOCALS,
+    new Date("2026-09-09T17:00:00.000Z"),
+  );
+  assert.equal(result.pending, 1);
+  assert.equal(result.unproven, 0);
+  assert.deepEqual(result.unrecognisedPaidStatuses, []);
+  assert.equal(state.orderPaymentStatus, "pending");
+});
+
+test("a local store on a dotless host still mints an address the provider accepts, and still recognises it", () => {
+  const local = "http://localhost:8787";
+  const minted = buyerEmail(null, "0812-3456-7890", local);
+  assert.equal(minted, "081234567890@localhost.invalid");
+  assert.match(minted, /^[^\s@]+@[^\s@]+\.[^\s@]+$/, "AutoLaris' own email rule");
+  assert.equal(isSyntheticBuyerEmail(minted, local), true, "never handed to Meta as a match key");
+  assert.equal(buyerEmail(null, "081234567890", "https://toko.example"), "081234567890@toko.example");
 });

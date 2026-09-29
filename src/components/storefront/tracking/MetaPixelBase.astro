@@ -25,13 +25,7 @@ const shouldRenderPixel = /^\d{5,25}$/.test(String(pixelId || '').trim());
     <link rel="preconnect" href="https://connect.facebook.net" crossorigin />
     <link rel="dns-prefetch" href="https://connect.facebook.net" />
     <script is:inline define:vars={{ pixelId, metaExternalIdCookie: META_EXTERNAL_ID_COOKIE }}>
-      // Deliberately synchronous. Everything another script may call —
-      // `__META_PIXEL_ID__`, `__PS_LOAD_META_PIXEL__`, `__PS_META_INIT__` — is
-      // installed before this returns, so a page tracker can never win a race
-      // against an `await` in here and find the hook missing. Only the
-      // external-ID hash is asynchronous, and `__PS_META_INIT__` waits on it
-      // internally.
-      (() => {
+      void (async () => {
         if (typeof window === 'undefined') return;
 
         const createEventId = (prefix) => `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -43,32 +37,6 @@ const shouldRenderPixel = /^\d{5,25}$/.test(String(pixelId || '').trim());
             .split('; ')
             .find((row) => row.startsWith(`${name}=`))
             ?.split('=')[1] || '';
-        const cookieSecurity = window.location.protocol === 'https:'
-          ? 'SameSite=None; Secure'
-          : 'SameSite=Lax';
-        const writeMetaCookie = (name, value) => {
-          document.cookie =
-            `${name}=${value}; Path=/; Max-Age=${90 * 24 * 60 * 60}; ${cookieSecurity}`;
-        };
-
-        // Meta's own Conversions API Parameter Builder creates `_fbp` before
-        // the Pixel library is available. Do the same at the first-party page
-        // boundary so the immediately posted PageView/ViewContent CAPI events
-        // carry the same browser ID that fbevents.js will later read. Waiting
-        // for the deferred 105 KB library left almost every first event without
-        // fbp even though the browser leg eventually had one.
-        let fbp = readCookieValue('_fbp');
-        if (!/^fb\.\d\.\d{10,20}\..+$/.test(fbp)) {
-          let randomPart = '';
-          try {
-            randomPart = Array.from(crypto.getRandomValues(new Uint32Array(2))).join('');
-          } catch {
-            randomPart = String(Math.floor(Math.random() * 1_000_000_000_000_000));
-          }
-          fbp = `fb.1.${Date.now()}.${randomPart}`;
-          writeMetaCookie('_fbp', fbp);
-        }
-
         let externalId = readCookieValue(metaExternalIdCookie);
         if (!/^[a-f0-9]{32}$/.test(externalId)) {
           externalId = '';
@@ -80,25 +48,28 @@ const shouldRenderPixel = /^\d{5,25}$/.test(String(pixelId || '').trim());
             // Pixel and CAPI still carry fbp/fbc when Web Crypto is unavailable.
           }
           if (externalId) {
-            writeMetaCookie(metaExternalIdCookie, externalId);
+            const cookieSecurity = window.location.protocol === 'https:'
+              ? 'SameSite=None; Secure'
+              : 'SameSite=Lax';
+            document.cookie =
+              `${metaExternalIdCookie}=${externalId}; Path=/; Max-Age=${90 * 24 * 60 * 60}; ${cookieSecurity}`;
           }
         }
 
-        const externalIdHashReady = (async () => {
-          if (!externalId) return undefined;
+        let externalIdHash;
+        if (externalId) {
           try {
             const digest = await crypto.subtle.digest(
               'SHA-256',
               new TextEncoder().encode(externalId),
             );
-            return Array.from(new Uint8Array(digest))
+            externalIdHash = Array.from(new Uint8Array(digest))
               .map((byte) => byte.toString(16).padStart(2, '0'))
               .join('');
           } catch {
             // Pixel and CAPI still carry fbp/fbc when Web Crypto is unavailable.
-            return undefined;
           }
-        })();
+        }
 
         // Meta's own stub queues every fbq() call until the script arrives, so
         // the queue is created now and the 105 KB download is deferred. The
@@ -127,6 +98,13 @@ const shouldRenderPixel = /^\d{5,25}$/.test(String(pixelId || '').trim());
           script.src = 'https://connect.facebook.net/en_US/fbevents.js';
           document.head.appendChild(script);
         };
+        // The same escape hatch the Google leg has carried since it was
+        // deferred. A conversion must never wait on a timer: the stub queues
+        // the call, but nothing is sent until the library arrives, and on
+        // `/thanks` a buyer who reads the page and closes it never triggers
+        // the interaction listeners. Measured on the real library, pulling the
+        // download forward took the Purchase from 2522 ms to 45 ms.
+        window.__PS_LOAD_META_PIXEL__ = loadPixel;
 
         // Whichever comes first. The interaction path covers anyone who stays;
         // the timeout covers a visitor who reads and leaves without touching
@@ -139,77 +117,46 @@ const shouldRenderPixel = /^\d{5,25}$/.test(String(pixelId || '').trim());
         // on a page this light it fired at 245 ms and the download landed
         // almost exactly where it had been.
         window.setTimeout(loadPixel, 2500);
-        // A conversion must never wait on that timer, exactly as
-        // `__PS_LOAD_GOOGLE_TAG__` exists so the Google leg never does.
-        // `MetaThanksTracker` calls this the moment it knows it is on a
-        // confirmation page, so the 105 KB library downloads while the order is
-        // still being verified instead of after it.
-        window.__PS_LOAD_META_PIXEL__ = loadPixel;
 
         window.__META_PIXEL_ID__ = pixelId;
 
-        // fbevents accepts `init` for a given pixel id exactly ONCE and silently
-        // ignores every later call, advanced matching included. Verified against
-        // the live library on 2026-08-28: a second `fbq('init', id, {ph, fn})`
-        // left `pixelsByID[id].userData` as the `{external_id}` the first init
-        // set. So there is one init, it carries the fullest identity the page
-        // can supply, and no other file may call it — `__PS_META_INIT__` is how
-        // a page contributes to it.
-        let initialised = false;
-        let releaseInit;
-        // Resolves the moment the single init has actually been issued — not
-        // when `__PS_META_INIT__` was called. The two are different: the init
-        // waits on the external-ID digest, so the function returns first and
-        // the `fbq('init')` lands a microtask later.
+        // `fbq('init', id, advancedMatching)` is honoured EXACTLY ONCE per
+        // pixel id. A later init with more keys is not merged and not an
+        // error — it is discarded in silence. Verified against the live
+        // library: after a second init carrying ph/fn/ln/ct/st/zp/country,
+        // `fbq.instance.pixelsByID[id].userData` still held only the
+        // `{external_id}` the first call had set.
         //
-        // That gap is load-bearing. fbq's stub queues by arrival order and
-        // fbevents replays the queue in that order, so a `track` enqueued
-        // before the init is replayed before it and dropped with "You must
-        // call fbq('init', …) before tracking events". `MetaViewContentTracker`
-        // fires during body parse, and `build.inlineStylesheets: 'always'`
-        // means no render-blocking stylesheet separates it from this script —
-        // replaying both inline scripts in one tick puts ViewContent ahead of
-        // the init every single time.
-        const pixelInitialised = new Promise((resolve) => {
-          releaseInit = resolve;
-        });
-        window.__PS_META_INIT__ = (advancedMatching) => {
-          if (initialised) return;
+        // Three call sites init'd behind this one — MetaThanksTracker,
+        // form-hybrid, form-middle — so every advanced-matching object they
+        // built and hashed was thrown away, and the browser leg of a Purchase
+        // matched on one key where the server leg matched on eight. This
+        // component now owns the single init, and a page with better matching
+        // supplies it through `__PS_META_INIT__` instead of calling `fbq`.
+        let initialised = false;
+        const runInit = (advancedMatching) => {
+          if (initialised) return false;
           initialised = true;
-          void externalIdHashReady.then((externalIdHash) => {
-            const userData = externalIdHash ? { external_id: externalIdHash } : {};
-            for (const key of Object.keys(advancedMatching || {})) {
-              if (advancedMatching[key]) userData[key] = advancedMatching[key];
-            }
-            if (Object.keys(userData).length) window.fbq('init', pixelId, userData);
-            else window.fbq('init', pixelId);
-            releaseInit();
-            window.fbq('track', 'PageView', {}, { eventID: eventId });
-          });
+          const matching = Object.assign({}, advancedMatching || {});
+          if (externalIdHash && !matching.external_id) matching.external_id = externalIdHash;
+          for (const key of Object.keys(matching)) {
+            if (matching[key] === undefined || matching[key] === '') delete matching[key];
+          }
+          if (Object.keys(matching).length) window.fbq('init', pixelId, matching);
+          else window.fbq('init', pixelId);
+          window.fbq('track', 'PageView', {}, { eventID: eventId });
+          return true;
         };
+        window.__PS_META_INIT__ = runInit;
 
-        // The only way another file may reach `fbq('track')`. Ordering is the
-        // whole point: a caller cannot overtake the init above no matter which
-        // order the document happens to parse in, and it no longer has to rely
-        // on an incidental network delay to be correct.
-        window.__PS_META_TRACK__ = (eventName, data, options) => {
-          void pixelInitialised.then(() => {
-            try {
-              window.fbq('track', eventName, data, options);
-            } catch (error) {
-              console.error('meta-pixel-track', error);
-            }
-          });
-        };
-
-        // A page that knows who the visitor is declares it before this script
-        // runs and inits itself once its hashes are ready. The timer is the
-        // backstop: a tracker that bails out — no order state, `?preview=1` —
-        // must not cost the page its PageView.
-        if (window.__PS_META_AWAIT_MATCHING__) {
-          window.setTimeout(() => window.__PS_META_INIT__(), 1500);
+        if (window.__PS_META_AWAIT_MATCHING__ === true) {
+          // The page declared it will supply matching (see `/thanks`, whose
+          // Purchase keys are only known after `/api/order-status` answers).
+          // The wait is bounded: a hung or failed fetch must cost the better
+          // matching, never the PageView itself.
+          window.setTimeout(runInit, 4000);
         } else {
-          window.__PS_META_INIT__();
+          runInit();
         }
       })();
     </script>

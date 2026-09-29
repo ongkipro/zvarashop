@@ -141,7 +141,7 @@ export function buildMengantarOrderPayload(input: MengantarOrderPayloadInput) {
       150,
     ),
     destinationMark: cleanText(input.orderNumber, 80),
-    deliveryInstruction: cleanText(`ZvaraShop ${input.orderNumber}`, 150),
+    deliveryInstruction: cleanText(`AdsBookCMS ${input.orderNumber}`, 150),
     dontIncludeSubdistrict: false,
     weight: Number((input.unitWeightKg * input.quantity).toFixed(3)),
     quantity: input.quantity,

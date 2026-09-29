@@ -2,7 +2,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import MetaThanksTracker from '../components/storefront/tracking/MetaThanksTracker.astro';
 import { getStorefrontProducts } from '../lib/catalog';
-import { getStorefrontSupportContact } from '../lib/public-store';
+import { getStoreSupportWhatsapp } from '../lib/public-store';
 import { cn } from '../lib/cn';
 import { buttonVariants } from '../lib/ui-variants';
 import Icon from '../components/storefront/shared/Icon.astro';
@@ -15,9 +15,7 @@ if (
 Astro.response.headers.set('Cache-Control', 'no-store');
 
 const products = await getStorefrontProducts(Astro.locals);
-const storeSupport = await getStorefrontSupportContact(Astro.locals);
-const csPhone = storeSupport.whatsapp;
-const thanksRedirectTemplate = storeSupport.thanksRedirectTemplate;
+const csPhone = await getStoreSupportWhatsapp(Astro.locals);
 // This store's own logo. It used to be a hardcoded `/images/logo.webp` — the
 // demo store's wordmark — so every install's confirmation page carried another
 // merchant's brand at the moment the customer trusts it most.
@@ -47,15 +45,45 @@ const productCatalog = products.map((item) => ({
     if (window.location.search) {
       window.history.replaceState(null, '', `${window.location.pathname}${window.location.hash}`);
     }
-    // BaseLayout renders this slot before MetaPixelBase, which is the only
-    // window in which this can be declared. fbevents honours `fbq('init')`
-    // once, so the confirmation page — the one page that already knows the
-    // buyer — makes the base wait for `MetaThanksTracker`'s hashes rather than
-    // initialising on `external_id` alone and discarding them.
+    // A locator in the fragment (`#o=<order>&t=<token>`) wins over whatever this
+    // tab remembers, exactly as it already does on `/payment`. It is what lets a
+    // buyer reach their confirmation when the `sessionStorage` write never
+    // landed — Safari's private mode has historically thrown on any write — and
+    // it matters more here than there, because the server Purchase is only ever
+    // triggered from this page. The fragment is never sent to a server or a
+    // referrer, and it is copied into storage and removed from the address bar
+    // so it is neither on screen nor in history.
+    try {
+      const fragment = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+      const linkedOrder = (fragment.get('o') || '').trim();
+      const linkedToken = (fragment.get('t') || '').trim();
+      if (linkedOrder && linkedToken) {
+        let stored = {};
+        try {
+          stored = JSON.parse(sessionStorage.getItem('thanks_state') || '{}') || {};
+        } catch {
+          stored = {};
+        }
+        if (String(stored.order_pk || '') !== linkedOrder) stored = {};
+        stored = { ...stored, order_pk: linkedOrder, status_token: linkedToken };
+        sessionStorage.setItem('thanks_state', JSON.stringify(stored));
+        window.history.replaceState(null, '', window.location.pathname);
+      }
+    } catch {
+      // Storage or history unavailable: the page falls back to whatever this
+      // tab already holds, which is the behaviour that shipped before.
+    }
+    // `MetaPixelBase` gets exactly one `fbq('init')` per pixel id — fbevents
+    // discards every later one in silence — and on this page the eight keys
+    // worth matching on are only known once `/api/order-status` has answered.
+    // BaseLayout renders this head slot ahead of the pixel, so declaring the
+    // wait here is what leaves that single init unspent for the Purchase.
+    // The wait is bounded inside the pixel: a failed fetch costs the matching,
+    // never the PageView.
     window.__PS_META_AWAIT_MATCHING__ = true;
   </script>
   <main id="thanks-shell" hidden class="min-h-screen bg-white py-4 font-sans text-[14px] text-[#111111] antialiased sm:py-8">
-    <MetaThanksTracker tenantName={Astro.locals.tenant.name} tenantSlug={Astro.locals.tenant.slug} />
+    <MetaThanksTracker tenantName={Astro.locals.tenant.name} />
     <div class="mx-auto w-full max-w-[480px] overflow-hidden rounded-none border border-[#E5E5E5] bg-white">
       <header
         class="relative z-30 flex items-center justify-center border-b border-[#E5E5E5] bg-white px-5 py-4"
@@ -355,9 +383,8 @@ const productCatalog = products.map((item) => ({
       <a
         id="wa-confirm"
         href="#"
-        data-support-phone={csPhone}
-        data-message-template={thanksRedirectTemplate}
-        rel="nofollow"
+        target="_blank"
+        rel="nofollow noopener noreferrer"
         title={`Konfirmasi pesanan ${Astro.locals.tenant.name} melalui WhatsApp`}
         class={cn('mt-4 flex w-full', buttonVariants({ variant: 'primary', size: 'lg' }))}
       >
@@ -446,7 +473,7 @@ const productCatalog = products.map((item) => ({
     }
   </style>
 
-  <script is:inline define:vars={{ productCatalog, storeLogo }}>
+  <script is:inline define:vars={{ csPhone, productCatalog, storeLogo }}>
     const fmt = (n) =>
       `Rp${Math.round(Number(n || 0))
         .toLocaleString('id-ID')
@@ -706,6 +733,17 @@ const productCatalog = products.map((item) => ({
       }
     }
 
+    const wa = document.getElementById('wa-confirm');
+    if (csPhone) {
+      const cleanPhone = String(csPhone).replace(/\D/g, '').replace(/^0/, '62');
+      const prodName = activeState?.product_name || activeState?.variant_label || 'Produk';
+      const custName = activeState?.name || 'Customer';
+      const msg = `Halo, saya sudah melakukan pemesanan ${prodName}, atas nama ${custName}. Mohon segera diproses ya 🙏🏻`;
+      wa.href = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`;
+    } else {
+      wa.hidden = true;
+    }
+
     document.getElementById('thanks-shell').hidden = false;
 
     if (!leadOnly && orderPk && statusToken) {
@@ -724,6 +762,23 @@ const productCatalog = products.map((item) => ({
           if (data?.status)
             document.getElementById('step-three-copy').textContent =
               `Status order: ${String(data.status).replace(/_/g, ' ')}`;
+
+          // A buyer who arrived on the fragment locator alone — a lost tab, or
+          // a `sessionStorage` write that never landed — has no local copy of
+          // the money figures, and the summary rendered `Rp0` beside a real
+          // order. Showing a wrong number is worse than showing none, and the
+          // server already answered with the right ones. Only fills what the
+          // local state could not: the normal path is untouched.
+          const serverTotal = Number(data?.total_amount || 0);
+          const serverProduct = Number(data?.product_value || 0);
+          if (!Number(totalPayment) && serverTotal > 0) {
+            const formatted = fmt(serverTotal);
+            document.getElementById('total-payment-hero').textContent = formatted;
+            document.getElementById('total-payment').textContent = formatted;
+          }
+          if (!Number(productPrice) && serverProduct > 0) {
+            document.getElementById('product-price').textContent = fmt(serverProduct);
+          }
 
           // A transaction can expire or fail after this page was first opened,
           // and sessionStorage still says "unpaid". /payment already treats
@@ -785,43 +840,6 @@ const productCatalog = products.map((item) => ({
           // it would leave an empty white square where a payable code belongs.
           row.hidden = true;
         });
-      }
-    }
-  </script>
-
-  <script>
-    import { buildWaUrl, renderCrmMessage } from '../lib/crm-template.ts';
-
-    const wa = document.getElementById('wa-confirm') as HTMLAnchorElement | null;
-    if (wa) {
-      const supportPhone = wa.dataset.supportPhone || '';
-      let state: Record<string, unknown> = {};
-      try {
-        state = JSON.parse(sessionStorage.getItem('thanks_state') || '{}');
-      } catch {}
-
-      if (!supportPhone) {
-        wa.hidden = true;
-      } else {
-        const numberValue = (key: string) => Number(state[key] || 0);
-        const message = renderCrmMessage(wa.dataset.messageTemplate || '', {
-          customerName: String(state.name || 'Customer'),
-          customerPhone: String(state.phone || ''),
-          address: String(state.address || ''),
-          district: String(state.district || ''),
-          city: String(state.city || ''),
-          province: String(state.province || ''),
-          postalCode: String(state.postal_code || ''),
-          orderNumber: String(state.order_id || ''),
-          productName: String(state.product_name || state.variant_label || 'Produk'),
-          productPrice: numberValue('product_price'),
-          comparePrice: numberValue('compare_price'),
-          shippingCost: numberValue('shipping_cost'),
-          totalAmount: numberValue('total_payment'),
-          sellerName: document.title.replace(/^Terima Kasih - /, ''),
-          epaymentLink: String(state.payment_url || ''),
-        });
-        wa.href = buildWaUrl(supportPhone, message);
       }
     }
   </script>

@@ -5,7 +5,6 @@ import {
   MoreHorizontal,
   Trash2,
   ChevronDown,
-  Search,
   Package,
   CheckCircle2,
   Layers,
@@ -16,10 +15,13 @@ import {
   RefreshCw,
   Eye,
   Filter,
+  Tags,
 } from "lucide-react";
 import { catalogProductIdOrNull } from "../../lib/catalog-feed";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { SearchInput } from "@/components/admin/filter-bar";
+import { FilterSelect } from "@/components/admin/filter-bar";
 import {
   Table,
   TableBody,
@@ -50,6 +52,13 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { EMBED_SNIPPET_VERSION, buildEmbedMarkup } from "../../lib/embed-markup";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+
+const EMBED_MODE_LABELS: Record<string, string> = {
+  hybrid: "Hybrid · Otomatis menyesuaikan wilayah",
+  full: "Full · Alamat & ongkir lengkap",
+  middle: "Middle · Form singkat (Nama & HP)",
+};
 
 export type ProductVariant = {
   id: number | string;
@@ -208,7 +217,11 @@ export function ProductCatalog({
 
     const load = async () => {
       try {
-        const response = await fetch("/api/admin/products", {
+        // lazy: the newest 200 (the API's ceiling) with no paging. The old
+        // default of 50 silently hid every older product from the catalogue
+        // and from the landing-page picker. Upgrade path: cursor paging with
+        // server-side search, once a store actually nears 200.
+        const response = await fetch("/api/admin/products?limit=200", {
           headers: { Accept: "application/json" },
           signal: controller.signal,
         });
@@ -493,7 +506,7 @@ export function ProductCatalog({
         <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-rose-50 text-rose-600">
           <RefreshCw className="size-6" />
         </div>
-        <h2 className="mt-3 text-lg font-black text-slate-950">
+        <h2 className="mt-3 text-base font-semibold text-slate-950">
           Daftar produk gagal dimuat
         </h2>
         <p className="mt-1 text-sm text-slate-600">{error}</p>
@@ -520,16 +533,16 @@ export function ProductCatalog({
       >
         <Card className="border-slate-200 shadow-xs">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-bold uppercase tracking-wider text-slate-500">
+            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-slate-500">
               Total Produk
             </CardTitle>
             <Package className="size-4 text-slate-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">
+            <div className="text-2xl font-semibold tracking-tight text-slate-950">
               {products.length}
             </div>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 hidden text-xs text-slate-500 sm:block">
               Produk terdaftar di katalog.
             </p>
           </CardContent>
@@ -537,21 +550,21 @@ export function ProductCatalog({
 
         <Card className="border-slate-200 shadow-xs">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-bold uppercase tracking-wider text-slate-500">
+            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-slate-500">
               Produk Aktif
             </CardTitle>
             <CheckCircle2 className="size-4 text-emerald-600" />
           </CardHeader>
           <CardContent>
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">
+              <span className="text-2xl font-semibold tracking-tight text-slate-950">
                 {activeCount}
               </span>
-              <span className="text-xs font-bold text-emerald-700">
+              <span className="text-xs font-semibold text-emerald-700">
                 ({products.length ? Math.round((activeCount / products.length) * 100) : 0}%)
               </span>
             </div>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 hidden text-xs text-slate-500 sm:block">
               Aktif & tayang di storefront.
             </p>
           </CardContent>
@@ -559,16 +572,16 @@ export function ProductCatalog({
 
         <Card className="border-slate-200 shadow-xs">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-bold uppercase tracking-wider text-slate-500">
+            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-slate-500">
               Total Varian
             </CardTitle>
             <Layers className="size-4 text-blue-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">
+            <div className="text-2xl font-semibold tracking-tight text-slate-950">
               {variantCount}
             </div>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 hidden text-xs text-slate-500 sm:block">
               Varian harga & opsi dari seluruh produk.
             </p>
           </CardContent>
@@ -576,16 +589,16 @@ export function ProductCatalog({
 
         <Card className="border-slate-200 shadow-xs">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-bold uppercase tracking-wider text-slate-500">
+            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-slate-500">
               Kategori
             </CardTitle>
             <Tag className="size-4 text-amber-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">
+            <div className="text-2xl font-semibold tracking-tight text-slate-950">
               {categoryCount}
             </div>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 hidden text-xs text-slate-500 sm:block">
               Kategori unik produk.
             </p>
           </CardContent>
@@ -596,16 +609,7 @@ export function ProductCatalog({
       <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs">
         {/* Controls Header: Search, Filters, Stats */}
         <div className="flex flex-col gap-4 border-b border-slate-200 p-4 lg:flex-row lg:items-center lg:justify-between lg:p-5">
-          <div className="relative flex-1">
-            <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
-            <Input
-              type="search"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Cari nama produk, ID, slug, atau kategori..."
-              className="h-11 pl-10 pr-4 bg-slate-50/50 shadow-none border-slate-200 focus:bg-white"
-            />
-          </div>
+          <SearchInput className="flex-1" value={query} onValueChange={setQuery} placeholder="Cari nama produk, ID, slug, atau kategori..." aria-label="Cari produk" />
 
           <div className="flex flex-wrap items-center gap-2">
             {/* Filter Status Pills */}
@@ -616,12 +620,12 @@ export function ProductCatalog({
                 aria-pressed={statusFilter === "all"}
                 className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 transition-all ${
                   statusFilter === "all"
-                    ? "bg-white text-slate-950 shadow-xs font-bold"
+                    ? "bg-white text-slate-950 shadow-xs font-semibold"
                     : "text-slate-600 hover:text-slate-900"
                 }`}
               >
                 Semua
-                <span className="rounded-full bg-slate-200/80 px-1.5 py-0.5 text-[10px] tabular-nums text-slate-700">
+                <span className="rounded-full bg-slate-200/80 px-1.5 py-0.5 text-xs tabular-nums text-slate-700">
                   {products.length}
                 </span>
               </button>
@@ -631,12 +635,12 @@ export function ProductCatalog({
                 aria-pressed={statusFilter === "active"}
                 className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 transition-all ${
                   statusFilter === "active"
-                    ? "bg-white text-emerald-800 shadow-xs font-bold"
+                    ? "bg-white text-emerald-800 shadow-xs font-semibold"
                     : "text-slate-600 hover:text-slate-900"
                 }`}
               >
                 Aktif
-                <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] tabular-nums text-emerald-800">
+                <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-xs tabular-nums text-emerald-800">
                   {activeCount}
                 </span>
               </button>
@@ -646,12 +650,12 @@ export function ProductCatalog({
                 aria-pressed={statusFilter === "draft"}
                 className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 transition-all ${
                   statusFilter === "draft"
-                    ? "bg-white text-slate-950 shadow-xs font-bold"
+                    ? "bg-white text-slate-950 shadow-xs font-semibold"
                     : "text-slate-600 hover:text-slate-900"
                 }`}
               >
                 Draft
-                <span className="rounded-full bg-slate-200/80 px-1.5 py-0.5 text-[10px] tabular-nums text-slate-700">
+                <span className="rounded-full bg-slate-200/80 px-1.5 py-0.5 text-xs tabular-nums text-slate-700">
                   {products.length - activeCount}
                 </span>
               </button>
@@ -660,30 +664,20 @@ export function ProductCatalog({
             {/* Filter Category Select */}
             {categories.length > 0 && (
               <div className="relative">
-                <select
-                  value={categoryFilter}
-                  onChange={(e) => setCategoryFilter(e.target.value)}
-                  aria-label="Filter kategori produk"
-                  className="h-9 rounded-lg border border-slate-200 bg-white pl-3 pr-8 text-xs font-medium text-slate-700 shadow-xs outline-none hover:bg-slate-50 focus:border-slate-400"
-                >
-                  <option value="all">Semua Kategori</option>
-                  {categories.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
-                  ))}
-                </select>
+                <div className="w-full sm:w-48">
+                  <FilterSelect
+                    id="product-category-filter"
+                    ariaLabel="Filter kategori produk"
+                    icon={Tags}
+                    value={categoryFilter}
+                    onValueChange={setCategoryFilter}
+                    options={[{ value: "all", label: "Semua kategori" }, ...categories.map((category) => ({ value: category, label: category }))]}
+                  />
+                </div>
               </div>
             )}
 
-            {/* Add Product CTA */}
-            <a
-              href="/admin/products/new"
-              className={buttonVariants({ variant: "default", size: "sm", className: "h-9 gap-1.5" })}
-            >
-              <Plus className="size-4" />
-              <span>Tambah produk</span>
-            </a>
+            {/* The page header owns "Tambah produk"; a second one here was the same link twice. */}
           </div>
         </div>
 
@@ -691,6 +685,7 @@ export function ProductCatalog({
         <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/50 px-4 py-2.5 text-xs font-medium text-slate-500 lg:px-5">
           <span>
             Menampilkan <strong>{filtered.length}</strong> dari <strong>{products.length}</strong> produk
+            {products.length >= 200 && " (200 terbaru — produk lebih lama tidak tampil di sini)"}
           </span>
           {(query || statusFilter !== "all" || categoryFilter !== "all") && (
             <button
@@ -700,7 +695,7 @@ export function ProductCatalog({
                 setStatusFilter("all");
                 setCategoryFilter("all");
               }}
-              className="text-xs font-bold text-slate-600 hover:text-slate-900 underline"
+              className="text-xs font-semibold text-slate-600 hover:text-slate-900 underline"
             >
               Reset filter
             </button>
@@ -713,13 +708,13 @@ export function ProductCatalog({
             <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-slate-100 text-slate-400">
               <Package className="size-7" />
             </div>
-            <h3 className="mt-4 text-base font-bold text-slate-950">Belum ada produk</h3>
+            <h3 className="mt-4 text-base font-semibold text-slate-950">Belum ada produk</h3>
             <p className="mt-1 text-xs text-slate-500 max-w-sm mx-auto">
               Katalog produk Anda masih kosong. Tambahkan produk pertama untuk mulai berjualan.
             </p>
             <a
               href="/admin/products/new"
-              className={buttonVariants({ variant: "default", className: "mt-5 h-10 px-5 gap-2" })}
+              className={buttonVariants({ variant: "default", className: "mt-5" })}
             >
               <Plus className="size-4" />
               Tambah produk pertama
@@ -730,7 +725,7 @@ export function ProductCatalog({
             <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
               <Filter className="size-6" />
             </div>
-            <h3 className="mt-3 text-base font-bold text-slate-950">Produk tidak ditemukan</h3>
+            <h3 className="mt-3 text-base font-semibold text-slate-950">Produk tidak ditemukan</h3>
             <p className="mt-1 text-xs text-slate-500 max-w-sm mx-auto">
               Tidak ada produk yang cocok dengan pencarian atau filter yang dipilih.
             </p>
@@ -742,7 +737,7 @@ export function ProductCatalog({
                 setStatusFilter("all");
                 setCategoryFilter("all");
               }}
-              className="mt-4 h-9 px-4 text-xs"
+              className="mt-4 px-4"
             >
               Reset filter pencarian
             </Button>
@@ -780,7 +775,7 @@ export function ProductCatalog({
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <h3 className="font-bold text-sm text-slate-950 truncate">
+                          <h3 className="font-semibold text-sm text-slate-950 truncate">
                             <a
                               href={`/admin/products/edit?id=${encodeURIComponent(String(product.id))}`}
                               className="hover:text-emerald-700 hover:underline"
@@ -788,7 +783,7 @@ export function ProductCatalog({
                               {product.title}
                             </a>
                           </h3>
-                          <p className="mt-0.5 font-mono text-[11px] text-slate-500 truncate">
+                          <p className="mt-0.5 font-mono text-xs text-slate-500 truncate">
                             /{product.slug}
                           </p>
                         </div>
@@ -797,8 +792,8 @@ export function ProductCatalog({
                             variant={product.is_active ? "default" : "secondary"}
                             className={
                               product.is_active
-                                ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-100 font-bold text-[10px]"
-                                : "bg-slate-100 text-slate-600 hover:bg-slate-100 font-bold text-[10px]"
+                                ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-100 font-semibold text-xs"
+                                : "bg-slate-100 text-slate-600 hover:bg-slate-100 font-semibold text-xs"
                             }
                           >
                             {product.is_active ? "Aktif" : "Draft"}
@@ -822,7 +817,7 @@ export function ProductCatalog({
 
                       {product.category && (
                         <div className="mt-1.5">
-                          <Badge variant="outline" className="text-[10px] py-0 px-2 text-slate-600 font-normal">
+                          <Badge variant="outline" className="text-xs py-0 px-2 text-slate-600 font-normal">
                             {product.category}
                           </Badge>
                         </div>
@@ -832,20 +827,20 @@ export function ProductCatalog({
 
                   <dl className="mt-3.5 grid grid-cols-3 gap-2 rounded-lg bg-slate-50/80 p-2.5 text-xs">
                     <div>
-                      <dt className="text-[10px] text-slate-500 uppercase font-semibold">Content ID</dt>
-                      <dd className="mt-0.5 font-mono font-bold text-slate-900 text-[11px] truncate">
+                      <dt className="text-xs text-slate-500 uppercase font-semibold">Content ID</dt>
+                      <dd className="mt-0.5 font-mono font-semibold text-slate-900 text-xs truncate">
                         {catalogProductIdOrNull(product.id) ?? "—"}
                       </dd>
                     </div>
                     <div>
-                      <dt className="text-[10px] text-slate-500 uppercase font-semibold">Harga</dt>
-                      <dd className="mt-0.5 font-bold text-slate-900 text-[11px] truncate">
+                      <dt className="text-xs text-slate-500 uppercase font-semibold">Harga</dt>
+                      <dd className="mt-0.5 font-semibold text-slate-900 text-xs truncate">
                         {priceRange || "-"}
                       </dd>
                     </div>
                     <div>
-                      <dt className="text-[10px] text-slate-500 uppercase font-semibold">Varian</dt>
-                      <dd className="mt-0.5 font-bold text-slate-900 text-[11px]">
+                      <dt className="text-xs text-slate-500 uppercase font-semibold">Varian</dt>
+                      <dd className="mt-0.5 font-semibold text-slate-900 text-xs">
                         {product.variants?.length || 0} opsi
                       </dd>
                     </div>
@@ -869,7 +864,7 @@ export function ProductCatalog({
           <div className="hidden overflow-x-auto lg:block" aria-label="Tabel produk desktop">
             <Table>
               <TableHeader>
-                <TableRow className="bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+                <TableRow className="bg-slate-50/80 text-xs font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-200">
                   <TableHead className="py-3 pl-5 pr-4 w-[340px]">Produk</TableHead>
                   <TableHead className="py-3 px-4 w-[160px]">Harga</TableHead>
                   <TableHead className="py-3 px-4 w-[180px]">Content ID</TableHead>
@@ -904,19 +899,19 @@ export function ProductCatalog({
                             <div className="flex items-center gap-2">
                               <a
                                 href={`/admin/products/edit?id=${encodeURIComponent(String(product.id))}`}
-                                className="font-bold text-slate-950 text-sm hover:text-emerald-700 hover:underline"
+                                className="font-semibold text-slate-950 text-sm hover:text-emerald-700 hover:underline"
                               >
                                 {product.title}
                               </a>
                             </div>
                             <div className="flex items-center gap-2 mt-0.5">
-                              <span className="font-mono text-[11px] text-slate-400">
+                              <span className="font-mono text-xs text-slate-400">
                                 /{product.slug}
                               </span>
                               {product.category && (
                                 <>
                                   <span className="text-slate-300">•</span>
-                                  <span className="text-[11px] font-medium text-slate-500">
+                                  <span className="text-xs font-medium text-slate-500">
                                     {product.category}
                                   </span>
                                 </>
@@ -928,7 +923,7 @@ export function ProductCatalog({
 
                       {/* Price range */}
                       <TableCell className="py-3.5 px-4">
-                        <span className="font-bold text-slate-900 text-sm">
+                        <span className="font-semibold text-slate-900 text-sm">
                           {priceRange || <span className="text-slate-400 font-normal text-xs">Belum set</span>}
                         </span>
                       </TableCell>
@@ -946,7 +941,7 @@ export function ProductCatalog({
                           className="group inline-flex items-center gap-1.5 rounded-md px-2 py-1 hover:bg-slate-100 transition-colors text-left"
                           title="Klik untuk menyalin Content ID"
                         >
-                          <span className="font-mono text-xs font-bold text-slate-700 group-hover:text-slate-950">
+                          <span className="font-mono text-xs font-semibold text-slate-700 group-hover:text-slate-950">
                             {catalogProductIdOrNull(product.id) ?? "—"}
                           </span>
                           <Copy className="size-3 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -965,8 +960,8 @@ export function ProductCatalog({
                             variant={product.is_active ? "default" : "secondary"}
                             className={
                               product.is_active
-                                ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-100 font-bold text-[10px] gap-1"
-                                : "bg-slate-100 text-slate-600 hover:bg-slate-100 font-bold text-[10px]"
+                                ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-100 font-semibold text-xs gap-1"
+                                : "bg-slate-100 text-slate-600 hover:bg-slate-100 font-semibold text-xs"
                             }
                           >
                             {product.is_active && (
@@ -1010,9 +1005,9 @@ export function ProductCatalog({
         {totalPages > 1 && (
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-200 bg-slate-50/50 px-5 py-3.5">
             <p className="text-xs text-slate-500 font-medium">
-              Menampilkan <span className="font-bold text-slate-900">{(page - 1) * itemsPerPage + 1}</span>–
-              <span className="font-bold text-slate-900">{Math.min(page * itemsPerPage, filtered.length)}</span> dari{" "}
-              <span className="font-bold text-slate-900">{filtered.length}</span> produk
+              Menampilkan <span className="font-semibold text-slate-900">{(page - 1) * itemsPerPage + 1}</span>–
+              <span className="font-semibold text-slate-900">{Math.min(page * itemsPerPage, filtered.length)}</span> dari{" "}
+              <span className="font-semibold text-slate-900">{filtered.length}</span> produk
             </p>
             <div className="flex items-center gap-1.5">
               <Button
@@ -1020,11 +1015,11 @@ export function ProductCatalog({
                 size="sm"
                 disabled={page <= 1}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
-                className="h-8 px-3 text-xs bg-white"
+                className="px-3 bg-white"
               >
                 Sebelumnya
               </Button>
-              <div className="flex items-center gap-1 px-2 text-xs font-bold text-slate-700">
+              <div className="flex items-center gap-1 px-2 text-xs font-semibold text-slate-700">
                 Halaman {page} dari {totalPages}
               </div>
               <Button
@@ -1032,7 +1027,7 @@ export function ProductCatalog({
                 size="sm"
                 disabled={page >= totalPages}
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                className="h-8 px-3 text-xs bg-white"
+                className="px-3 bg-white"
               >
                 Selanjutnya
               </Button>
@@ -1055,7 +1050,7 @@ export function ProductCatalog({
               <span>Embed Checkout Form - {embedTarget?.title}</span>
             </DialogTitle>
             <DialogDescription>
-              Pilih alur dan varian awal. Snippet embed selalu menggunakan ID produk dan varian canonical dari ZvaraShop.
+              Pilih alur dan varian awal. Snippet embed selalu menggunakan ID produk dan varian canonical dari AdsBookCMS.
             </DialogDescription>
           </DialogHeader>
 
@@ -1066,7 +1061,7 @@ export function ProductCatalog({
               className="rounded-xl border border-amber-200 bg-amber-50 p-4"
               role="alert"
             >
-              <p className="text-sm font-bold text-slate-950">
+              <p className="text-sm font-semibold text-slate-950">
                 Form belum dapat di-embed
               </p>
               <p className="mt-1 text-xs leading-5 text-amber-900">
@@ -1077,39 +1072,44 @@ export function ProductCatalog({
             <div className="space-y-4">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <label className="block">
-                  <span className="mb-1.5 block text-xs font-bold text-slate-700">
+                  <span className="mb-1.5 block text-xs font-semibold text-slate-700">
                     Mode Form Checkout
                   </span>
-                  <select
+                  <Select
+                    items={EMBED_MODE_LABELS}
                     value={embedMode}
-                    onChange={(event) =>
-                      setEmbedMode(event.target.value as FormMode)
-                    }
-                    className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs text-slate-950 outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 font-medium"
+                    onValueChange={(value) => value && setEmbedMode(value as FormMode)}
                   >
-                    <option value="hybrid">Hybrid · Otomatis menyesuaikan wilayah</option>
-                    <option value="full">Full · Alamat & ongkir lengkap</option>
-                    <option value="middle">Middle · Form singkat (Nama & HP)</option>
-                  </select>
+                    <SelectTrigger aria-label="Mode form" className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(EMBED_MODE_LABELS).map(([value, label]) => (
+                        <SelectItem key={value} value={value}>{label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </label>
                 <label className="block">
-                  <span className="mb-1.5 block text-xs font-bold text-slate-700">
+                  <span className="mb-1.5 block text-xs font-semibold text-slate-700">
                     Varian Awal (Default)
                   </span>
-                  <select
+                  <Select
+                    items={Object.fromEntries(embedConfig.variants.map((variant) => [String(variant.id), variant.label]))}
                     value={embedVariantId}
-                    onChange={(event) => setEmbedVariantId(event.target.value)}
-                    className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs text-slate-950 outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 font-medium"
+                    onValueChange={(value) => value && setEmbedVariantId(String(value))}
                   >
-                    {embedConfig.variants.map((variant) => (
-                      <option
-                        key={String(variant.id)}
-                        value={String(variant.id)}
-                      >
-                        {variant.label}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger aria-label="Varian awal" className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {embedConfig.variants.map((variant) => (
+                        <SelectItem key={String(variant.id)} value={String(variant.id)}>
+                          {variant.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </label>
               </div>
 
@@ -1117,18 +1117,18 @@ export function ProductCatalog({
               <section className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-950">
-                      ZvaraShop Widget Snippet
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-emerald-950">
+                      AdsBookCMS Widget Snippet
                     </h3>
-                    <Badge variant="default" className="bg-emerald-700 text-white font-bold text-[9px] uppercase">
+                    <Badge variant="default" className="bg-emerald-700 text-white font-semibold text-xs uppercase">
                       Direkomendasikan
                     </Badge>
                   </div>
                   <Button
                     type="button"
                     size="sm"
-                    className="h-8 gap-1.5 bg-emerald-700 text-white hover:bg-emerald-800 text-xs"
-                    onClick={() => void copyText(widgetHtml, "ZvaraShop Widget")}
+                    className="gap-1.5 bg-emerald-700 text-white hover:bg-emerald-800"
+                    onClick={() => void copyText(widgetHtml, "AdsBookCMS Widget")}
                   >
                     <Copy className="size-3.5" />
                     Salin Snippet
@@ -1141,14 +1141,14 @@ export function ProductCatalog({
                   value={widgetHtml}
                   readOnly
                   rows={6}
-                  aria-label="ZvaraShop widget embed"
-                  className="mt-3 w-full resize-y rounded-lg border border-emerald-300 bg-white p-3 font-mono text-[11px] leading-5 text-slate-800 outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
+                  aria-label="AdsBookCMS widget embed"
+                  className="mt-3 w-full resize-y rounded-lg border border-emerald-300 bg-white p-3 font-mono text-xs leading-5 text-slate-800 outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
                 />
               </section>
 
               {/* Advanced / Alternative Options */}
               <details className="group [&_summary::-webkit-details-marker]:hidden">
-                <summary className="flex cursor-pointer items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs font-bold text-slate-700 hover:bg-slate-100 focus-visible:outline-none">
+                <summary className="flex cursor-pointer items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs font-semibold text-slate-700 hover:bg-slate-100 focus-visible:outline-none">
                   <span>Opsi Lanjutan (Link Form Direct & Plain Iframe)</span>
                   <ChevronDown className="size-4 text-slate-500 transition-transform duration-200 group-open:rotate-180" aria-hidden="true" />
                 </summary>
@@ -1157,14 +1157,14 @@ export function ProductCatalog({
                   <div>
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <h4 className="text-xs font-bold text-slate-950">Direct Form URL</h4>
+                        <h4 className="text-xs font-semibold text-slate-950">Direct Form URL</h4>
                         <p className="mt-0.5 text-xs text-slate-500">Untuk tombol redirect CTA di Landing Page eksternal.</p>
                       </div>
                       <a
                         href={standaloneUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 px-3 text-xs font-bold text-slate-700 hover:bg-slate-50"
+                        className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50"
                       >
                         <span>Preview</span>
                         <ExternalLink className="size-3" aria-hidden="true" />
@@ -1175,12 +1175,12 @@ export function ProductCatalog({
                         value={standaloneUrl}
                         readOnly
                         aria-label="Link form produk"
-                        className="h-9 min-w-0 font-mono text-xs"
+                        className="min-w-0 font-mono"
                       />
                       <Button
                         type="button"
                         variant="outline"
-                        className="h-9 shrink-0 px-3 text-xs gap-1.5"
+                        className="shrink-0 px-3 gap-1.5"
                         onClick={() => void copyText(standaloneUrl, "Link Form URL")}
                       >
                         <Copy className="size-3.5" />
@@ -1193,12 +1193,12 @@ export function ProductCatalog({
 
                   <div>
                     <div className="flex items-center justify-between">
-                      <h4 className="text-xs font-bold text-slate-950">Plain Iframe (Tanpa Script JS)</h4>
+                      <h4 className="text-xs font-semibold text-slate-950">Plain Iframe (Tanpa Script JS)</h4>
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="h-8 gap-1.5 text-xs"
+                        className="gap-1.5"
                         onClick={() => void copyText(iframeHtml, "Iframe HTML")}
                       >
                         <Copy className="size-3.5" />
@@ -1210,7 +1210,7 @@ export function ProductCatalog({
                       readOnly
                       rows={3}
                       aria-label="Iframe embed tanpa JavaScript"
-                      className="mt-2 w-full resize-y rounded-lg border border-slate-200 bg-slate-50 p-2.5 font-mono text-[11px] leading-5 text-slate-800"
+                      className="mt-2 w-full resize-y rounded-lg border border-slate-200 bg-slate-50 p-2.5 font-mono text-xs leading-5 text-slate-800"
                     />
                   </div>
                 </div>

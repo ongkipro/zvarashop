@@ -14,10 +14,13 @@ import {
   parseShortcodes,
   NativeLandingReadOnlyError,
   reconcileNativeLandingPages,
+  changesHtmlSections,
+  isReservedLandingSlug,
   setLandingPageAsProductPage,
   updateLandingPage,
   validateLandingPageSlug,
 } from "./landing-pages.ts";
+import { readdirSync } from "node:fs";
 
 type QueryValue = null | number | string | Uint8Array;
 
@@ -89,10 +92,12 @@ class SqliteD1Database {
       CREATE TABLE IF NOT EXISTS products (
         id INTEGER PRIMARY KEY,
         slug TEXT NOT NULL,
-        title TEXT NOT NULL
+        title TEXT NOT NULL,
+        is_active INTEGER DEFAULT 1
       );
       INSERT INTO products (id, slug, title) VALUES (20001, 'pupuk-organik', 'Pupuk Organik');
       INSERT INTO products (id, slug, title) VALUES (20002, 'benih-jagung', 'Benih Jagung');
+      INSERT INTO products (id, slug, title, is_active) VALUES (20003, 'produk-mati', 'Produk Mati', 0);
     `);
     for (const file of [
       "0027_landing_page_builder.sql",
@@ -101,6 +106,7 @@ class SqliteD1Database {
       "0046_landing_page_as_product_page.sql",
       // Native Astro pages are recorded in the same table (A-133).
       "0047_native_landing_pages.sql",
+      "0055_typed_landing_sections.sql",
     ]) {
       this.#database.exec(
         readFileSync(
@@ -141,7 +147,7 @@ test("landing page CRUD persists pages and ordered, parsed sections", async () =
   const created = await createLandingPage(locals, {
     slug: "promo-asahan",
     title: "Promo Asahan",
-    product_id: "10001",
+    product_id: "20001",
     meta_title: "Asahan Portable Terbaik",
     sections: [
       {
@@ -204,15 +210,51 @@ test("landing page CRUD persists pages and ordered, parsed sections", async () =
     createLandingPage(locals, {
       slug: "promo-asahan-baru",
       title: "Duplicate",
-      product_id: "10001",
+      product_id: "20001",
     }),
-    /already in use/,
+    /sudah dipakai landing page lain/,
   );
 
   assert.equal(await deleteLandingPage(locals, created.id), true);
   assert.equal(await getLandingPageById(locals, created.id), null);
   assert.equal((await listLandingPages(locals)).length, 0);
   assert.equal(await deleteLandingPage(locals, created.id), false);
+});
+
+test("typed landing sections preserve plain content and reject unsafe configuration", async () => {
+  const { locals } = createLocals();
+  const page = await createLandingPage(locals, {
+    slug: "promo-typed",
+    title: "Typed content",
+    product_id: "20001",
+    sections: [
+      { type: "headline", content_config: { text: "Panen lebih rapi", align: "center", size: "large" } },
+      { type: "paragraph", content_config: { text: "Gunakan sesuai petunjuk.", align: "right" } },
+      { type: "numbered_list", content_config: { items: ["Buka", "Gunakan"] } },
+      { type: "bullet_list", content_config: { items: ["Praktis"] } },
+      { type: "image", content_config: { src: "/assets/uploads/2026-08-28/hero.webp", alt: "Produk" } },
+    ],
+  });
+
+  assert.deepEqual(page.sections.map((section) => section.type), [
+    "headline", "paragraph", "numbered_list", "bullet_list", "image",
+  ]);
+  assert.deepEqual(page.sections[2]?.content_config, { items: ["Buka", "Gunakan"] });
+  assert.deepEqual(page.sections[0]?.content_config, { text: "Panen lebih rapi", align: "center", size: "large" });
+
+  await assert.rejects(
+    () => updateLandingPage(locals, page.id, {
+      sections: [{ type: "paragraph", content_config: { text: "<script>alert(1)</script>" } }],
+    }),
+    /tanpa tanda < atau >/,
+  );
+  await assert.rejects(
+    () => updateLandingPage(locals, page.id, {
+      sections: [{ type: "headline", content_config: { text: "Aman", align: "justify" as "left" } }],
+    }),
+    /Perataan teks/,
+  );
+  assert.equal((await getLandingPageById(locals, page.id))?.sections.length, 5);
 });
 
 test("parseShortcodes binds product title and formatted IDR prices", () => {
@@ -249,20 +291,20 @@ test("a landing page can take over its product's page, and only one may", async 
   const first = await createLandingPage(locals, {
     slug: "promo-satu",
     title: "Promo Satu",
-    product_id: "10001",
+    product_id: "20001",
   });
   const second = await createLandingPage(locals, {
     slug: "promo-dua",
     title: "Promo Dua",
-    product_id: "10001",
+    product_id: "20001",
   });
 
   // Nothing claims the product page until someone is told to.
-  assert.equal(await getProductPageLanding(locals, "10001"), null);
+  assert.equal(await getProductPageLanding(locals, "20001"), null);
 
   const claimed = await setLandingPageAsProductPage(locals, first.id, true);
   assert.equal(claimed?.is_product_page, 1);
-  assert.equal((await getProductPageLanding(locals, "10001"))?.slug, "promo-satu");
+  assert.equal((await getProductPageLanding(locals, "20001"))?.slug, "promo-satu");
 
   // The second page points at the same product, so it cannot also hold it.
   await assert.rejects(
@@ -276,9 +318,9 @@ test("a landing page can take over its product's page, and only one may", async 
 
   // Releasing the first frees the product page for the second.
   await setLandingPageAsProductPage(locals, first.id, false);
-  assert.equal(await getProductPageLanding(locals, "10001"), null);
+  assert.equal(await getProductPageLanding(locals, "20001"), null);
   await setLandingPageAsProductPage(locals, second.id, true);
-  assert.equal((await getProductPageLanding(locals, "10001"))?.slug, "promo-dua");
+  assert.equal((await getProductPageLanding(locals, "20001"))?.slug, "promo-dua");
 });
 
 test("an unpublished claim hands the product page back to the product template", async () => {
@@ -286,14 +328,14 @@ test("an unpublished claim hands the product page back to the product template",
   const page = await createLandingPage(locals, {
     slug: "promo-nonaktif",
     title: "Promo Nonaktif",
-    product_id: "10002",
+    product_id: "20002",
   });
   await setLandingPageAsProductPage(locals, page.id, true);
-  assert.ok(await getProductPageLanding(locals, "10002"));
+  assert.ok(await getProductPageLanding(locals, "20002"));
 
   // Unpublishing must not 404 the product; it must simply stop taking it over.
   await updateLandingPage(locals, page.id, { is_active: false });
-  assert.equal(await getProductPageLanding(locals, "10002"), null);
+  assert.equal(await getProductPageLanding(locals, "20002"), null);
 });
 
 test("claiming an unknown landing page reports not-found rather than throwing", async () => {
@@ -365,6 +407,23 @@ test("the register is mirrored into the table, and a claim survives a re-sync", 
   assert.equal(stillClaimed?.title, "Judul Baru");
 });
 
+test("a re-sync with nothing changed leaves updated_at, the sitemap lastmod, alone", async () => {
+  const { database, locals } = createLocals();
+  const d1 = database as unknown as D1Database;
+  await reconcileNativeLandingPages(d1, [nativeEntry]);
+  const first = (await getLandingPageById(locals, "native:promo-native"))?.updated_at;
+  assert.ok(first);
+
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  await reconcileNativeLandingPages(d1, [nativeEntry]);
+  assert.equal((await getLandingPageById(locals, "native:promo-native"))?.updated_at, first);
+
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  await reconcileNativeLandingPages(d1, [{ ...nativeEntry, description: "Deskripsi baru." }]);
+  const changed = (await getLandingPageById(locals, "native:promo-native"))?.updated_at;
+  assert.ok(changed && changed > first, "a real change still moves updated_at");
+});
+
 test("removing the register entry removes the row, and with it any claim", async () => {
   const { database, locals } = createLocals();
   const d1 = database as unknown as D1Database;
@@ -432,5 +491,176 @@ test("the public listing links a claimed page to the product URL it answers on",
   // A claimed page's own slug only redirects; the public list must send the
   // visitor where the page actually answers.
   assert.equal(bySlug.get(claimed.slug)?.href, "/produk/benih-jagung");
+  assert.equal(bySlug.get(claimed.slug)?.isProductPage, true);
   assert.equal(bySlug.has(draft.slug), false);
+
+  // A page whose product is off answers 404; home and sitemap must not link it.
+  const orphan = await createLandingPage(locals, {
+    slug: "promo-produk-mati",
+    title: "Promo Mati",
+    product_id: "20003",
+  });
+  assert.equal((await listPublicLandingPages(locals)).some((page) => page.slug === orphan.slug), false);
+});
+
+/**
+ * The public checkout schema bounds every field it accepts. This path bounded
+ * none of them: `title`, `meta_title` and `meta_description` were written
+ * straight through, untrimmed and unlimited, and two of them ship inside
+ * `<title>` and `<meta name="description">` on every render of a page ads point
+ * at. Astro escapes them, so this was never an injection — it was an unbounded
+ * body, a section list long enough to be one D1 batch of its own, and a form
+ * mode nothing checked.
+ */
+test("every landing page field an operator can submit is bounded", async () => {
+  const { locals } = createLocals();
+  const base = { slug: "batas-uji", title: "Batas Uji", product_id: "20001" };
+
+  const tooLong = (n: number) => "a".repeat(n);
+  await assert.rejects(
+    () => createLandingPage(locals, { ...base, title: tooLong(201) }),
+    /Judul landing page maksimal 200/,
+  );
+  await assert.rejects(
+    () => createLandingPage(locals, { ...base, meta_title: tooLong(201) }),
+    /Meta title maksimal 200/,
+  );
+  await assert.rejects(
+    () => createLandingPage(locals, { ...base, meta_description: tooLong(501) }),
+    /Meta description maksimal 500/,
+  );
+  await assert.rejects(
+    () => createLandingPage(locals, {
+      ...base,
+      sections: Array.from({ length: 61 }, () => ({ type: "form" as const })),
+    }),
+    /Maksimal 60 section/,
+  );
+  await assert.rejects(
+    () => createLandingPage(locals, {
+      ...base,
+      sections: [{ type: "html", content_html: tooLong(100_001) }],
+    }),
+    /HTML section maksimal/,
+  );
+  await assert.rejects(
+    () => createLandingPage(locals, {
+      ...base,
+      sections: [{ type: "headline", content_config: { text: tooLong(2_001) } }],
+    }),
+    /Teks section maksimal/,
+  );
+  await assert.rejects(
+    () => createLandingPage(locals, {
+      ...base,
+      sections: [{
+        type: "bullet_list",
+        content_config: { items: Array.from({ length: 51 }, (_, i) => `Item ${i}`) },
+      }],
+    }),
+    /Daftar maksimal 50 item/,
+  );
+  // The form component falls through to its middle variant on an unknown mode,
+  // so a stored typo silently produced a different form than the one chosen.
+  await assert.rejects(
+    () => createLandingPage(locals, {
+      ...base,
+      sections: [{ type: "form", form_config: { mode: "hibrida" as "hybrid" } }],
+    }),
+    /Mode form harus salah satu dari hybrid, middle, full/,
+  );
+
+  // Nothing above was written, and a page inside every bound still saves — with
+  // its metadata trimmed rather than stored with the operator's stray spaces.
+  assert.equal((await listLandingPages(locals)).filter((p) => p.slug === "batas-uji").length, 0);
+  const saved = await createLandingPage(locals, {
+    ...base,
+    meta_title: "  Judul SEO  ",
+    meta_description: "  Deskripsi SEO  ",
+    sections: [{ type: "form", form_config: { mode: "full" } }],
+  });
+  assert.equal(saved.meta_title, "Judul SEO");
+  assert.equal(saved.meta_description, "Deskripsi SEO");
+});
+
+/**
+ * A landing page is an ad destination. Pointing one at a product this store
+ * does not carry produced a page that saved, listed in the admin, and answered
+ * `404` to every visitor who clicked the ad — `[slug].astro` resolves the
+ * product and rewrites to 404 when it cannot.
+ *
+ * The native-landing register has always refused an unknown product for this
+ * exact reason (`docs/LANDING-PAGES.md`); the CMS path had not. The fixtures in
+ * this very file used to create pages against product `10001`, which the
+ * fixture never inserted — the tests were describing broken pages as normal.
+ */
+test("a landing page cannot point at a product this store does not carry", async () => {
+  const { locals } = createLocals();
+  await assert.rejects(
+    () => createLandingPage(locals, {
+      slug: "produk-hantu",
+      title: "Produk Hantu",
+      product_id: "99999",
+    }),
+    /Produk yang dipilih tidak ditemukan/,
+  );
+
+  const page = await createLandingPage(locals, {
+    slug: "produk-nyata",
+    title: "Produk Nyata",
+    product_id: "20001",
+  });
+  // An edit that does not touch the product is never re-checked, so a product
+  // deleted afterwards cannot lock the operator out of fixing their own page.
+  const renamed = await updateLandingPage(locals, page.id, { title: "Judul Baru" });
+  assert.equal(renamed?.title, "Judul Baru");
+  assert.equal(renamed?.product_id, "20001");
+  // A submitted product is checked.
+  await assert.rejects(
+    () => updateLandingPage(locals, page.id, { product_id: "99999" }),
+    /Produk yang dipilih tidak ditemukan/,
+  );
+  assert.equal((await getLandingPageById(locals, page.id))?.product_id, "20001");
+});
+
+test("a landing slug cannot shadow a route the store already serves", () => {
+  // Every top-level static route in src/pages/, so a new page cannot be added
+  // without reserving its slug: Astro would serve the static page instead.
+  const pages = new URL("../pages/", import.meta.url);
+  const segments = readdirSync(pages, { withFileTypes: true })
+    .map((entry) => entry.name.replace(/\.(astro|ts)$/, "").replace(/\.(txt|xml)$/, ""))
+    .filter((name) => !name.startsWith("[") && name !== "index");
+  for (const segment of segments) {
+    // An install's own route file is reserved through its native register or
+    // `installRouteSlugs` (src/data/native-landing-pages.ts), not this list.
+    assert.ok(isReservedLandingSlug(segment), `src/pages/${segment} is not reserved`);
+    assert.equal(validateLandingPageSlug(segment).valid, false, segment);
+  }
+});
+
+test("a native landing slug and an install route are refused as CMS slugs", () => {
+  const native = [{ slug: "promo-native", title: "T", productSlug: "p", description: "d", isActive: false }];
+  assert.equal(isReservedLandingSlug("promo-native", native, []), true, "inactive native still owns its file");
+  assert.equal(isReservedLandingSlug("legacy-redirect", [], ["legacy-redirect"]), true);
+  assert.equal(isReservedLandingSlug("promo-bebas", native, ["legacy-redirect"]), false);
+  assert.equal(isReservedLandingSlug("thanks", [], []), true);
+});
+
+test("only a change to raw HTML needs an owner, not a page that merely carries it", () => {
+  const trusted = [{ type: "html", content_html: "<p>ok</p>" }];
+  assert.equal(changesHtmlSections(undefined, trusted), false);
+  assert.equal(changesHtmlSections([{ type: "headline", content_config: null }], trusted), false);
+  assert.equal(changesHtmlSections([{ type: "html", content_html: "<p>ok</p>" }], trusted), false);
+  assert.equal(changesHtmlSections([{ type: "html", content_html: "<script>x</script>" }], trusted), true);
+  assert.equal(changesHtmlSections([{ type: "html", content_html: "<p>ok</p>" }]), true, "new page");
+});
+
+test("moving a claimed page to another product releases the claim instead of stealing a URL", async () => {
+  const { locals } = createLocals();
+  const page = await createLandingPage(locals, { slug: "promo-pindah", title: "Promo", product_id: "20001" });
+  await setLandingPageAsProductPage(locals, page.id, true);
+  const moved = await updateLandingPage(locals, page.id, { product_id: "20002" });
+  assert.equal(moved?.is_product_page, 0);
+  assert.equal(await getProductPageLanding(locals, "20001"), null);
+  assert.equal(await getProductPageLanding(locals, "20002"), null);
 });

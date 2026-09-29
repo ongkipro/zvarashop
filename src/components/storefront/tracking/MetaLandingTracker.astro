@@ -50,15 +50,16 @@ const { slug, contentId, contentName, price } = Astro.props;
       const data = {
         content_name: contentName,
         content_ids: contentId ? [contentId] : undefined,
+        // Meta matches a catalogue item on `contents` as well as `content_ids`.
+        contents: contentId
+          ? [{ id: contentId, quantity: 1, item_price: Number(price || 1) }]
+          : undefined,
         content_type: 'product',
         value: Number(price || 1),
         currency: 'IDR',
       };
-      // Never `fbq('track')` directly: this fires during body parse, while
-      // MetaPixelBase's single init is still waiting on the external-ID
-      // digest, and fbevents drops a track it replays ahead of the init.
-      if (typeof window.__PS_META_TRACK__ === 'function') {
-        window.__PS_META_TRACK__(eventName, data, { eventID: eventId });
+      if (window.fbq) {
+        window.fbq('track', eventName, data, { eventID: eventId });
       }
       postMeta({
         event_name: eventName,

@@ -31,12 +31,12 @@ interface SharedEnvVars {
   MENGANTAR_ORIGIN_AREA_ID?: string;
   MENGANTAR_PICKUP_ADDRESS_ID?: string;
   AUTOLARIS_API_KEY?: string;
-  AUTOLARIS_BASE_URL?: string;
-  /** Numeric metadata required by AutoLaris `/submit`; not a shipping route. */
+  /** Numeric AutoLaris area ids used only by the `/submit` dashboard-order mirror. */
   AUTOLARIS_ORDER_ORIGIN_ID?: string;
   AUTOLARIS_ORDER_DESTINATION_ID?: string;
-  /** Optional provider-required sender email; buyer email is the fallback. */
+  /** Optional provider-required shipper email; buyer email is the fallback. */
   AUTOLARIS_SHIPPER_EMAIL?: string;
+  AUTOLARIS_BASE_URL?: string;
   META_PIXEL_ID?: string;
   META_CAPI_ACCESS_TOKEN?: string;
   META_CAPI_TOKEN?: string;
@@ -78,7 +78,6 @@ declare module "cloudflare:workers" {
 declare namespace App {
   interface Locals {
     runtimeEnv?: CloudflareRuntimeEnv | Record<string, unknown>;
-    cfContext?: import("@cloudflare/workers-types").ExecutionContext;
     /**
      * Store identity, resolved once per request in middleware from the `stores`
      * row with environment fallback. Read this instead of importing a

@@ -13,13 +13,12 @@ import test from "node:test";
  * cannot read it.
  *
  * `/api/v1/checkout` deliberately keeps the explicit code: its caller is
- * authenticated by API key and origin allowlist, it is a partner debugging
- * their own integration rather than a bot probing, and the code is a published
- * contract in `STOREFRONT_INTEGRATION.md` §"full guard stack".
+ * authenticated by API key and origin allowlist — a partner debugging their own
+ * integration rather than a bot probing — and the code is a published contract
+ * in `STOREFRONT_INTEGRATION.md`.
  */
 
-const source = (path: string) =>
-  readFileSync(new URL(path, import.meta.url), "utf8");
+const source = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
 
 const PUBLIC_ENDPOINTS = [
   "../pages/api/submit-order.ts",
@@ -30,16 +29,16 @@ const PUBLIC_ENDPOINTS = [
 test("a public checkout endpoint never names the control that rejected it", () => {
   for (const path of PUBLIC_ENDPOINTS) {
     const text = source(path);
-    // Matched on the emitted key, not the bare word: the branch's own comment
-    // names the retired code to explain why it is gone.
+    // Matched on the emitted key, not the bare word: a comment may name the
+    // retired code to explain why it is gone.
     assert.doesNotMatch(
       text,
       /code:\s*['"]HONEYPOT_TRIGGERED['"]/,
       `${path} tells the caller which control caught it`,
     );
-    const honeypotBranch = text.slice(text.indexOf("body.website"));
+    const branch = text.slice(text.indexOf("body.website"));
     assert.match(
-      honeypotBranch.slice(0, 600),
+      branch.slice(0, 700),
       /code:\s*['"]VALIDATION_ERROR['"]/,
       `${path} must answer like a generic invalid payload`,
     );
@@ -57,9 +56,8 @@ test("every public checkout endpoint still has the honeypot and a rate limit", (
 });
 
 test("the authenticated headless route keeps its documented code", () => {
-  const text = source("../pages/api/v1/checkout.ts");
   assert.match(
-    text,
+    source("../pages/api/v1/checkout.ts"),
     /HONEYPOT_TRIGGERED/,
     "STOREFRONT_INTEGRATION.md publishes this code for API-key callers",
   );

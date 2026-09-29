@@ -1,6 +1,6 @@
 # AdsBookCMS — Remaining Work and Blockers
 
-> Verified against disk: 2026-09-04 @ `81e2031` + open-gap audit working tree
+> Verified against disk: 2026-09-25 @ `6e30950` + audit working tree
 
 This is the single ledger of work that is **not** done. Implemented behaviour belongs in `STATUS.md`, history in `BUILD-LOG.md`, accepted product behaviour in `PRD.md`, real architecture in `ARCHITECTURE.md`, and constraining decisions in `DECISIONS.md`.
 
@@ -17,53 +17,55 @@ All ten structural gaps in `ARCHITECTURE.md` §10 are closed. This file now owns
 
 | ID | Severity | Gap | Completion boundary |
 | --- | --- | --- | --- |
-| AD3 | Low | **Reduced 2026-09-04.** The SKU-as-MPN half of this row was already stale: `catalog-feed.ts` had stopped emitting `g:mpn` and now also declares `<g:identifier_exists>no</g:identifier_exists>`, which is the truthful statement for a schema with no GTIN or MPN column — a branded item carrying neither previously read to Google as *missing* data. `catalog-feed.test.ts` asserts the pairing and that the merchant-editable variant `sku` reaches neither feed. What remains is the out-of-stock clause, and it is blocked by the data rather than by effort: price lives only on `product_variants`, so a product with no sellable variant has no truthful price to publish and retaining it as a stable `out_of_stock` item would require inventing one. `getPublicProductValidationError` already refuses to publish an active product without a valid priced variant, so the case is prevented upstream. | Either give products a price of their own, or accept that a variant-less product legitimately leaves the feed and close this row. |
-| SCR1 | Low | The 2026-08-22 full-system screening proved the QRIS create path against AutoLaris but **not a settled payment**: capturing a paid `POST /api/h2h/advice` response means paying a real virtual account, so the confirmation path (`/thanks` replacement, paid-state gating, reconciliation marking an order paid) remains proven only by fixtures and the earlier manual-reconciliation browser smoke. It also did not exercise Mengantar dispatch (`POST /order`), which creates a real shipment and spends wallet balance, nor the Meta/Google outbound legs, which were verified by hand on 2026-08-19. | Prove the settled path once, deliberately, on a store that is ready to pay a small real amount, and record the observed `advice` response so `inquirePayment` can classify it. Dispatch stays a manual, operator-initiated action by design (A11) and should be screened against a provider sandbox if one is ever published. |
+| SCR1 | Low | The 2026-08-22 full-system screening proved the QRIS create path against AutoLaris but **not a settled payment**: capturing a paid `POST /api/h2h/advice` response means paying a real virtual account, so the confirmation path (`/thanks` replacement, paid-state gating, reconciliation marking an order paid) remains proven only by fixtures and the earlier manual-reconciliation browser smoke. It also did not exercise Mengantar dispatch (`POST /order`), which creates a real shipment and spends wallet balance, nor the Meta/Google outbound legs, which were verified by hand on 2026-08-19. | Prove the settled path once, deliberately, on a store that is ready to pay a small real amount, and record the observed `advice` response so `inquirePayment` can classify it. Dispatch stays a manual, operator-initiated action by design (A11) and should be screened against a provider sandbox if one is ever published. | **Narrowed 2026-09-09:** the capture that closes this is no longer discarded. `rc: "00"` arriving with a settlement word the allowlist does not recognise used to be counted as `unproven` beside genuine failures and thrown away — so the one observation this row waits for would have passed through unseen. It is now carried out of reconciliation as `unrecognisedPaidStatuses`, logged as `autolaris-paid-code-unknown-status` with the exact word and the order number, and included in the scheduled health log. The paid transition is unchanged and still requires both the code and an allowlisted word: a guess may not move money. What remains is the same as before — a real virtual account paid once — but the evidence will now be recorded when it happens rather than needing a deliberate experiment to catch it. **Vocabulary corrected 2026-09-09 against the provider's own documentation** (`ongkipro/autolaris`, `docs/guides/payment-gateway.md`): `SUCCESS` and `BERHASIL` were in the paid allowlist and the guide names both as too generic to mean settled, alongside the shipping word `DELIVERED`. §7 of the same guide settles why: `rc: "00"` means the API call succeeded, not the payment, so `00` with a generic success word is ambiguous — and resolving that toward paid marks an order paid that may not be. Both were removed; `PAID`, `SETTLED` and `LUNAS` remain as unambiguous settlement vocabulary. The provider still publishes no complete settlement mapping, so these three are a conservative reading rather than a confirmed contract.
 
-**S1's browser evidence was completed on 2026-09-08**, closing the one change
-from this whole effort that had shipped without it. A local runtime was given a
-throwaway `AUTH_SECRET` through `process.env` — no secret file was read or
-written — and the rendered form was driven end to end: the three fields appear
-with their help text; `#fff` is refused by the input's own `pattern` before a
-request is made and again by the API with a specific message rather than being
-silently replaced by the default; and a saved `#0A7C3F` / `en-US` /
-`Verifikasi Admin` reached `<meta name="theme-color">`, `<html lang>`, JSON-LD
-`inLanguage` and the admin `<title>` on the next request, with no rebuild.
+**AD3** was closed on 2026-09-09, in two halves. The Google feed now declares
+`identifier_exists: no` **alone**: the `g:mpn` it used to publish alongside
+contradicted that declaration — one says the product carries no manufacturer
+identifier, the other supplies one — and it was never truthful, because an MPN
+is assigned by a manufacturer while `sku` is nullable, merchant-editable and
+changes whenever an operator edits it. The earlier rationale, that the MPN kept
+Merchant Center from rejecting an item for a missing global identifier, is the
+job `identifier_exists: no` already does. Both feeds also clamp `title` and
+`description` to what each platform accepts, because over a cap an item is
+disapproved rather than truncated. The out-of-stock half is **not applicable
+rather than blocked**: `mergeStorefrontCatalog` skips any product failing
+`getPublicProductValidationError`, which requires at least one valid priced
+variant, so a product with no sellable variant never reaches the catalog and
+was never in the feed to disappear from.
 
-**DOC1** was closed on 2026-09-04 by re-extracting `DESIGN-SYSTEM.md` from the
-tree rather than restamping it. The drift was wider than this row recorded: §1.1
-documented `#F8F7F4` as the storefront canvas, a value with **zero** occurrences
-under `src/`, and a champagne-gold accent that survives only inside two CSS
-header comments; §1.2 and §8.12 described the `wide-catalog` template that
-migration `0044` retired on 2026-08-23 under ADR-018; §7.4 described a
-scroll-snap carousel with a thumbnail rail, none of whose classes exist in the
-65-line component that replaced it; §7.3 listed a deleted `ProofsSection.astro`
-that §2.1 also cited a line number inside; and §8.2 attributed an emerald
-palette to `/payment` and `/thanks` that now appears only on admin screens. One
-new inconsistency was recorded rather than resolved (§8.3a): `design-tokens.md`
-and `form-hybrid.css` declare different accents and different token counts, and
-which one this store should ship is a design decision.
-
-**COD1** was settled on 2026-09-04 as what it always was: a pricing decision.
-The local 3% + 11% VAT figure is ZvaraShop's own COD service price, not an
+**COD1** was settled on 2026-09-09 as what it always was: a pricing decision.
+The local 3% + 11% VAT figure is the store's own COD service price, not an
 attempt to mirror Mengantar's quoted `codFee`, and the consistent one-rupiah
 spread is a consequence of rounding each component up rather than a bug.
 `payment-fee-policy.ts` now says so at the constants, including the consequence
 that a provider rate change does not move it.
 
-Closed 2026-09-04 by the open-gap audit: **S1** — `theme_color`, `locale` and
-`admin_name` are edited at `/admin/settings/store`, validated against the same
-patterns `resolveTenantConfig` resolves with (`THEME_COLOR_PATTERN`,
-`LOCALE_PATTERN`, exported for exactly that reason) so a malformed value is
-refused at the form rather than silently falling back; **NOT1** — migration
-`0054` stamps a per-operator notification floor at creation, every read and
-every clear filters above it through one shared predicate, and
-`purgeExpiredNotifications` prunes at 90 days beside the other scheduled
-retention jobs. Existing operators are backfilled to floor `0` on purpose: they
-may hold genuinely unread notifications, and a retroactive floor would mark
-those read.
+**DOC1** was closed on 2026-09-09 by re-extracting `DESIGN-SYSTEM.md` from the
+tree rather than restamping it. The drift was wider than this row recorded. §1.1
+documented `#f8f7f4` as the storefront canvas with 49 uses and a `SiteHeader`
+citation; it is not in the storefront at all, surviving only in the
+landing-page stylesheets and `install.astro`. `#C5A880` survives in two CSS
+header comments and `#8A704F` has zero occurrences. §4 described the checkout's
+colours as hardcoded boutique hexes, but `form-hybrid.css` contains **zero**
+`#C5A880` or `#F8F7F4` — every state resolves through `var(--sf-*)`, which is
+what makes ADR-019's re-brand surface real. §1.2, §3, §5 and §8.12 all described
+the `wide-catalog` template retired under ADR-018. §7.3 listed a deleted
+`ProofsSection.astro` that §2.1 cited a line number inside and §3 sourced its
+shadow rule from. §7.4 described a scroll-snap carousel with a thumbnail rail;
+the component is 65 lines and scriptless. §8.2 attributed an emerald palette to
+`/payment` and `/thanks`, where it now appears zero times.
 
-Closed by the A10 work and 2026-08-18 production hardening recorded in `BUILD-LOG.md`: canonical single/bulk order transitions; exactly-once stock restoration on cancellation/deletion; non-destructive dispatched-order deletion; atomic order numbers; abandoned-order abuse controls and retention; bank-transfer verification; submit-boundary payment policy; canonical Meta Purchase identity and paid-state gates; runtime schema upgrades; fresh-install home fail-closed; runtime storefront definitions; Headless scopes, quotas, final-response audits, and public order status; per-install schema/CAPI alerting; one-time install capability; public provider rate limits with server-owned origin; and migration-owned settings schema.
+Closed 2026-09-09: **S1** — `theme_color`, `locale` and `admin_name` are edited
+at `/admin/settings/store`, validated against the very patterns
+`resolveTenantConfig` resolves with (`THEME_COLOR_PATTERN`, `LOCALE_PATTERN`,
+exported for exactly that reason), so a malformed value is refused at the form
+rather than silently replaced by the default. **NOT1** — migration `0054`
+stamps a per-operator notification floor at creation and one shared predicate
+filters every read and every clear, so a newly added operator inherits no
+backlog and clearing the badge claims none of it.
+
+Closed by the A10 work and 2026-08-18 production hardening recorded in `BUILD-LOG.md`: canonical single/bulk order transitions; exactly-once void marking on cancellation/deletion (stock is no longer counted, ADR-023); paid or dispatched orders cannot be deleted; atomic order numbers; abandoned-order abuse controls and retention; bank-transfer verification; submit-boundary payment policy; canonical Meta Purchase identity and paid-state gates; runtime schema upgrades; fresh-install home composed from the store's own identity (ADR-025); runtime storefront definitions; Headless scopes, quotas, final-response audits, and public order status; per-install schema/CAPI alerting; one-time install capability; public provider rate limits with server-owned origin; and migration-owned settings schema.
 
 ---
 
@@ -85,10 +87,17 @@ These cannot be closed from this repository alone. Each needs canonical provider
 | --- | --- | --- |
 | Mengantar tracking live proof | Accepted, missing, malformed, timeout, and representative shipped/delivered/RTS responses from the active account | Operator-triggered authenticated polling, sequential isolation, raw evidence persistence, and monotonic status mapping are implemented and locally tested. No callback contract is assumed; no live provider read was performed in this change. |
 | Mengantar wallet | Canonical balance endpoint and response schema | `/admin/balance` is an AutoLaris D1 reconciliation ledger, not a provider wallet. |
-| AutoLaris Advice settlement vocabulary | Complete provider-owned mapping for paid, expired, failed, refunded, and shipping-only statuses | The scheduled transport and guarded transition are implemented. `02/PENDING`, observed `DELIVERED`, and every unknown value are no-ops; manual reconciliation remains the fallback. The explicit paid allowlist must be revised if AutoLaris publishes a different canonical mapping. |
+| AutoLaris settled-payment shape | The response `POST /api/h2h/advice` returns for a transaction that has actually been paid, plus its expired and failed shapes | Superseded on 2026-08-19. The provider's published H2H collection documents `POST /api/h2h/advice` taking `{ "transaction_id": "..." }`, and it was exercised against the provider's published development key: a freshly created, unpaid transaction returns `{"rc":"02","ket":"PENDING","data":{"awb":""}}`. `AutoLarisClient.inquirePayment` implements that read and classifies **only** `rc: "02"` as `pending`; every other code is `unproven` and cannot move payment state. No settled transaction has been observed, because observing one means paying a real virtual account. **Since 1.4.x** the scheduled confirmation workflow is built: `reconcileAutoLarisPaymentStatuses` runs hourly and marks a transaction paid only on `rc: "00"` (`AUTOLARIS_PAID_CODE`) **with** an allowlisted settlement word (`PAID`, `SETTLED`, `LUNAS`); `02` stays pending and every other code is unproven. Manual confirmation remains as the audited fallback. What is still unobserved is a real settled response. The earlier entry claimed no read-only inquiry endpoint existed at all — it does. It also recorded `POST /api/h2h/submit` as the creation path, which was wrong for this product — `/submit` is the combined shipping-and-payment path and requires AutoLaris' own `id_area` district identifiers, which no order in this repository holds. **Since 1.3.3** every callback the provider delivers to `/api/webhooks/autolaris` is stored verbatim in `autolaris_callbacks` (A-164, ADR-022); once a settled one is on file its shape can be classified from evidence instead of a paid experiment. |
+| AutoLaris Create Order (`POST /api/h2h/submit`), digital-product form | A live settled `/submit` response, and confirmation that `courir_id: 1` holds for any account other than this one | **Corrected 2026-09-09: this row said the workflow was "not wired". It is wired, and has been.** `createAutoLarisPayment` calls `/submit` as the checkout money path — `courir_id: 1`, `origin`/`destination` from `AUTOLARIS_ORDER_ORIGIN_ID`/`AUTOLARIS_ORDER_DESTINATION_ID`, weight summed from `order_items` × quantity, shipper from the warehouse, and the full `order_details` array. `create_payment` is called **nowhere** in the tree, so the guide's double-billing warning — never call Create Payment for a `reff_id` already processed by Create Order — is satisfied by construction rather than by discipline. `buildAutoLarisCreateOrderPayload` was checked field-for-field against the provider's canonical OpenAPI (`ongkipro/autolaris`, `openapi/autolaris-h2h.openapi.json`): all 24 keys match `CreateOrderRequest`, including `longitude`, `latitude` and `remark`, which are documented in `ShipmentFields` rather than invented. What remains unobserved is a **settled** `/submit` transaction, which is the same blocker as SCR1 and needs a real payment. The provider's guide is also explicit that `courir_id: 1` is an account convention, not a global Postman contract, so another account's integrator must confirm it before reuse. |
+| AutoLaris `expired` timezone | Which timezone `payment_info.expired` is quoted in | The provider's reference lists this under "Batas kontrak" — not published. The client reads it as Jakarta (`+07:00`), which is the reasonable assumption for an Indonesian provider quoting local time, and `parseAutoLarisExpiry` now says so as an assumption rather than as a documented fact. If the provider actually sends UTC, every instruction would be treated as expiring seven hours late and `/payment` would present a dead virtual account as live. An unparseable value yields no expiry at all, which fails safely. Confirm before go-live. |
 | AutoLaris production IP allowlist | Which egress addresses an install presents to AutoLaris | The provider's documentation requires production API access to be allowlisted to at most five IP addresses. Cloudflare Workers do not offer a fixed egress address, so no install can be declared AutoLaris-production-ready on this evidence. The development key is unrestricted, which is why every capture above was taken with it. This is an infrastructure decision, not a code change. |
 | Mengantar unpaid recovery | Real insufficient-wallet response plus verified `/order/pay-unpaid` response shape, idempotency, and failure semantics | Automatic `/order/create` dispatch is a separate contract. A provider-created unpaid draft may retain its accepted provider order ID with no cnote and be visible under **Perlu Dibuatkan Resi**, but `MengantarClient.payUnpaidOrder` has no verified internal operator action. No local flow may fabricate or persist a waybill before provider acceptance. |
 | Mengantar pickup proof | Current `/address` and `/time` schemas plus live accepted/rejected/timeout/duplicate evidence | Existing handlers already call provider-before-persist and leave D1 unchanged on provider failure. |
+| Meta signal acceptance | Event Match Quality, event volume, and confirmed Purchase deduplication for a real order, read from Events Manager | The browser Purchase now matches on eight keys through the single `fbq('init')` MetaPixelBase owns, shares its `event_id` with the CAPI leg, and reports product value rather than the invoice — all asserted in tests and observed on the wire in a browser (BUILD-LOG 89–93). What no one has confirmed is that **Meta counted it once**, which is the claim the whole deduplication design rests on. Tasks **A-223**, **A-224**. |
+| Meta catalog acceptance | Commerce catalog diagnostics for `/feed/meta-catalog.xml` | The feed is asserted against the Pixel's own `content_ids` rather than a fixture, and one unpublishable row no longer takes it down. It has never been ingested by Meta. Task **A-225**. |
+| Google Ads offline acceptance | One `uploadClickConversions` call accepted, and the conversion visible in the account | The transport is contract-matched and unit-tested against `v25`, and the head-of-line block that stopped discovery entirely is fixed and covered by a D1 test (A-182). No call has ever been made to Google. Until then the offline leg is unproven end to end. It is no longer unmonitored: the `google-ads-outbox` health signal (A-227) and alert (2026-09-25) now report a stalled or failing queue. Tasks **A-227**, **A-228**, **A-230**. |
+| Merchant Center acceptance | Feed fetch result and item-level diagnostics for `/feed/google-catalog.xml` | `ad-taxonomy.ts` derives `google_product_category` from the product's own text and omits it when unsure, which is the safe choice for approval; whether Google accepts those choices has never been observed. Task **A-231**. |
+| EEA/UK measurement | A consent management platform calling `gtag('consent', 'update', …)` | `GoogleAdsBase.astro` defaults 32 EEA/UK regions to `denied` with `wait_for_update: 500`, and nothing in this repository ever sends the update — so a visitor from those regions stays denied for the whole session and is measured not at all. Deliberate for an Indonesian store, a hard blocker the moment one advertises into those regions. Task **A-229**. |
 
 ### Closing a blocked contract
 
@@ -102,7 +111,7 @@ These cannot be closed from this repository alone. Each needs canonical provider
 
 ## 4. Inherited Identity and Account-Coupled Copy
 
-One known row remains: `Zanoby Purchase` in `src/pages/admin/ads/google.astro` names a conversion action configured in a Google Ads account. Editing repository copy does not rename that remote conversion action; coordinate the change with the account owner.
+The setup guide in `src/pages/admin/ads/google.astro` now suggests `<store name> Purchase` instead of the inherited `Zanoby Purchase` (2026-09-25). Nothing in code matches on that name — offline uploads use `GOOGLE_ADS_OFFLINE_CONVERSION_ACTION_ID` — so an account whose action is still called `Zanoby Purchase` keeps working; renaming it there is the account owner's choice.
 
 The legacy `zanoby_click_ids` cookie remains a read-only 90-day attribution fallback by deliberate compatibility decision. New writes use `adsbook_click_ids`; remove the fallback only after the upgrade window has elapsed.
 
@@ -126,15 +135,20 @@ These are not engineering gaps. They require an explicit human decision and, whe
 
 ## 6. Execution Order
 
-1. Keep the Advice settlement allowlist narrow. Never add `DELIVERED` or another
-   shipping status; route unknown responses to owner/admin manual confirmation.
+1. Observe one **settled** `POST /api/h2h/advice` response (SCR1). Automatic
+   paid marking already runs hourly and requires `rc: "00"` **and** an
+   allowlisted settlement word (`autolaris-client.ts`); the first real
+   settled word either confirms the allowlist or lands in
+   `unrecognisedPaidStatuses`. Owner/admin manual confirmation stays the
+   audited fallback.
 2. Resolve Mengantar provider blockers only from canonical documentation or
    approved sandbox/live evidence.
-3. **AD3** define and implement stable, truthful out-of-stock feed behavior and
-   standard-identifier policy.
-4. **S1** complete the runtime store identity editor.
-5. **DOC1** rebuild the design-system record from the current tree.
-6. Implement **H9** only after the consent contract is accepted.
+3. Close the audit follow-ups that need no provider: A-282 (ViewContent
+   ordering, browser trace), A-283 (windowed alert reason), A-284 (Google
+   partial failures, requeue, purge), A-286 (UI gaps).
+4. Implement **H9** only after the consent contract is accepted.
+
+AD3, S1 and DOC1 closed earlier (§1) and are no longer in this order.
 
 ---
 

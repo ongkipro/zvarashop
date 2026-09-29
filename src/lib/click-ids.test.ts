@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  CLICK_ID_COOKIE,
   hasAdClickId,
   hasClickId,
   mergeClickIds,
@@ -9,52 +8,7 @@ import {
   parseClickIdsFromUrl,
   readClickIdCookie,
   readMetaBrowserIds,
-  readOrderClickIds,
-  serializeClickIds,
 } from "./click-ids.ts";
-
-test("a UTM-only follow-up never erases the paid click identity", () => {
-  const paid = parseClickIdsFromUrl(
-    new URL("https://shop.example/?gclid=Cj0_paid&utm_source=google"),
-  );
-  const followUp = parseClickIdsFromUrl(
-    new URL("https://shop.example/?utm_source=whatsapp&utm_campaign=followup"),
-  );
-  assert.equal(hasAdClickId(paid), true);
-  assert.equal(hasAdClickId(followUp), false);
-  assert.deepEqual(mergeClickIds(paid, followUp), {
-    gclid: "Cj0_paid",
-    utm_source: "whatsapp",
-    utm_campaign: "followup",
-  });
-
-  const newPaidClick = parseClickIdsFromUrl(
-    new URL("https://shop.example/?fbclid=IwAR_new"),
-  );
-  const crossNetwork = mergeClickIds(paid, newPaidClick);
-  assert.equal(crossNetwork.gclid, "Cj0_paid");
-  assert.equal(crossNetwork.fbclid, "IwAR_new");
-  assert.match(crossNetwork._fbc || "", /^fb\.1\./);
-});
-
-test("a later browser ID enriches order attribution without erasing click IDs", () => {
-  const fbp = "fb.1.1788230000000.1234567890";
-  const fbc = "fb.1.1788230000000.IwARcurrent";
-  const request = new Request("https://shop.example/api/submit-order", {
-    headers: {
-      cookie:
-        `adsbook_click_ids=${encodeURIComponent(JSON.stringify({ gclid: "Cj0_paid", fbclid: "IwARold", _fbc: "fb.1.1788220000000.IwARold" }))}; ` +
-        `_fbp=${fbp}; _fbc=${fbc}`,
-    },
-  });
-
-  assert.deepEqual(readOrderClickIds(request), {
-    gclid: "Cj0_paid",
-    fbclid: "IwARold",
-    _fbp: fbp,
-    _fbc: fbc,
-  });
-});
 
 test("captures the click id Google attached to the landing URL", () => {
   assert.deepEqual(
@@ -189,13 +143,56 @@ test("Meta's browser ids are read from the request, so a CAPI event is never ano
   assert.deepEqual(readMetaBrowserIds(new Request("https://permatamall.shop/api/meta-event")), {});
 });
 
-test("a generic click cookie cannot smuggle a malformed Meta browser id", () => {
-  const request = new Request("https://shop.example/api/meta-event", {
-    headers: {
-      cookie: `${CLICK_ID_COOKIE}=${encodeURIComponent(
-        serializeClickIds({ _fbc: "not-a-meta-browser-id" }),
-      )}`,
-    },
-  });
-  assert.equal(readMetaBrowserIds(request).fbc, undefined);
+/**
+ * A campaign tag is not a click, and the difference is worth money.
+ *
+ * `hasClickId` is true for a bare `utm_source`, and the middleware wrote the
+ * parsed URL straight over the cookie. So the sequence that costs a merchant a
+ * conversion is entirely ordinary: click a Google ad on Monday, open the
+ * store's own `?utm_source=whatsapp` follow-up on Wednesday, take delivery of
+ * the COD order on Friday. By Friday the `gclid` — the only thing that can
+ * attribute that sale — was gone, and `reconcileGoogleAdsConversions` skipped
+ * the order as unattributable without anything reporting a loss.
+ */
+test("a campaign-tagged link never erases the ad click that was paid for", () => {
+  const googleClick = parseClickIdsFromUrl(
+    new URL("https://shop.example/promo?gclid=Cj0KCQ_paid&utm_source=google&utm_campaign=agustus"),
+  );
+  assert.equal(hasAdClickId(googleClick), true);
+
+  // Wednesday: the merchant's own broadcast link. Tagged, but not a click.
+  const broadcast = parseClickIdsFromUrl(
+    new URL("https://shop.example/promo?utm_source=whatsapp&utm_campaign=followup"),
+  );
+  assert.equal(hasClickId(broadcast), true, "still worth writing — the tags describe this visit");
+  assert.equal(hasAdClickId(broadcast), false, "but it is not a click");
+
+  const merged = mergeClickIds(googleClick, broadcast);
+  assert.equal(merged.gclid, "Cj0KCQ_paid", "the paid click survives the follow-up");
+  assert.equal(merged.utm_source, "whatsapp", "the tags describe the current visit");
+  assert.equal(
+    merged.utm_campaign,
+    "followup",
+    "and no tag from the older click lingers to mix two campaigns",
+  );
+
+  // A genuinely new paid click is last-touch: it replaces the attribution and
+  // brings its own campaign tags with it.
+  const metaClick = parseClickIdsFromUrl(new URL("https://shop.example/promo?fbclid=IwAR_new"));
+  const afterMeta = mergeClickIds(merged, metaClick);
+  assert.equal(afterMeta.gclid, undefined);
+  assert.equal(afterMeta.fbclid, "IwAR_new");
+  assert.match(String(afterMeta._fbc), /^fb\.1\.\d+\.IwAR_new$/);
+  assert.equal(afterMeta.utm_source, undefined);
+
+  // Nothing stored yet is the common first-touch case and must not invent keys.
+  assert.deepEqual(mergeClickIds({}, broadcast), broadcast);
+});
+
+test("an embed carrying only the parent page's _fbp keeps the stored gclid", () => {
+  const googleClick = parseClickIdsFromUrl(new URL("https://shop.example/?gclid=Cj0_paid"));
+  const embedReload = parseClickIdsFromUrl(new URL("https://shop.example/embed/form?_fbp=fb.1.1700000000000.123"));
+  const merged = mergeClickIds(googleClick, embedReload);
+  assert.equal(merged.gclid, "Cj0_paid");
+  assert.equal(merged._fbp, "fb.1.1700000000000.123", "the fresher browser id still lands");
 });

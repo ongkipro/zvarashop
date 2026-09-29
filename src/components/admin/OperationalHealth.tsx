@@ -19,9 +19,9 @@ import type {
 const SIGNAL_TITLES: Record<HealthSignal["id"], string> = {
   "capi-outbox": "Antrean Meta CAPI",
   "meta-capi": "Pengiriman Meta CAPI terakhir",
-  "google-ads-outbox": "Antrean Google Ads offline",
   mengantar: "Kontak Mengantar terakhir",
   autolaris: "AutoLaris Create Order & verifikasi",
+  "google-ads-outbox": "Antrean Google Ads offline",
   alerting: "Saluran peringatan",
 };
 
@@ -33,8 +33,8 @@ const REASONS: Record<string, string> = {
   stalled: "Event sudah lewat jadwal retry dan belum terkirim — antrean macet.",
   "terminal-failures":
     "Ada conversion yang gagal permanen dan tidak akan pernah sampai ke Meta.",
-  "stalled-with-terminal-failures":
-    "Ada conversion yang gagal permanen, dan event yang masih bisa dikirim pun sudah lewat jadwal retry — antrean macet.",
+  "earlier-failures":
+    "Tidak ada yang menunggu. Kegagalan lama (lebih dari 24 jam) masih tersimpan dan bisa dikirim ulang dari halaman Ads.",
   // meta-capi
   "never-enqueued": "Belum pernah ada conversion event yang tercatat.",
   "no-delivery-in-window": "Tidak ada pengiriman pada 200 event terakhir.",
@@ -50,9 +50,11 @@ const REASONS: Record<string, string> = {
   "never-used": "Belum pernah ada transaksi payment gateway.",
   "no-accepted-request": "Belum ada request pembayaran yang diterima AutoLaris.",
   "create-failing": "Semua request pembuatan pembayaran gagal.",
-  "awaiting-first-manual-confirmation":
-    "Create Order diterima AutoLaris; belum ada pembayaran yang dikonfirmasi manual.",
-  "manually-confirmed": "Pembayaran terakhir dikonfirmasi manual dengan audit operator.",
+  "awaiting-first-payment":
+    "Create Order diterima AutoLaris; belum ada pembayaran yang terkonfirmasi.",
+  "payment-confirmed": "Pembayaran terakhir telah dikonfirmasi AutoLaris atau operator.",
+  "stalled-with-terminal-failures":
+    "Ada conversion yang gagal permanen, dan event yang masih bisa dikirim pun sudah lewat jadwal retry — antrean macet.",
   // alerting
   configured: "Peringatan dikirim ke webhook operasional.",
   "not-configured":
@@ -87,6 +89,9 @@ function formatAge(minutes: number | null) {
 }
 
 function describeMetrics(signal: HealthSignal) {
+  // Both outboxes carry the same three counters and fail the same way, so they
+  // read the same way too — an operator should not have to learn a second
+  // vocabulary for the second queue.
   if (signal.id === "capi-outbox" || signal.id === "google-ads-outbox") {
     const { pending = 0, failed = 0, overdue = 0 } = signal.metrics;
     return `${pending} menunggu · ${overdue} lewat jadwal · ${failed} gagal permanen`;
@@ -99,8 +104,8 @@ function describeMetrics(signal: HealthSignal) {
 
 function ageLabel(signal: HealthSignal) {
   if (signal.id === "autolaris") {
-    return signal.reason === "manually-confirmed"
-      ? "Verifikasi terakhir"
+    return signal.reason === "payment-confirmed"
+      ? "Pembayaran terakhir"
       : "Create Order terakhir";
   }
   return signal.id === "capi-outbox" || signal.id === "google-ads-outbox"
@@ -195,18 +200,17 @@ export default function OperationalHealth() {
                       <p className="text-xs font-medium text-slate-900">
                         {SIGNAL_TITLES[signal.id]}
                       </p>
-                      <p className="text-[11px] leading-relaxed text-slate-500">
+                      <p className="text-xs leading-relaxed text-slate-500">
                         {REASONS[signal.reason] || signal.reason}
                         {metrics ? ` · ${metrics}` : ""}
                       </p>
                     </div>
                     <div className="flex shrink-0 items-center gap-3">
-                      {/* Alerting reports a configuration, not an event, so it
-                          has no timestamp — and "Terakhir sukses —" beside it
-                          reads as a missing measurement rather than an absent
-                          one. */}
+                      {/* Alerting reports a configuration, not an event, so it has no
+                          timestamp — and "Terakhir sukses —" beside it reads as a missing
+                          measurement rather than an absent one. */}
                       {signal.id !== "alerting" && (
-                        <span className="text-right text-[11px] text-slate-500">
+                        <span className="text-right text-xs text-slate-500">
                           {ageLabel(signal)}
                           <br />
                           <span className="font-medium text-slate-700">
@@ -215,7 +219,7 @@ export default function OperationalHealth() {
                         </span>
                       )}
                       <span
-                        className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-medium ${STATE_TONE[signal.state]}`}
+                        className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium ${STATE_TONE[signal.state]}`}
                       >
                         <Icon className="size-3.5" aria-hidden />
                         {STATE_LABEL[signal.state]}
@@ -225,7 +229,7 @@ export default function OperationalHealth() {
                 );
               })}
             </ul>
-            <p className="mt-3 text-[11px] text-slate-500">
+            <p className="mt-3 text-xs text-slate-500">
               Versi {health.build.version} ({health.build.releaseTag}) · skema{" "}
               {health.build.appliedSchemaVersion ?? "?"}/{health.build.expectedSchemaVersion}
               {health.build.schemaState === "match" ? "" : ` · ${health.build.schemaState}`}

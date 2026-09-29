@@ -157,12 +157,14 @@ class SqliteD1Database {
         courier_code TEXT,
         courier_service TEXT,
         ad_click_ids TEXT,
-        meta_request_context TEXT,
         seller_bank_account_id INTEGER,
         seller_bank_code TEXT,
         seller_bank_name TEXT,
         seller_account_holder TEXT,
         seller_account_number TEXT,
+        meta_request_context TEXT,
+        checkout_fingerprint TEXT,
+        checkout_dedupe_expires_at TEXT,
         created_at TEXT NOT NULL
       );
 
@@ -214,12 +216,6 @@ class SqliteD1Database {
     this.#database.exec(
       readFileSync(
         new URL("../db/migrations/0045_operator_notifications.sql", import.meta.url),
-        "utf8",
-      ).replaceAll("--> statement-breakpoint", ""),
-    );
-    this.#database.exec(
-      readFileSync(
-        new URL("../db/migrations/0053_checkout_order_deduplication.sql", import.meta.url),
         "utf8",
       ).replaceAll("--> statement-breakpoint", ""),
     );
@@ -351,7 +347,6 @@ test("checkout promotes one abandoned lead and queues one attributable Purchase"
       });
 
       assert.equal(order.id, abandonedId);
-      assert.equal(order.created, true);
       assert.equal(order.orderNumber, `INV-${10000 + abandonedId}`);
       const stored = await readRow<{
         id: number;
@@ -379,57 +374,7 @@ test("checkout promotes one abandoned lead and queues one attributable Purchase"
   );
 
   await t.test(
-    "3. repeated business submissions reuse one order and one notification",
-    async () => {
-      assert.ok(order);
-      for (const submitToken of [
-        "submit-full-funnel-002",
-        "submit-full-funnel-003",
-      ]) {
-        const replay = await persistOrder(d1, {
-          submitToken,
-          customerName: "Siti Rahayu",
-          customerPhone,
-          customerEmail: "siti@example.test",
-          address: "Jl. Melati 10",
-          province: "ID-JI",
-          city: "Surabaya",
-          district: "Wonokromo",
-          postalCode: "60243",
-          variantKey: "20001",
-          quantity: 1,
-          shippingCost: 18000,
-          paymentMethod: "cod",
-          destinationAreaId: "area-surabaya",
-          courierCode: "jne",
-          courierService: "REG",
-          adClickIds: serializeClickIds(clickIds),
-        });
-        assert.equal(replay.created, false);
-        assert.equal(replay.id, order.id);
-        assert.equal(replay.orderNumber, order.orderNumber);
-        assert.equal(replay.publicStatusToken, order.publicStatusToken);
-      }
-      assert.equal(
-        (await readRow<{ total: number }>(
-          database,
-          "SELECT COUNT(*) AS total FROM orders",
-        )).total,
-        1,
-      );
-      assert.equal(
-        (await readRow<{ total: number }>(
-          database,
-          "SELECT COUNT(*) AS total FROM notifications WHERE order_id = ?",
-          order.id,
-        )).total,
-        1,
-      );
-    },
-  );
-
-  await t.test(
-    "4. Google and Meta click identifiers survive D1 persistence",
+    "3. Google and Meta click identifiers survive D1 persistence",
     async () => {
       const stored = await readRow<{ ad_click_ids: string }>(
         database,
@@ -446,7 +391,7 @@ test("checkout promotes one abandoned lead and queues one attributable Purchase"
   );
 
   await t.test(
-    "5. Meta CAPI outbox uses the authoritative order number as event_id",
+    "4. Meta CAPI outbox uses the authoritative order number as event_id",
     async () => {
       assert.ok(order);
       const eventId = resolveMetaEventId(
@@ -577,95 +522,6 @@ test("non-COD checkout stays pending until payment confirmation", async () => {
     assert.match(notification.body, /Siti Rahayu/);
     assert.match(notification.body, /Wonokromo, Surabaya/);
   }
-});
-
-test("concurrent checkout tokens claim one canonical order", async () => {
-  const database = new SqliteD1Database();
-  const d1 = asD1(database);
-  const base = {
-    customerName: "Siti Rahayu",
-    customerPhone: "6281234567899",
-    address: "Jl. Melati 10",
-    province: "ID-JI",
-    city: "Surabaya",
-    district: "Wonokromo",
-    postalCode: "60243",
-    variantKey: "20001",
-    quantity: 1,
-    shippingCost: 18000,
-    paymentMethod: "cod" as const,
-    destinationAreaId: "area-surabaya",
-    courierCode: "jne",
-    courierService: "REG",
-  };
-  const orders = await Promise.all(
-    ["concurrent-token-001", "concurrent-token-002", "concurrent-token-003"]
-      .map((submitToken) => persistOrder(d1, { ...base, submitToken })),
-  );
-
-  assert.equal(orders.filter((order) => order.created).length, 1);
-  assert.equal(new Set(orders.map((order) => order.id)).size, 1);
-  assert.equal(new Set(orders.map((order) => order.orderNumber)).size, 1);
-  assert.equal(
-    (await readRow<{ total: number }>(
-      database,
-      "SELECT COUNT(*) AS total FROM orders",
-    )).total,
-    1,
-  );
-  assert.equal(
-    (await readRow<{ total: number }>(
-      database,
-      "SELECT COUNT(*) AS total FROM notifications",
-    )).total,
-    1,
-  );
-});
-
-test("an expired replay window permits a genuine later reorder", async () => {
-  const database = new SqliteD1Database();
-  const d1 = asD1(database);
-  const base = {
-    customerName: "Siti Rahayu",
-    customerPhone: "6281234567888",
-    address: "Jl. Melati 10",
-    province: "ID-JI",
-    city: "Surabaya",
-    district: "Wonokromo",
-    postalCode: "60243",
-    variantKey: "20001",
-    quantity: 1,
-    shippingCost: 18000,
-    paymentMethod: "cod" as const,
-    destinationAreaId: "area-surabaya",
-    courierCode: "jne",
-    courierService: "REG",
-  };
-  const first = await persistOrder(d1, {
-    ...base,
-    submitToken: "later-order-token-001",
-  });
-  await database
-    .prepare(
-      "UPDATE orders SET checkout_dedupe_expires_at = '2000-01-01T00:00:00.000Z' WHERE id = ?",
-    )
-    .bind(first.id)
-    .run();
-  const later = await persistOrder(d1, {
-    ...base,
-    submitToken: "later-order-token-002",
-  });
-
-  assert.equal(first.created, true);
-  assert.equal(later.created, true);
-  assert.notEqual(later.id, first.id);
-  assert.equal(
-    (await readRow<{ total: number }>(
-      database,
-      "SELECT COUNT(*) AS total FROM orders",
-    )).total,
-    2,
-  );
 });
 
 test("5. product and storefront JSON-LD builders generate complete schema", () => {

@@ -6,41 +6,13 @@ import {
   type CapiOutboxDepth,
 } from "./capi-outbox.ts";
 import { getEnvValue, getRuntimeEnv } from "./env.ts";
-import { getSchemaVersionStatus } from "./schema-version.ts";
-import { CMS_VERSION } from "./version.ts";
 import {
   GOOGLE_ADS_MAX_BACKOFF_MS,
   readGoogleAdsOutboxDepth,
   type GoogleAdsOutboxDepth,
 } from "./google-ads-offline.ts";
-
-/**
- * Whether anything can actually tell the operator.
- *
- * The scheduled Worker evaluates every signal above hourly and sends firing and
- * recovery events to `OPS_ALERT_WEBHOOK_URL`. When that is unset the evaluation
- * still runs and the transitions still compute — they simply go nowhere, and
- * the dashboard becomes the only channel, which means somebody has to think to
- * look.
- *
- * That is not hypothetical. The Meta outage of 2026-09-03 turned `capi-outbox`
- * degraded within the hour and ran for two days before anyone opened the panel.
- * The system knew the whole time and had no way to say so.
- *
- * Reported as `unknown`, not `degraded`. A store may legitimately decide it
- * does not want webhooks, and this module's own rule is that colouring a
- * deliberate choice red produces an alarm nobody trusts. Amber with an explicit
- * reason says the thing that matters — nothing will be sent — without crying
- * wolf on every refresh.
- */
-export function classifyAlerting(
-  webhookConfigured: boolean,
-  now: number,
-): HealthSignal {
-  return webhookConfigured
-    ? signal("alerting", "healthy", "configured", null, now)
-    : signal("alerting", "unknown", "not-configured", null, now);
-}
+import { getSchemaVersionStatus } from "./schema-version.ts";
+import { CMS_VERSION } from "./version.ts";
 
 /**
  * Operational health for `/admin`.
@@ -68,9 +40,9 @@ export type HealthState = "healthy" | "degraded" | "unknown";
 export type HealthSignalId =
   | "capi-outbox"
   | "meta-capi"
-  | "google-ads-outbox"
   | "mengantar"
   | "autolaris"
+  | "google-ads-outbox"
   | "alerting";
 
 export type HealthSignal = {
@@ -113,7 +85,7 @@ export type MengantarWindow = {
 export type AutoLarisWindow = {
   rowsScanned: number;
   lastOutboundAt: string | null;
-  lastManualConfirmationAt: string | null;
+  lastPaidAt: string | null;
   failedInWindow: number;
 };
 
@@ -161,12 +133,14 @@ export function classifyCapiOutbox(
   // Both conditions are reported, because they are different problems with
   // different responses and one used to hide the other: `failed > 0` returned
   // first, so a queue that was *also* stalled read as nothing but terminal
-  // failures. On 2026-09-03 that is exactly what happened — 116 terminal rows
-  // masked 24 live ones that no drain was going to clear in time, and the
-  // operator was shown only the half that was already lost.
+  // failures. Terminal rows are already lost; stalled rows are still
+  // recoverable and nothing is moving them.
   const oldestAge = oldest ? now - Date.parse(oldest) : 0;
   const stalled = depth.overdue > 0 && oldestAge > CAPI_MAX_BACKOFF_MS;
-  if (depth.failed > 0) {
+  // Only failures inside the alert window degrade the queue (A-283). Older
+  // ones stay visible in the metrics but no longer hold the alert open.
+  const alertingFailures = depth.recentFailed ?? depth.failed;
+  if (alertingFailures > 0) {
     return signal(
       "capi-outbox",
       "degraded",
@@ -179,7 +153,88 @@ export function classifyCapiOutbox(
   if (stalled) {
     return signal("capi-outbox", "degraded", "stalled", oldest, now, metrics);
   }
+  if (depth.pending === 0) {
+    return signal("capi-outbox", "healthy", "earlier-failures", oldest, now, metrics);
+  }
   return signal("capi-outbox", "healthy", "draining", oldest, now, metrics);
+}
+
+
+/**
+ * How much conversion signal Google is owed.
+ *
+ * The Google outbox shipped with no health signal at all, and that absence had
+ * a cost: a head-of-line block in reconciliation stopped discovery entirely and
+ * nothing reported it (`UNIMPLEMENTED_SPECS.md`, task A-227). The shape mirrors
+ * `classifyCapiOutbox` deliberately — the two queues fail the same way and an
+ * operator should not have to learn two vocabularies.
+ */
+export function classifyGoogleAdsOutbox(
+  depth: GoogleAdsOutboxDepth | null,
+  now: number,
+): HealthSignal {
+  if (!depth) return signal("google-ads-outbox", "unknown", "unreadable", null, now);
+
+  const metrics = {
+    pending: depth.pending,
+    failed: depth.failed,
+    overdue: depth.overdue,
+  };
+  const oldest = depth.oldestCreatedAt;
+  if (depth.pending + depth.failed === 0) {
+    return signal("google-ads-outbox", "healthy", "empty", null, now, metrics);
+  }
+  const oldestAge = oldest ? now - Date.parse(oldest) : 0;
+  const stalled = depth.overdue > 0 && oldestAge > GOOGLE_ADS_MAX_BACKOFF_MS;
+  // Only failures inside the alert window degrade the queue (A-283). Older
+  // ones stay visible in the metrics but no longer hold the alert open.
+  const alertingFailures = depth.recentFailed ?? depth.failed;
+  if (alertingFailures > 0) {
+    return signal(
+      "google-ads-outbox",
+      "degraded",
+      stalled ? "stalled-with-terminal-failures" : "terminal-failures",
+      oldest,
+      now,
+      metrics,
+    );
+  }
+  if (stalled) {
+    return signal("google-ads-outbox", "degraded", "stalled", oldest, now, metrics);
+  }
+  if (depth.pending === 0) {
+    return signal("google-ads-outbox", "healthy", "earlier-failures", oldest, now, metrics);
+  }
+  return signal("google-ads-outbox", "healthy", "draining", oldest, now, metrics);
+}
+
+/**
+ * Whether anything can actually tell the operator.
+ *
+ * The scheduled Worker evaluates every signal above hourly and sends firing and
+ * recovery events to `OPS_ALERT_WEBHOOK_URL`. When that is unset the evaluation
+ * still runs and the transitions still compute — they simply go nowhere, and
+ * the dashboard becomes the only channel, which means somebody has to think to
+ * look.
+ *
+ * That is not hypothetical. On a sibling install a Meta outage turned
+ * `capi-outbox` degraded within the hour and ran two days before anyone opened
+ * the panel. The system knew the whole time and had no way to say so, because
+ * the variable had never been set.
+ *
+ * Reported as `unknown`, not `degraded`. A store may legitimately decide it
+ * does not want webhooks, and this module's own rule is that colouring a
+ * deliberate choice red produces an alarm nobody trusts. Amber with an explicit
+ * reason says the thing that matters — nothing will be sent — without crying
+ * wolf on every refresh.
+ */
+export function classifyAlerting(
+  webhookConfigured: boolean,
+  now: number,
+): HealthSignal {
+  return webhookConfigured
+    ? signal("alerting", "healthy", "configured", null, now)
+    : signal("alerting", "unknown", "not-configured", null, now);
 }
 
 /** When Meta last accepted an event. */
@@ -202,25 +257,6 @@ export function classifyCapiDelivery(
     return signal("meta-capi", "degraded", "failing", window.lastDeliveredAt, now, metrics);
   }
   return signal("meta-capi", "healthy", "delivered", window.lastDeliveredAt, now, metrics);
-}
-
-export function classifyGoogleAdsOutbox(
-  depth: GoogleAdsOutboxDepth | null,
-  now: number,
-): HealthSignal {
-  if (!depth) return signal("google-ads-outbox", "unknown", "unreadable", null, now);
-  const metrics = { pending: depth.pending, failed: depth.failed, overdue: depth.overdue };
-  if (depth.pending + depth.failed === 0) {
-    return signal("google-ads-outbox", "healthy", "empty", null, now, metrics);
-  }
-  if (depth.failed > 0) {
-    return signal("google-ads-outbox", "degraded", "terminal-failures", depth.oldestCreatedAt, now, metrics);
-  }
-  const oldestAge = depth.oldestCreatedAt ? now - Date.parse(depth.oldestCreatedAt) : 0;
-  if (depth.overdue > 0 && oldestAge > GOOGLE_ADS_MAX_BACKOFF_MS) {
-    return signal("google-ads-outbox", "degraded", "stalled", depth.oldestCreatedAt, now, metrics);
-  }
-  return signal("google-ads-outbox", "healthy", "draining", depth.oldestCreatedAt, now, metrics);
 }
 
 /**
@@ -256,10 +292,9 @@ export function classifyMengantar(
  * When AutoLaris was last reached and when an operator last verified payment.
  *
  * Outbound: a `payment_transactions` row that received a
- * `provider_transaction_id` proves AutoLaris accepted a create-payment call.
- * Manual confirmation is authoritative only when an immutable reconciliation
- * audit exists. Payments created but never confirmed is "nobody verified one
- * yet", not evidence of an upstream outage.
+ * `provider_transaction_id` proves AutoLaris accepted a Create Order call.
+ * `paid_at` is written by either guarded Advice reconciliation or the audited
+ * manual fallback. Payments created but never paid are not an upstream outage.
  */
 export function classifyAutoLaris(
   window: AutoLarisWindow | null,
@@ -278,16 +313,15 @@ export function classifyAutoLaris(
       ? signal("autolaris", "degraded", "create-failing", null, now, metrics)
       : signal("autolaris", "unknown", "no-accepted-request", null, now, metrics);
   }
-  if (!window.lastManualConfirmationAt) {
+  if (!window.lastPaidAt) {
     // Not "unknown": the provider has accepted requests, so there IS data and
     // the badge must not say "Belum ada data" beside eleven transactions.
-    // What has not happened yet is a manual confirmation, which the reason
-    // text already states. That is a healthy integration awaiting an
-    // operator step, not a missing one.
+    // What has not happened yet is a confirmed payment. That is a healthy
+    // integration awaiting a buyer, not a missing one.
     return signal(
       "autolaris",
       "healthy",
-      "awaiting-first-manual-confirmation",
+      "awaiting-first-payment",
       window.lastOutboundAt,
       now,
       metrics,
@@ -296,8 +330,8 @@ export function classifyAutoLaris(
   return signal(
     "autolaris",
     "healthy",
-    "manually-confirmed",
-    window.lastManualConfirmationAt,
+    "payment-confirmed",
+    window.lastPaidAt,
     now,
     metrics,
   );
@@ -355,7 +389,7 @@ async function readMengantarWindow(
 
 /**
  * lazy: same bounded window, same reason — neither transaction `created_at` nor
- * audit `confirmed_at` is indexed for this exact query. `created_at` rather
+ * `paid_at` is indexed for this exact query. `created_at` rather
  * than `updated_at` dates the outbound call independently of reconciliation.
  */
 async function readAutoLarisWindow(
@@ -367,13 +401,11 @@ async function readAutoLarisWindow(
         `SELECT
            COUNT(*) AS rows_scanned,
            MAX(CASE WHEN provider_transaction_id IS NOT NULL THEN created_at END) AS last_outbound_at,
-           MAX(confirmed_at) AS last_manual_confirmation_at,
+           MAX(paid_at) AS last_paid_at,
            SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) AS failed_in_window
          FROM (
-           SELECT pt.provider_transaction_id, pt.created_at, audit.confirmed_at, pt.status
+           SELECT pt.provider_transaction_id, pt.created_at, pt.paid_at, pt.status
            FROM payment_transactions pt
-           LEFT JOIN payment_reconciliation_audits audit
-             ON audit.payment_transaction_id = pt.id
            ORDER BY pt.id DESC LIMIT ?
          )`,
       )
@@ -381,13 +413,13 @@ async function readAutoLarisWindow(
       .first<{
         rows_scanned: number | null;
         last_outbound_at: string | null;
-        last_manual_confirmation_at: string | null;
+        last_paid_at: string | null;
         failed_in_window: number | null;
       }>();
     return {
       rowsScanned: Number(row?.rows_scanned ?? 0),
       lastOutboundAt: row?.last_outbound_at ?? null,
-      lastManualConfirmationAt: row?.last_manual_confirmation_at ?? null,
+      lastPaidAt: row?.last_paid_at ?? null,
       failedInWindow: Number(row?.failed_in_window ?? 0),
     };
   } catch (error) {
@@ -405,12 +437,12 @@ export async function collectOperationalHealth(
   database: D1Database,
   locals?: App.Locals,
 ): Promise<OperationalHealth> {
-  const [depth, delivery, googleAdsDepth, mengantar, autolaris, schema] = await Promise.all([
+  const [depth, delivery, mengantar, autolaris, googleAdsDepth, schema] = await Promise.all([
     readCapiOutboxDepth(database),
     readCapiDeliveryWindow(database),
-    readGoogleAdsOutboxDepth(database),
     readMengantarWindow(database),
     readAutoLarisWindow(database),
+    readGoogleAdsOutboxDepth(database),
     getSchemaVersionStatus(locals),
   ]);
 
@@ -418,9 +450,9 @@ export async function collectOperationalHealth(
   const signals = [
     classifyCapiOutbox(depth, now),
     classifyCapiDelivery(delivery, now),
-    classifyGoogleAdsOutbox(googleAdsDepth, now),
     classifyMengantar(mengantar, now),
     classifyAutoLaris(autolaris, now),
+    classifyGoogleAdsOutbox(googleAdsDepth, now),
     classifyAlerting(
       Boolean(getEnvValue("OPS_ALERT_WEBHOOK_URL", getRuntimeEnv(locals))?.trim()),
       now,

@@ -35,7 +35,7 @@ if (database?.prepare) {
         SELECT id, title, slug, category, image_url, is_active
         FROM products
         ORDER BY created_at DESC, id DESC
-        LIMIT 50
+        LIMIT 200
       `),
       database.prepare(`
         SELECT
@@ -50,7 +50,7 @@ if (database?.prepare) {
           SELECT id
           FROM products
           ORDER BY created_at DESC, id DESC
-          LIMIT 50
+          LIMIT 200
         )
         ORDER BY product_id ASC, id ASC
       `),
@@ -83,16 +83,15 @@ if (database?.prepare) {
 }
 ---
 
-<AdminLayout title="Katalog Produk" activeMenu="products">
+<AdminLayout title="Produk & varian" activeMenu="products">
   <div class="space-y-5">
     <AdminPageHeader
-      eyebrow="Catalog"
       title="Produk & varian"
       description="Kelola katalog, harga, stok, dan storefront form dari satu tempat."
     >
       <div slot="actions" class="grid grid-cols-2 gap-2 sm:flex">
-        <a href="/admin/landing-pages" class="btn-secondary min-h-11 px-4 text-xs">Landing pages</a>
-        <a href="/admin/products/new" class="btn-primary min-h-11 px-4 text-xs">Tambah produk</a>
+        <a href="/admin/landing-pages" class="btn-secondary">Landing pages</a>
+        <a href="/admin/products/new" class="btn-primary">Tambah produk</a>
       </div>
     </AdminPageHeader>
     <ProductCatalog initialProducts={initialProducts} client:load />

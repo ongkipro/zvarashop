@@ -24,28 +24,6 @@ export const GET: APIRoute = async ({ params, locals }) => {
   if (!object && DERIVATIVE_SUFFIX.test(key)) {
     object = await bucket.get(key.replace(DERIVATIVE_SUFFIX, '$1'));
   }
-  if (!object && import.meta.env.DEV) {
-    try {
-      const remoteRes = await fetch(`https://zvara.shop/assets/${key}`);
-      if (remoteRes.ok) {
-        const buffer = await remoteRes.arrayBuffer();
-        try {
-          await bucket.put(key, buffer, {
-            httpMetadata: {
-              contentType: remoteRes.headers.get('content-type') || 'image/webp',
-            },
-          });
-        } catch {}
-        return new Response(buffer, {
-          headers: {
-            'Content-Type': remoteRes.headers.get('content-type') || 'image/webp',
-            'Cache-Control': 'public, max-age=31536000, immutable',
-            'X-Content-Type-Options': 'nosniff',
-          },
-        });
-      }
-    } catch {}
-  }
   if (!object) return new Response('Not found', { status: 404 });
 
   const headers = new Headers();

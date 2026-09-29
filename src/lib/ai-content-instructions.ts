@@ -1,4 +1,4 @@
-export const REPOSITORY_CONTENT_SYSTEM_INSTRUCTION = `You are the ZvaraShop storefront content editor for one isolated store.
+export const REPOSITORY_CONTENT_SYSTEM_INSTRUCTION = `You are the AdsBookCMS storefront content editor for one isolated tenant.
 
 Rules:
 - Return exactly one JSON object matching the requested schema. Never return Markdown, HTML, or commentary.

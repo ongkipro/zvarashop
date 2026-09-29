@@ -1,6 +1,6 @@
 ---
 import Breadcrumb from '../../components/storefront/shared/Breadcrumb.astro';
-import MetaViewContentTracker from '../../components/storefront/tracking/MetaViewContentTracker.astro';
+import MetaLandingTracker from '../../components/storefront/tracking/MetaLandingTracker.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getStorefrontProduct } from '../../lib/catalog';
 import { getProductPageLanding } from '../../lib/landing-pages';
@@ -9,7 +9,8 @@ import RatingStars from '../../components/storefront/shared/RatingStars.astro';
 import GeoIpResolvedForm from '../../components/storefront/forms/GeoIpResolvedForm.astro';
 import ProductImageGallery from '../../components/storefront/ProductImageGallery.astro';
 import SocialProofToast from '../../components/storefront/shared/SocialProofToast.astro';
-import { cardImageSrc } from '../../lib/image-derivative';
+import { recentOrderCount } from '../../lib/social-proof';
+import { getRuntimeEnv } from '../../lib/env';
 import { resolveFormModeContext } from '../../lib/form-mode';
 import '../../styles/form-hybrid.css';
 import { defaultCatalogContentId } from '../../lib/catalog-feed';
@@ -45,6 +46,8 @@ if (productPageLanding) {
     }),
   );
 }
+// The store's real orders (A-300); under the threshold the toast renders nothing.
+const socialProofOrders = await recentOrderCount(getRuntimeEnv(Astro.locals)?.OMS_DB as D1Database | undefined);
 
 const cheapestVariant = [...product.variants].sort((a, b) => a.price - b.price)[0] ?? null;
 const displayPrice = cheapestVariant?.price ?? product.price;
@@ -135,35 +138,20 @@ const productSchemaJson = JSON.stringify(productSchema).replace(/</g, '\\u003c')
   canonical={canonical}
   hideHeader={false}
   hideFooter={false}
-  product={{
-    name: product.productName,
-    description: product.description,
-    image: product.heroImage,
-    url: canonical,
-    category: product.category,
-    ratingValue: ratingValue,
-    reviewCount: reviewCount,
-    offers: product.variants.map((v) => ({
-      price: v.price,
-      priceCurrency: 'IDR',
-      availability: 'InStock',
-      url: canonical,
-      name: v.label,
-      ...(v.sku ? { sku: v.sku } : {}),
-    })),
-  }}
   breadcrumbs={[
     { name: 'Beranda', url: '/' },
     { name: 'Produk', url: '/produk' },
     { name: product.productName, url: canonical },
   ]}
 >
-  <MetaViewContentTracker
+  <MetaLandingTracker
     slug={product.slug}
     contentId={defaultCatalogContentId(product)}
     contentName={product.productName}
     price={displayPrice}
   />
+  {/* The page's only Product JSON-LD: BaseLayout is deliberately given no
+      `product`, which would emit a second, conflicting Product block. */}
   <script is:inline type="application/ld+json" set:html={productSchemaJson} />
 
   <main class="mx-auto max-w-[480px] bg-white pb-20">
@@ -245,7 +233,7 @@ const productSchemaJson = JSON.stringify(productSchema).replace(/</g, '\\u003c')
                   <span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#111111]" aria-hidden="true" />
                   <div class="min-w-0">
                     <p class="text-[14px] font-semibold text-[#111111]">{v.label}</p>
-                    <p class="mt-0.5 text-[11px] text-[#555555]">Stok Siap Kirim • COD Available</p>
+                    <p class="mt-0.5 text-[11px] text-[#555555]">Siap Kirim</p>
                   </div>
                 </div>
               </div>
@@ -451,8 +439,7 @@ const productSchemaJson = JSON.stringify(productSchema).replace(/</g, '\\u003c')
     </section>
 
     <SocialProofToast
-      productLabel={product.productName}
-      productImage={cardImageSrc(productImages[0] ?? product.heroImage)}
+      orderCount={socialProofOrders}
     />
 
     <!-- Sticky Mobile Purchase Bar (Auto-hides while the hero or the order

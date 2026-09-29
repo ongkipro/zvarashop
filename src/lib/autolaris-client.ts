@@ -78,6 +78,23 @@ export const AUTOLARIS_CHANNEL_OPTIONS: ReadonlyArray<{
 ];
 
 
+/**
+ * AutoLaris creates the payment instruction and its dashboard order in one
+ * request through `/api/h2h/submit`. Physical fulfilment remains Mengantar's;
+ * the install supplies the provider-specific mirror area ids and fixed
+ * `courir_id: 1` separately from Mengantar's identifiers.
+ *
+ * Contract verified against the provider's published Postman collection on
+ * 2026-09-02:
+ *
+ *   POST /api/h2h/submit          -> { rc, ket, data: { transaction_id,
+ *                                      biaya_admin, total, payment_info } }
+ *   POST /api/h2h/advice          -> { rc, ket, data: { awb } }
+ *   GET  /api/h2h/list_payment    -> { rc, ket, data: [ { channel_code, ... } ] }
+ *
+ * `reff_id` is digits-only; payment instructions are nested under
+ * `payment_info` for both QRIS and VA channels.
+ */
 export type AutoLarisPayment = {
   transactionId: string;
   virtualAccount?: string;
@@ -100,9 +117,9 @@ export type AutoLarisCredentialVerification = {
 /**
  * A read of one transaction's settlement state.
  *
- * Advice uses `02/PENDING` for an unpaid instruction. A response is paid only
- * when both `rc` and an explicit settlement word agree. Shipping vocabulary
- * such as `DELIVERED` remains unproven and must never move payment state.
+ * AutoLaris' Advice contract uses `02/PENDING` for an unpaid instruction and
+ * `00` plus an explicit success status for a settled one. Any other shape stays
+ * unproven and cannot move money-bearing state.
  */
 export type AutoLarisPaymentInquiry = {
   code: string;
@@ -113,6 +130,30 @@ export type AutoLarisPaymentInquiry = {
 
 export const AUTOLARIS_PENDING_CODE = "02";
 export const AUTOLARIS_PAID_CODE = "00";
+/**
+ * Words that may settle a payment, and the two that were removed.
+ *
+ * The provider's own documentation (`ongkipro/autolaris`,
+ * `docs/guides/payment-gateway.md` §6) is explicit: *"`SUCCESS`/`BERHASIL`
+ * terlalu generik dan `DELIVERED` adalah status pengiriman; ketiganya tidak
+ * boleh ditafsirkan sebagai lunas"* — and only an explicit settlement status
+ * confirmed by the provider may mark a transaction and its order paid.
+ *
+ * `SUCCESS` and `BERHASIL` were in this set. They are now gone, because §7 of
+ * the same guide settles what `rc: "00"` actually means: the **API call**
+ * succeeded, not the payment. A `00` answered with a generic success word is
+ * therefore ambiguous between "advice request succeeded" and "payment
+ * settled" — and resolving that ambiguity in favour of paid marks an order paid
+ * that may not be, which is the one direction this path must never fail in.
+ *
+ * What remains is unambiguous settlement vocabulary: nothing generic, nothing
+ * from the shipping lifecycle. The provider has still published no complete
+ * settlement mapping, so these three are a conservative reading rather than a
+ * confirmed contract — which is exactly why every `rc: "00"` that does not
+ * match is captured as evidence rather than discarded
+ * (`reconcileAutoLarisPaymentStatuses`), and why manual reconciliation remains
+ * the documented fallback.
+ */
 const AUTOLARIS_PAID_STATUSES = new Set([
   "PAID",
   "SETTLED",
@@ -143,7 +184,25 @@ type AutoLarisResponse = {
   };
 };
 
-/** Provider timestamps are Jakarta local time without an offset. */
+/**
+ * `payment_info.expired` arrives without an offset, and is read as Jakarta time.
+ *
+ * That is an **assumption, not a documented fact**. The provider's own
+ * reference lists the timezone of `expired` under "Batas kontrak" — the things
+ * the published collection does not state (`ongkipro/autolaris`,
+ * `docs/reference/h2h-api.md`). This comment previously claimed the opposite,
+ * that Jakarta time was documented, which is the kind of guess-dressed-as-fact
+ * that survives precisely because it reads as settled.
+ *
+ * `+07:00` is the reasonable reading for an Indonesian provider quoting local
+ * time, and it is what ships. The consequence if it is wrong is worth naming:
+ * were the provider to send UTC, every instruction would be treated as expiring
+ * seven hours later than it does, and `/payment` would keep presenting a dead
+ * virtual account as live. An unparseable value returns `undefined` and the
+ * instruction simply carries no expiry, which fails in the safe direction.
+ *
+ * Confirm with AutoLaris before go-live, as the reference itself instructs.
+ */
 export function parseAutoLarisExpiry(value: unknown): string | undefined {
   const match = String(value || "")
     .trim()
@@ -249,6 +308,20 @@ function requiredEmail(value: string) {
   return email;
 }
 
+function requiredCallbackUrl(value: string) {
+  const callbackUrl = requiredText(value, "callback", 500);
+  let parsed: URL;
+  try {
+    parsed = new URL(callbackUrl);
+  } catch {
+    throw new Error("Data callback AutoLaris tidak valid.");
+  }
+  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+    throw new Error("Data callback AutoLaris tidak valid.");
+  }
+  return parsed.toString();
+}
+
 function requiredPositiveIntString(value: number, field: string) {
   if (!Number.isSafeInteger(value) || value <= 0) {
     throw new Error(`Data ${field} AutoLaris harus bilangan bulat positif.`);
@@ -270,17 +343,20 @@ export type AutoLarisOrderDetail = {
 };
 
 /**
- * Create Order / `POST /api/h2h/submit`. In this repository AutoLaris is a
- * payment-only order: `courirId: 1` classifies it as digital/subscription/non-
- * physical in the merchant account. No courier, AWB, pickup, or dispatch is
- * requested by this flow; physical fulfilment remains an explicit Mengantar
- * action. The provider still requires origin/destination and receiver metadata.
+ * Create Order / `POST /api/h2h/submit`. The install's accepted AutoLaris
+ * contract assigns `courirId: 1` and provider-specific origin/destination area
+ * ids. This record supplies the payment instruction; this CMS still dispatches
+ * physical fulfilment only through its explicit Mengantar operator action. For
+ * prepaid QRIS/VA, `codValue` is 0 and `grandTotal` is the committed order total.
+ *
+ * The `/submit` response shape is contract-verified against the provider's
+ * published collection; `createOrder` maps its nested payment instructions.
  */
 export type AutoLarisCreateOrderInput = {
   /** Digits only, at most 30 — same rule the provider enforces on reff_id. */
   reffId: string;
   channelCode: AutoLarisCheckoutChannel;
-  /** Defaults to 1 = digital/non-physical payment; no shipment. */
+  /** Defaults to the install's accepted operational assignment, 1. */
   courirId?: number;
   origin: string;
   destination: string;
@@ -299,6 +375,7 @@ export type AutoLarisCreateOrderInput = {
   grandTotal: number;
   /** 0 for prepaid QRIS/VA — the balance is already in. */
   codValue?: number;
+  callbackUrl?: string;
   remark?: string;
   orderDetails: AutoLarisOrderDetail[];
 };
@@ -330,7 +407,7 @@ export function buildAutoLarisCreateOrderPayload(input: AutoLarisCreateOrderInpu
     receiver_phone: requiredPhone(input.receiverPhone, "telepon penerima"),
     receiver_email: requiredEmail(input.receiverEmail),
     receiver_address: requiredText(input.receiverAddress, "alamat penerima", 255),
-    callback_url: "",
+    callback_url: input.callbackUrl ? requiredCallbackUrl(input.callbackUrl) : "",
     grand_total: requiredPositiveIntString(input.grandTotal, "grand total"),
     cod_value: nonNegativeIntString(input.codValue ?? 0, "nilai COD"),
     longitude: "",
@@ -402,13 +479,7 @@ export class AutoLarisClient {
     }
   }
 
-  /**
-   * Creates one payment-only digital order. Despite the provider endpoint name,
-   * this never requests physical delivery; `courir_id: 1` is the merchant's
-   * non-physical classification. It must replace, never accompany,
-   * any second transaction-creation call, otherwise one checkout would mint
-   * two instructions.
-   */
+  /** Create one dashboard order and its single QRIS/VA instruction. */
   async createOrder(
     input: AutoLarisCreateOrderInput,
   ): Promise<AutoLarisPayment> {
@@ -423,7 +494,8 @@ export class AutoLarisClient {
   }
 
   /**
-   * Reads one transaction's settlement state without mutating local state.
+   * Reads one transaction's settlement state. This method never mutates local
+   * payment state; callers decide whether an explicit paid result may do so.
    */
   async inquirePayment(transactionId: string): Promise<AutoLarisPaymentInquiry> {
     const payload = await this.request("/api/h2h/advice", {
@@ -434,18 +506,20 @@ export class AutoLarisClient {
     });
     const code = String(payload.rc || "").trim();
     const status = String(payload.ket || "").trim();
+    const normalizedStatus = status.toUpperCase();
     const paid =
       code === AUTOLARIS_PAID_CODE &&
-      AUTOLARIS_PAID_STATUSES.has(status.toUpperCase());
+      AUTOLARIS_PAID_STATUSES.has(normalizedStatus);
     return {
       code,
       status,
       awb: nonEmpty(payload.data?.awb),
-      settlement: paid
-        ? "paid"
-        : code === AUTOLARIS_PENDING_CODE
-          ? "pending"
-          : "unproven",
+      settlement:
+        paid
+          ? "paid"
+          : code === AUTOLARIS_PENDING_CODE
+            ? "pending"
+            : "unproven",
     };
   }
 

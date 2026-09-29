@@ -1,14 +1,14 @@
 import test from "node:test";
-import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import assert from "node:assert/strict";
 
 import {
-  LOCALE_PATTERN,
-  THEME_COLOR_PATTERN,
   envTenantConfig,
   loadStoreIdentity,
   resolveTenantConfig,
   type StoreIdentityRow,
+  LOCALE_PATTERN,
+  THEME_COLOR_PATTERN,
 } from "./tenant.ts";
 
 test("a database row wins over the environment for every identity field", () => {
@@ -141,11 +141,11 @@ test("an unconfigured store never advertises itself as unconfigured", () => {
   assert.equal(configured.description, "Bunga segar diantar hari ini.");
 });
 
-// S1: `theme_color`, `locale` and `admin_name` resolved from D1 since migration
-// 0036 and rendered ever since — `<meta name="theme-color">`, `<html lang>`,
-// JSON-LD `inLanguage`, the admin title and sidebar — with no operator editor.
-// The editor and the resolver must agree on what is valid, or a saved value
-// silently falls back and the operator is told nothing.
+// `theme_color`, `locale` and `admin_name` resolve from D1 and are rendered
+// everywhere — `<meta name="theme-color">`, `<html lang>`, JSON-LD
+// `inLanguage`, the admin title — with no operator editor. The editor and the
+// resolver must agree on what is valid, or a saved value silently falls back
+// and the operator is told nothing about why.
 
 test("the settings editor and identity resolution share one rule for theme colour", () => {
   for (const accepted of ["#111111", "#FFFFFF", "#0a7c3f"]) {
@@ -173,7 +173,7 @@ test("the settings editor and identity resolution share one rule for locale", ()
 
 test("saving the store profile persists all three previously uneditable fields", () => {
   const source = readFileSync(new URL("../pages/api/admin/settings.ts", import.meta.url), "utf8");
-  const update = source.slice(source.indexOf("if (body.action === \"save-store\")"));
+  const update = source.slice(source.indexOf('if (body.action === "save-store")'));
   const statement = update.slice(update.indexOf("UPDATE stores"), update.indexOf(".run()"));
   for (const column of ["theme_color", "locale", "admin_name"]) {
     assert.match(statement, new RegExp(`${column} = \\?`), `save-store must write ${column}`);

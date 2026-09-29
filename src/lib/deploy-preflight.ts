@@ -1,27 +1,126 @@
 /**
- * `wrangler deploy` uploads the **working tree**, not the branch.
+ * The check `RELEASE.md` §7 already requires before a deploy, made mechanical.
  *
- * That is easy to forget and it has already cost this install a release: on
- * 2026-08-28 a verified fix was deployed at 14:37 WIB and silently reverted at
- * 15:13 by a deploy from a clone that had not pulled it. Nothing failed. The
- * commit stayed on `origin/install/zvarashop`, both deploys reported success,
- * and production quietly ran code that was two commits old — for the tracking
- * layer specifically, that means conversions degrade with no error anywhere.
+ * `wrangler deploy` uploads to whatever `wrangler.jsonc` names, and this
+ * repository's copy is deliberately placeholders — `adsbookcms-your-store`, a
+ * database id of all zeros — because the product deploys nothing (ADR-012).
+ * An install is a clone that replaces them with its own, so `npm run deploy`
+ * is the install's documented deploy path and stays.
  *
- * So the check is not "is the code good" — CI answers that. It is "is the tree
- * about to be uploaded actually the branch everyone agreed on".
+ * The hazard is that a merge from the product brings the placeholders back.
+ * RELEASE.md tells the operator to run `--dry-run` and stop if it prints
+ * `adsbookcms-your-store` or a zero database id — and then says plainly: "It is
+ * manual, and nothing verifies that an install ran it." This is that
+ * verification. It adds no deploy step, no credentials, and no policy the
+ * release document does not already state; it refuses the one target the
+ * document already says to refuse.
  *
- * Pure on purpose: the caller collects the git and wrangler facts, this decides.
- * That keeps the decision testable without a repository or a network.
+ * Pure on purpose: the decision is testable without a filesystem or wrangler.
  */
 
-/** The placeholder identity `wrangler.jsonc` ships with, per RELEASE.md §7. */
-export const PLACEHOLDER_WORKER_NAME = "adsbookcms-your-store";
+export type WranglerTarget = {
+  /** `name` in wrangler.jsonc — the Worker this deploy would replace. */
+  name?: unknown;
+  d1Databases?: { binding?: unknown; database_name?: unknown; database_id?: unknown }[];
+  kvNamespaces?: { binding?: unknown; id?: unknown }[];
+  r2Buckets?: { binding?: unknown; bucket_name?: unknown }[];
+};
+
+export type PreflightResult =
+  | { ok: true }
+  | { ok: false; reasons: string[] };
+
+/**
+ * What an overwritten config looks like. The product template ships all-zero
+ * ids (the Deploy button replaces them with real ones), so a merge that drags
+ * the template back over an install's wrangler.jsonc always brings zeros. The
+ * Worker and resource *names* are no longer a signal: since ADR-026 the
+ * template's names are real defaults an operator may keep.
+ *
+ * A missing id is refused too, and is the more dangerous case: Wrangler's
+ * automatic provisioning would create a new, empty database and point the live
+ * store at it.
+ */
+const ZERO_DATABASE_ID = /^0{8}-0{4}-0{4}-0{4}-0{12}$/;
+const ZERO_KV_ID = /^0{32}$/;
+
+function text(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+export function checkDeployTarget(target: WranglerTarget): PreflightResult {
+  const reasons: string[] = [];
+
+  if (!text(target.name)) reasons.push("wrangler.jsonc has no Worker `name`.");
+
+  const databases = target.d1Databases ?? [];
+  if (databases.length === 0) reasons.push("wrangler.jsonc declares no D1 database.");
+  for (const database of databases) {
+    const id = text(database.database_id);
+    const databaseName = text(database.database_name) || text(database.binding) || "D1";
+    if (!id) {
+      reasons.push(`D1 \`${databaseName}\` has no database_id; deploying would provision a new, empty database.`);
+    } else if (ZERO_DATABASE_ID.test(id)) {
+      reasons.push(`D1 \`${databaseName}\` still carries the all-zero template database_id — this config is the product template, or a merge overwrote the install's own.`);
+    }
+  }
+
+  for (const namespace of target.kvNamespaces ?? []) {
+    const id = text(namespace.id);
+    const binding = text(namespace.binding) || "KV";
+    if (!id) {
+      reasons.push(`KV \`${binding}\` has no id; deploying would provision a new, empty namespace.`);
+    } else if (ZERO_KV_ID.test(id)) {
+      reasons.push(`KV \`${binding}\` still carries the all-zero template id.`);
+    }
+  }
+
+  return reasons.length ? { ok: false, reasons } : { ok: true };
+}
+
+/**
+ * `wrangler.jsonc` is JSONC: comments and trailing commas are legal there and
+ * fatal to `JSON.parse`. Stripping them is enough for the few fields read here;
+ * this is not a general JSONC parser and does not need to be.
+ */
+export function parseWranglerConfig(source: string): WranglerTarget {
+  const withoutComments = source
+    .replace(/"(?:[^"\\]|\\.)*"|\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, (match) =>
+      match.startsWith('"') ? match : " ",
+    )
+    .replace(/,(\s*[}\]])/g, "$1");
+  const parsed = JSON.parse(withoutComments) as Record<string, unknown>;
+  return {
+    name: parsed.name,
+    d1Databases: Array.isArray(parsed.d1_databases)
+      ? (parsed.d1_databases as WranglerTarget["d1Databases"])
+      : [],
+    kvNamespaces: Array.isArray(parsed.kv_namespaces)
+      ? (parsed.kv_namespaces as WranglerTarget["kvNamespaces"])
+      : [],
+    r2Buckets: Array.isArray(parsed.r2_buckets)
+      ? (parsed.r2_buckets as WranglerTarget["r2Buckets"])
+      : [],
+  };
+}
+
+/*
+ * The second check. `checkDeployTarget` above asks "is this config a real
+ * install"; this asks "is the tree about to be uploaded actually the branch
+ * everyone agreed on". `wrangler deploy` uploads the working tree, not the
+ * branch, and that has cost the fleet twice: on 2026-08-28 an install's
+ * verified fix was silently reverted 36 minutes later by a deploy from a
+ * clone that had not pulled it, and on 2026-09-05 a deploy from a stale clone
+ * removed a live landing page from another. Nothing failed either time. Both
+ * deploys reported success and production ran code the branch did not hold.
+ *
+ * Pure on purpose: the script collects the git facts, this decides.
+ */
 
 export type DeployPreflightState = {
   /** Branch at HEAD, or "" when detached. */
   branch: string;
-  /** Its upstream, e.g. `origin/install/zvarashop`, or "" when untracked. */
+  /** Its upstream, e.g. `origin/install/<store>`, or "" when untracked. */
   upstream: string;
   /** Commits the upstream has that HEAD does not. The reverted-release case. */
   behind: number;
@@ -31,6 +130,11 @@ export type DeployPreflightState = {
   workerName: string;
   /** `ALLOW_STALE_DEPLOY=1` — a deliberate, stated exception. */
   overridden: boolean;
+  /**
+   * Workers Builds (`WORKERS_CI=1`): the tree is the pushed commit by
+   * construction, so the stale-clone checks have nothing to protect.
+   */
+  ci?: { branch: string; commit: string };
 };
 
 export type DeployPreflightResult = {
@@ -47,17 +151,12 @@ export function evaluateDeployPreflight(
   const failures: string[] = [];
   const notes: string[] = [];
 
-  if (state.workerName === PLACEHOLDER_WORKER_NAME) {
-    // Not overridable. There is no situation in which shipping an install as
-    // the product's placeholder is what someone meant.
-    return {
-      ok: false,
-      failures: [
-        `wrangler resolved the worker name "${PLACEHOLDER_WORKER_NAME}", which is the product placeholder. ` +
-          `A merge or a sync has overwritten this install's wrangler.jsonc — restore it before deploying.`,
-      ],
-      notes,
-    };
+  // Both incidents this guards against were laptop clones that had not pulled.
+  // A Workers Builds deploy checks out exactly the commit that was pushed.
+  if (state.ci) {
+    notes.push(`Target worker: ${state.workerName}`);
+    notes.push(`Workers Builds: commit ${state.ci.commit || "unknown"} on ${state.ci.branch || "unknown branch"}`);
+    return { ok: true, failures, notes };
   }
 
   if (!state.branch) {

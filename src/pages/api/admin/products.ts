@@ -21,8 +21,6 @@ type DbProductRow = {
   title: string;
   slug: string;
   category: string | null;
-  brand: string | null;
-  description: string | null;
   image_url: string | null;
   is_active: number | boolean | null;
   created_at: string;
@@ -48,7 +46,7 @@ async function loadProducts(
     ? await database
         .prepare(
           `
-        SELECT id, store_id, title, slug, category, brand, description, is_active, image_url, created_at
+        SELECT id, store_id, title, slug, category, is_active, image_url, created_at
         FROM products
         WHERE id = ?
         LIMIT 1
@@ -59,7 +57,7 @@ async function loadProducts(
     : await database
         .prepare(
           `
-        SELECT id, store_id, title, slug, category, brand, description, is_active, image_url, created_at
+        SELECT id, store_id, title, slug, category, is_active, image_url, created_at
         FROM products
         ORDER BY created_at DESC, id DESC
         LIMIT ?
@@ -100,8 +98,6 @@ async function loadProducts(
     title: product.title,
     slug: product.slug,
     category: product.category ?? "Umum",
-    brand: product.brand,
-    description: product.description,
     image_url: product.image_url,
     is_active: Boolean(product.is_active),
     created_at: product.created_at,
@@ -208,9 +204,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
         .prepare(
           `
         INSERT INTO products (
-          id, store_id, title, slug, category, brand, description, is_active, image_url, created_at
+          id, store_id, title, slug, category, is_active, image_url, created_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `,
         )
         .bind(
@@ -219,8 +215,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
           parsed.value.title,
           parsed.value.slug,
           parsed.value.category,
-          parsed.value.brand,
-          parsed.value.description,
           parsed.value.is_active ? 1 : 0,
           parsed.value.image_url,
           createdAt,
@@ -394,7 +388,7 @@ export const PATCH: APIRoute = async ({ request, locals }) => {
         .prepare(
           `
         UPDATE products
-        SET title = ?, slug = ?, category = ?, brand = ?, description = ?, is_active = ?, image_url = ?
+        SET title = ?, slug = ?, category = ?, is_active = ?, image_url = ?
         WHERE id = ?
       `,
         )
@@ -402,8 +396,6 @@ export const PATCH: APIRoute = async ({ request, locals }) => {
           parsed.value.title,
           parsed.value.slug,
           parsed.value.category,
-          parsed.value.brand,
-          parsed.value.description,
           parsed.value.is_active ? 1 : 0,
           parsed.value.image_url,
           parsed.value.id,

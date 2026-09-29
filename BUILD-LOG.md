@@ -426,6 +426,34 @@ Treat this file as history, not as a specification. Current system state is owne
 
 ## Chronological Progress Log
 
+### 2026-09-29 — Back on the product line (AdsBookCMS `cf665db`)
+
+ZvaraShop had run its own fork since `93c110d`, 273 product commits behind.
+Every behaviour it had authored since — honeypot, feed clamps, dispatch
+naming, alerting, Pixel ID verification, outbox leases, CAPI country, purchase
+dedupe, `withSession` — was checked present in the product before its copy was
+retired, so every product-owned path now equals `product/main`. Kept as this
+store's: `wrangler.jsonc`, `RELEASE.md`, this log, CI, the thirteen native
+landing routes with their CSS and images, and the register (now in the
+product's shape, with the three redirects in `installRouteSlugs`).
+
+- **Migration numbers (ADR-024, again).** This store had written
+  `0055_fix_dt_kapsul_variant`, `0056_gia_serbuk_anti_tersumbat` and
+  `0057_gia_landing_page` — data only, already applied — on numbers the product
+  now uses. Their files leave the chain and their three ledger rows are
+  deleted in one statement right after deploy; the Worker then applies the
+  product's `0055`–`0059`.
+- **Rehearsed on a copy of production.** The live D1 export, imported locally:
+  the new bundle on the unrepaired ledger answered `503` on every page; after
+  the repair the ledger re-derived to 60 canonical rows and every landing page,
+  `/produk`, `/hello`, sitemap and feed answered `200`, with 233 orders, 45
+  products and 92 variants unchanged.
+- **Landing pages** moved to the real 24-hour order-count toast (the product
+  removed the invented-buyer props), and the three legacy redirects now keep
+  the query string, so UTM and `fbclid` survive them.
+- Orphans removed: `MetaViewContentTracker`, `autolaris-balance` and two tests
+  of behaviour the product's own suite now covers.
+
 ### Entry 01: Core Architecture & Setup
 
 - Initialized Astro v6 SSR with Cloudflare Workers adapter & Tailwind CSS v4.

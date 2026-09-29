@@ -69,61 +69,90 @@ export async function sha256Hex(value: string): Promise<string> {
     .join("");
 }
 
+export type MetaAdvancedMatchingInput = {
+  customer_name?: unknown;
+  customer_phone?: unknown;
+  city?: unknown;
+  province?: unknown;
+  postal_code?: unknown;
+  country?: unknown;
+  external_id?: unknown;
+};
+
 /**
- * `buyerEmail()` in `autolaris-payment.ts` mints `<phone digits>@<store host>`
- * so an online payment provider has an address to accept. It is stored on the
- * order, and `orders.customer_email` is read straight into the CAPI leg's `em`.
+ * The hashed object `fbq('init', pixelId, advancedMatching)` takes, built with
+ * exactly the same normalisation the server CAPI leg applies (`meta-capi.ts`).
  *
- * It must never become a match key. Nobody owns that address, so it identifies
- * no one — and a supplied key that matches nobody is worse than an absent one,
- * because Meta scores match quality on the keys it was given. Meta's own
- * customer-information guidance is to omit a field rather than invent it.
- *
- * Detected by comparing the local part to the order's phone through the same
- * normaliser both use, so `08…` stored against a `628…` local part still reads
- * as synthetic. A real address whose local part happens to be digits is only
- * dropped if those digits are this buyer's own number.
+ * `ensureMetaAdvancedMatching` in the checkout scripts calls this again every
+ * time more identity becomes known — AddToCart with only a name and phone,
+ * then InitiateCheckout once an address is picked — so it must read every
+ * field CAPI already hashes (ct/st/zp/country), not only ph/fn/ln. Before this
+ * it read only phone and name: city, province, postal code and country were
+ * being sent to CAPI on the same event and silently dropped from the browser
+ * leg, so the Pixel re-identified the visitor with a weaker key than the
+ * server leg used for the same person on the same event.
  */
-export function isSyntheticBuyerEmail(email?: string, phone?: string): boolean {
-  const local = String(email ?? "").trim().toLowerCase().split("@")[0];
-  if (!local || !/^\d+$/.test(local)) return false;
-  const normalizedLocal = toE164Digits(local);
-  const normalizedPhone = toE164Digits(phone);
-  return Boolean(normalizedLocal && normalizedPhone && normalizedLocal === normalizedPhone);
+export async function buildMetaAdvancedMatching(
+  input: MetaAdvancedMatchingInput | undefined,
+): Promise<{
+  ph?: string;
+  fn?: string;
+  ln?: string;
+  ct?: string;
+  st?: string;
+  zp?: string;
+  country?: string;
+  external_id?: string;
+  client_user_agent?: string;
+}> {
+  const normalizedPhone = toE164Digits(String(input?.customer_phone ?? ""));
+  const { firstName, lastName } = metaNameParts(String(input?.customer_name ?? ""));
+  const city = normalizeMetaText(String(input?.city ?? ""));
+  const state = normalizeMetaText(String(input?.province ?? ""));
+  const zip = normalizeMetaText(String(input?.postal_code ?? ""));
+  const country = normalizeMetaText(String(input?.country ?? ""));
+  const externalId = normalizeMetaText(String(input?.external_id ?? "")) ?? normalizedPhone;
+  // Web Crypto is absent outside a secure context (plain-http origin, some
+  // embedded webviews). The checkout scripts await this before their
+  // AddToCart/InitiateCheckout, so a throw here used to drop the event on
+  // all three legs — Pixel, CAPI and GTM — and, the event flag already set,
+  // never retry. A key that cannot be hashed is omitted; its raw value is
+  // never sent in its place.
+  const hash = (value: string | undefined) => (value ? sha256Hex(value).catch(() => undefined) : undefined);
+  return {
+    ph: await hash(normalizedPhone),
+    fn: await hash(firstName),
+    ln: await hash(lastName),
+    ct: await hash(city),
+    st: await hash(state),
+    zp: await hash(zip),
+    country: await hash(country),
+    external_id: await hash(externalId),
+    client_user_agent:
+      typeof navigator !== "undefined" ? navigator.userAgent : undefined,
+  };
 }
 
-/**
- * There is no shared "advanced matching builder" any more, and there must not be
- * one: fbevents applies `fbq('init', pixelId, advancedMatching)` exactly once
- * per page, so anything that hashes a buyer *after* the Pixel bootstrap is work
- * thrown away. The one page that knows its buyer at bootstrap time — `/thanks` —
- * builds the object inline in `MetaThanksTracker.astro` and hands it to
- * `__PS_META_INIT__`; the checkout forms send late identity to the CAPI leg
- * instead. The builder that used to live here also emitted `client_user_agent`,
- * which is a Conversions API field and not a Pixel match key at all — the live
- * library stores it on `userData` without a censored-format entry, so it was
- * never counted as one.
- */
 
 /**
- * `country` is a Meta match key like any other, and it is the one key this
- * store can always supply truthfully: every order carries an Indonesian
- * province, is quoted in IDR, and ships domestically.
+ * `country` is a Meta match key like any other, and the one this store can
+ * always supply truthfully: every order carries an Indonesian province, is
+ * quoted in IDR, and ships domestically.
  *
  * It was validated by `meta-event-contract.ts`, hashed by `meta-capi.ts`, sent
- * by the `/thanks` browser leg and by the headless route — and dropped on the
- * floor by `/api/meta-event`, which builds `userData` without it. That is the
- * route every first-party PageView, ViewContent and `/thanks` Purchase goes
- * through, so the Pixel leg of a Purchase described the buyer with `country`
- * and the CAPI leg of the same Purchase did not.
+ * by the `/thanks` browser leg and forwarded by the headless route — and
+ * dropped by `/api/meta-event`, which built `userData` without it. That route
+ * carries every first-party PageView, ViewContent and `/thanks` Purchase, so
+ * the Pixel leg of an order described the buyer with `country` and the CAPI leg
+ * of the same order did not. Meta then scored match quality on the shorter set.
  *
- * `edgeCountry` is Cloudflare's `cf-ipcountry` for the *buyer's* request. It is
- * only truthful where the request came from the buyer's browser, so the
- * headless route — whose caller is another server — must pass `null` rather
- * than attribute its own egress location to a customer. `XX` (unknown) and `T1`
- * (Tor) are Cloudflare's own not-a-country values; a hash of either matches
- * nobody, which is worse than an absent key because Meta scores match quality
- * on the keys it was given.
+ * `edgeCountry` is Cloudflare's `cf-ipcountry` for the *buyer's* request, so it
+ * is only truthful where the request came from the buyer's browser; the
+ * headless route, whose caller is another server, passes `null` rather than
+ * attribute its own egress location to a customer. `XX` (unknown) and `T1`
+ * (Tor) are Cloudflare's own not-a-country values, and a hash of either matches
+ * nobody — which is worse than an absent key, because Meta scores on the keys
+ * it is given.
  */
 const ISO_ALPHA2 = /^[a-z]{2}$/;
 const NOT_A_COUNTRY = new Set(["xx", "t1"]);

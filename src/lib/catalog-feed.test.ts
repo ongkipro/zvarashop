@@ -26,7 +26,6 @@ test("a page with a sellable variant points at its Product ID, or at nothing", (
   // worse than sending none: Meta reports it as a match the merchant cannot act on.
   assert.equal(defaultCatalogContentId({ productId: 7, variants: [] }), undefined);
   assert.equal(defaultCatalogContentId({ productId: 7 }), undefined);
-  assert.equal(defaultCatalogContentId({ productId: 7, variants: [{ id: 1 }] }), undefined);
 });
 
 test("Google feed emits one product-grain item with g:id matching Product ID", () => {
@@ -50,55 +49,6 @@ test("Google feed emits one product-grain item with g:id matching Product ID", (
   assert.ok(!xml.includes("<g:size>"));
   assert.ok(xml.includes("<g:link>https://toko-uji.example/produk/bibit-sirsak</g:link>"));
   assert.ok(xml.includes("<g:price>85000 IDR</g:price>"));
-  // No GTIN or MPN column exists in this schema, so a branded item carrying
-  // neither must say so or Google reads it as missing data. Saying so is not a
-  // licence to invent one: `sku` is merchant-editable and is never `g:mpn`.
-  assert.ok(xml.includes("<g:identifier_exists>no</g:identifier_exists>"));
-  assert.ok(!xml.includes("<g:mpn>"));
-  assert.ok(!xml.includes("<g:gtin>"));
-  assert.ok(
-    !xml.includes("variant_NO8meDAONBXBZr4lawMCaFOp"),
-    "the merchant-editable variant sku must not reach the feed at all",
-  );
-});
-
-test("catalog feeds prefer the product brand and fall back to the store name", () => {
-  const base: CatalogProduct = {
-    productId: 14002,
-    slug: "produk-merek",
-    productName: "Produk Merek",
-    brand: "Merek Produk",
-    heroImage: "/images/product.webp",
-    variants: [{ id: 1, label: "Standar", price: 50000 }],
-  };
-  assert.ok(generateGoogleCatalogXml([base], "https://example.com", "Nama Toko").includes("<g:brand>Merek Produk</g:brand>"));
-  assert.ok(generateMetaCatalogXml([{ ...base, brand: "" }], "https://example.com", "Nama Toko").includes("<g:brand>Nama Toko</g:brand>"));
-});
-
-test("one legacy short id does not take the aggregate feeds down", () => {
-  const products: CatalogProduct[] = [
-    {
-      productId: 7,
-      slug: "legacy",
-      productName: "Legacy",
-      heroImage: "/images/legacy.webp",
-      variants: [{ id: 1, label: "Standar", price: 10000 }],
-    },
-    {
-      productId: 14003,
-      slug: "valid",
-      productName: "Valid",
-      heroImage: "/images/valid.webp",
-      variants: [{ id: 2, label: "Standar", price: 20000 }],
-    },
-  ];
-  for (const xml of [
-    generateGoogleCatalogXml(products, "https://example.com"),
-    generateMetaCatalogXml(products, "https://example.com"),
-  ]) {
-    assert.ok(!xml.includes("<g:id>7</g:id>"));
-    assert.ok(xml.includes("<g:id>14003</g:id>"));
-  }
 });
 
 test("generateGoogleCatalogXml emits g:sale_price when comparePrice is greater than price", () => {
@@ -173,14 +123,13 @@ test("a feed omits the ad category it cannot determine", () => {
   assert.ok(known.includes("<g:google_product_category>"));
 });
 
-// Google Merchant Center caps title at 150 and description at 5000; Meta caps
-// them at 200 and 9999. Exceeding a cap does not truncate the field — it
-// disapproves the item, silently, one product at a time. `product-mutation.ts`
-// accepts a 160-character title, so a title of 151-160 saved cleanly and then
-// vanished from Google's approved set.
+// Google caps title at 150 and description at 5000; Meta at 200 and 9999.
+// Over the cap an item is disapproved, not truncated — silently, one product at
+// a time. `product-mutation.ts` accepts a 160-character title, so a title of
+// 151-160 saved cleanly and vanished from Google's approved set.
 
 test("a title Google would reject is trimmed rather than disapproved", () => {
-  const longTitle = "Senter LED Mini Super Terang Tahan Air ".repeat(6).trim(); // > 150
+  const longTitle = "Senter LED Mini Super Terang Tahan Air ".repeat(6).trim();
   assert.ok(longTitle.length > 150, "fixture must exceed Google's cap");
   const product: CatalogProduct = {
     productId: 14005,
@@ -189,35 +138,59 @@ test("a title Google would reject is trimmed rather than disapproved", () => {
     heroImage: "/images/hero.jpg",
     variants: [{ id: 1, label: "Satuan", price: 89000 }],
   };
-
-  const google = generateGoogleCatalogXml([product], "https://toko-uji.example");
-  const googleTitle = /<g:title>([^<]*)<\/g:title>/.exec(google)?.[1] ?? "";
+  const googleTitle = /<g:title>([^<]*)<\/g:title>/.exec(
+    generateGoogleCatalogXml([product], "https://toko-uji.example"),
+  )?.[1] ?? "";
   assert.ok(googleTitle.length <= 150, `Google title was ${googleTitle.length}`);
   assert.ok(googleTitle.length > 0, "the item must still be listed");
 
-  // Meta's cap is higher, so the same title survives further there.
-  const meta = generateMetaCatalogXml([product], "https://toko-uji.example");
-  const metaTitle = /<g:title>([^<]*)<\/g:title>/.exec(meta)?.[1] ?? "";
+  const metaTitle = /<g:title>([^<]*)<\/g:title>/.exec(
+    generateMetaCatalogXml([product], "https://toko-uji.example"),
+  )?.[1] ?? "";
   assert.ok(metaTitle.length <= 200, `Meta title was ${metaTitle.length}`);
   assert.ok(metaTitle.length >= googleTitle.length, "Meta allows at least as much as Google");
 });
 
-test("a title inside the cap is published byte-for-byte", () => {
-  const product: CatalogProduct = {
-    productId: 14006,
-    slug: "judul-pendek",
-    productName: "Senter LED Mini",
-    heroImage: "/images/hero.jpg",
-    variants: [{ id: 1, label: "Satuan", price: 89000 }],
-  };
-  const xml = generateGoogleCatalogXml([product], "https://toko-uji.example");
-  assert.match(xml, /<g:title>Senter LED Mini<\/g:title>/);
-});
-
 test("clampFeedText trims on a word boundary when one is close", () => {
   assert.equal(clampFeedText("satu dua tiga empat", 100), "satu dua tiga empat");
-  // Cuts at the space rather than mid-word.
   assert.equal(clampFeedText("satu dua tiga empat", 12), "satu dua");
-  // No nearby space: takes the hard cut rather than losing most of the value.
+  // No nearby space: a hard cut, and never one character short of it.
   assert.equal(clampFeedText("a".repeat(40), 10), "a".repeat(10));
+});
+
+// `identifier_exists: no` and `g:mpn` together contradict each other: the first
+// declares the product carries no manufacturer identifier, the second supplies
+// one. The `g:mpn` was never truthful either — an MPN is assigned by a
+// manufacturer, and `sku` is nullable, merchant-editable and changes whenever
+// an operator edits it.
+
+test("the Google feed declares no identifier and never invents one", () => {
+  const product: CatalogProduct = {
+    productId: 14009,
+    slug: "tanpa-mpn",
+    productName: "Produk Tanpa MPN",
+    heroImage: "/images/hero.jpg",
+    variants: [{ id: 1, label: "Satuan", price: 89000, sku: "SKU-YANG-DIEDIT-PEDAGANG" }],
+  };
+  const xml = generateGoogleCatalogXml([product], "https://toko-uji.example");
+  assert.ok(xml.includes("<g:identifier_exists>no</g:identifier_exists>"));
+  assert.ok(!xml.includes("<g:mpn>"), "a merchant SKU is not a manufacturer part number");
+  assert.ok(!xml.includes("<g:gtin>"));
+  assert.ok(
+    !xml.includes("SKU-YANG-DIEDIT-PEDAGANG"),
+    "the merchant-editable sku must not reach the feed at all",
+  );
+});
+
+test("the Meta feed carries no identifier claim either", () => {
+  const product: CatalogProduct = {
+    productId: 14010,
+    slug: "meta-tanpa-mpn",
+    productName: "Produk Meta",
+    heroImage: "/images/hero.jpg",
+    variants: [{ id: 1, label: "Satuan", price: 89000, sku: "SKU-LAIN" }],
+  };
+  const xml = generateMetaCatalogXml([product], "https://toko-uji.example");
+  assert.ok(!xml.includes("<g:mpn>"));
+  assert.ok(!xml.includes("SKU-LAIN"));
 });

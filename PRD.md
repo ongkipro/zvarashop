@@ -1,67 +1,128 @@
-# PRD — ZvaraShop
+# PRD — AdsBookCMS (single)
 
-> Verified against disk: 2026-09-04 @ `81e2031` + open-gap audit working tree
+> Verified against disk: 2026-09-25 @ `6e30950` + audit working tree
 
-## A25 — Same-context WhatsApp handoff
+## A27 — Bounded landing-page content and images
 
-**Status:** Accepted 2026-09-01.
+**Status:** Accepted — shipped (migration `0055`, typed sections in the editor and renderer; A-174 … A-185).
 
-- **REQ-180** — Every Meta conversion event the storefront emits shall describe
-  the buyer with the same match keys on both legs. Where the browser Pixel leg
-  sends a customer-information parameter, the Conversions API leg for that same
-  event shall send it too, or neither shall.
-- **REQ-181** — A browser Meta event shall never be dispatched before the page's
-  single `fbq('init')` has been issued, regardless of document parse or network
-  timing, because `fbevents.js` discards a `track` it replays ahead of the init
-  without error or beacon.
-- **REQ-182** — An operator shall be able to edit `theme_color`, `locale` and
-  `admin_name` from the store settings screen, and a value the identity
-  resolver would reject shall be refused at the form rather than accepted and
-  silently replaced by the default.
-- **REQ-183** — An operator added to a store shall inherit no notification
-  backlog: notifications recorded before that operator existed shall be neither
-  counted as unread nor claimed by a read row when the badge is cleared.
-  Notifications shall be pruned on a retention schedule.
-- **REQ-179** — When a buyer activates the WhatsApp confirmation action on
-  `/thanks`, the storefront shall navigate the current browsing context to the
-  official `https://wa.me` URL so a capable mobile OS may hand off to WhatsApp
-  without the storefront creating another browser tab. Devices without an app
-  shall retain the same-context HTTPS fallback.
+### Goals
 
-## A24 — Canonical checkout replay
+- Let an operator compose a CMS landing page without writing HTML for the common
+  text and image sections.
+- Keep image processing in the browser and object storage, so upload conversion
+  cannot consume Cloudflare Worker CPU.
+- Render every supported image at its natural aspect ratio within the existing
+  responsive landing column.
 
-**Status:** Accepted 2026-09-01.
 
-- **REQ-177** — Exact repeats of one validated checkout within two hours shall
-  resolve to one canonical order even when form mode, retry timing, or browser
-  code supplies different submit tokens. The database shall enforce the claim
-  under concurrent writes.
-- **REQ-178** — A canonical replay shall not repeat order notifications,
-  receiver scoring, conversion identity, or a second live payment instruction
-  for an order that already has one. COD remains a qualified `Purchase`;
-  browser Pixel and server CAPI continue to share the canonical `INV-` order
-  number, while a later order after expiry or terminal state receives a new
-  order and event ID.
+### Visual builder UX
 
-## A23 — Standalone repository authority
+- **Actor and permission:** authenticated `owner`, `admin`, and `advertiser`
+  compose their store's CMS landing pages; only `owner` and `admin` retain the
+  existing product-page claim action.
+- **Primary flow:** select **Tambah section**, choose one bounded type, edit its
+  named fields in the selected section card, use the numbered canvas navigator
+  or existing up/down controls to reach and order it, then save the page. The
+  480px storefront canvas is the primary live preview, not a separate editor or
+  a pixel-positioning workspace.
+- **Section cards:** retain the numbered header and selected blue ring. The
+  navigator shall focus and smoothly reveal the selected card in a long canvas.
+  Type labels/icons and controls remain labelled; first/last movement disables
+  correctly. Text fields edit in place. Lists use one item per row, with explicit
+  add/remove item controls. Image cards show upload progress, preview, alt-text
+  input, deterministic rejection reason, and retry without discarding the
+  current section.
+- **Responsive and accessible behavior:** at desktop, keep configuration beside
+  the 480px preview; below `lg`, stack configuration before the canvas. Every
+  input has a visible label, errors are adjacent to the affected field, icon
+  actions have accessible names, focus remains in the edited card after adding
+  or removing an item, and no drag-only interaction is required.
+- **States:** an empty canvas offers the bounded section choices; an upload
+  pending state disables only that image card's upload action; failed conversion
+  or upload keeps the source configuration and offers retry; saving does not
+  discard unsaved input on a recoverable request error.
 
-**Status:** Accepted 2026-09-01 per ADR-024.
+### Non-goals
 
-- **REQ-173** — ZvaraShop shall own one coherent application, schema,
-  configuration, asset, document, and release history in this repository.
-- **REQ-174** — External repositories may be reference inputs only; no sync may
-  replace tracked source, migrations, docs, config, or merchant assets.
-- **REQ-175** — CI shall verify docs, tests, types, and build without deploying;
-  remote D1 and Worker deploy remain explicit production actions.
-- **REQ-176** — Live compatibility identifiers shall remain stable unless a
-  separately approved forward migration provides a safe transition.
+- A free-form visual canvas, rich-text editor, arbitrary CSS, arbitrary HTML,
+  video, carousel, gallery, image cropper, or drag-and-drop asset library.
+- Server-side image decoding, resizing, or format conversion; Cloudflare Images,
+  Workers AI, a queue, and a new image dependency.
+- A claim that every file named or declared as an image is convertible. SVG,
+  animated images, HEIC, and any type the operator's browser cannot decode are
+  rejected rather than uploaded or silently changed.
+- Changing existing `html` and `form` section behavior or rewriting existing
+  R2 objects.
 
-The older A22 product/install update model is retained below as historical
-lineage and is superseded for ZvaraShop by this section and ADR-024.
+### Requirements
+
+- **REQ-173** — The system shall support ordered CMS landing sections of type
+  `headline`, `paragraph`, `numbered_list`, `bullet_list`, and `image`, in
+  addition to the existing `html` and `form` types; each new type shall persist
+  only its typed plain-text or image configuration, never generated HTML.
+- **REQ-174** — When an operator adds or edits a new text or list section, the
+  admin shall provide named plain-text controls, preserve the landing page's
+  existing section order and draft state, and reject an empty required value or
+  malformed typed configuration before replacing the stored sections.
+- **REQ-175** — When an operator selects a landing image no larger than 2 MiB,
+  the browser shall decode a supported static raster image, resize it to the
+  existing image-edge budget, encode it as WebP, and upload only a WebP no
+  larger than 2 MiB; if decoding or encoding fails, or either size limit is
+  exceeded, then the upload shall fail without an R2 write.
+- **REQ-176** — The image upload endpoint shall accept a landing image only as
+  a signature-validated WebP under 2 MiB, retain the existing authenticated
+  rate-limit boundary, and return an install-local `/assets/uploads/...webp`
+  URL; it shall not trust a file extension or browser MIME declaration alone.
+
+- **REQ-177** — The public landing route shall render the new section types as
+  semantic text, list, and image elements; images shall be fluid
+  (`max-width: 100%`, automatic height), retain their intrinsic aspect ratio,
+  avoid forced cropping, lazy-load below the fold, and never cause horizontal
+  page overflow at supported widths.
+- **REQ-178** — Existing `html` and `form` landing sections and their URLs,
+  previews, shortcodes, product-page claims, and draft/published behavior shall
+  remain unchanged; malformed new-section data shall fail safely without
+  rendering raw markup or another product's asset.
+- **REQ-179** — When an operator edits a `headline`, the admin shall offer
+  left, center, and right alignment plus small, medium, and large text-size
+  choices. A `paragraph` shall offer alignment and render as the standard body
+  style. Valid selections shall persist in typed section configuration and
+  render consistently in the preview and public landing route. New and legacy
+  text configurations shall default to left alignment, medium headline size,
+  and body paragraph style.
+
+### Technical decisions
+
+- **Browser Canvas encoding, not Worker conversion.** The repository already
+  has `client-image.ts` and browser-side WebP encoding. Bounding the original
+  file at 2 MiB keeps Canvas memory bounded while R2 receives one small object;
+  the Worker only validates bytes and performs one R2 `put`.
+- **Typed JSON configuration, not HTML synthesis.** A new nullable JSON
+  configuration column avoids HTML as a storage format for plain text and lists,
+  while preserving `content_html` for legacy sections. The type CHECK change
+  needs a forward migration that rebuilds `landing_sections` and copies every
+  current row unchanged.
+- **Browser-decodable static raster is the honest boundary.** “All image
+  formats” is not portable: Canvas can only encode images the current browser
+  decodes, and animated or vector inputs cannot become one equivalent WebP.
+  The UI must state this boundary and reject unsupported files before upload.
+- **Local HTTP compatibility.** The admin builder shall not require
+  `crypto.randomUUID()` in browser code: a Tailscale HTTP origin is not a
+  secure context and does not expose that method. Transient unsaved-section
+  identifiers may use a timestamp/random fallback because D1 assigns the
+  durable identifier on save.
+
+### Milestones
+
+- [ ] Data and validation: forward migration plus typed section parser.
+- [ ] Authoring: bounded text/list controls and landing-image uploader.
+- [ ] Rendering: semantic public sections with responsive image behavior and
+  executable compatibility/browser evidence.
 
 ## A22 — Release-driven updates for isolated installs
 
-**Status:** Superseded for ZvaraShop by ADR-024. Previously accepted and revised 2026-08-23 per ADR-020 — updates were
+**Status:** Accepted, **revised 2026-08-23 per ADR-020** — updates are
 distributed by manual copy, not a fleet engine. Security gate A-151 is done; the
 engine requirements (REQ-165/166/168/169/171) are withdrawn as YAGNI. Pre-
 remediation evidence is in `docs/AUDIT-2026-08-23.md`; open execution is owned by
@@ -76,8 +137,6 @@ remediation evidence is in `docs/AUDIT-2026-08-23.md`; open execution is owned b
   domain, and credential set per store.
 - Make every proposed installation update reviewable, reproducible, and
   attributable to an immutable product revision.
-- Roll out progressively so one incompatible installation cannot turn a product
-  release into a fleet-wide incident.
 
 ### Non-goals
 
@@ -86,63 +145,40 @@ remediation evidence is in `docs/AUDIT-2026-08-23.md`; open execution is owned b
 - Copying customer, order, payment, catalog, or analytics data between installs.
 - Deploying every production store automatically when product `main` changes.
 - Replacing each installation repository with generated or unreviewable state.
-- Adding a package registry, GitHub App, queue, or hosted fleet service before a
-  terminal-first updater proves those components are necessary.
+- A package registry, GitHub App, queue, fleet updater, or hosted fleet service
+  (ADR-020).
 
 ### Requirements
 
 - **REQ-164** — Before a product release is eligible for installation, every
   inline raw-text JSON payload shall escape HTML script terminators, and a
   regression test containing a literal `</script>` payload shall prove it.
-- **REQ-165** — The product shall identify an update by an immutable Git release
-  reference whose package version, commit, and bundled migration suffix are
-  mutually consistent.
-- **REQ-166** — Given a registered installation and a product release, the
-  updater shall apply the product-owned diff without requiring an operator to
-  copy individual files.
 - **REQ-167** — The updater shall leave install-owned configuration, Cloudflare
   resource identifiers, secrets, merchant assets, and local operational records
   unchanged; an unclassified changed path shall fail the update before writing.
-- **REQ-168** — Each installation update shall be isolated on its own branch and
-  shall pass that installation's test, check, build, and fresh local D1 migration
-  gates before it is eligible for review.
-- **REQ-169** — A fleet rollout shall update one explicitly selected canary
-  first and shall require explicit production authorization before subsequent
-  installation deploys; a failed target shall not mutate another target.
 - **REQ-170** — Each installation shall retain its own database and apply only
   the product's ordered forward migration suffix; no fleet command shall read or
   copy customer rows between D1 databases.
-- **REQ-171** — Every update attempt shall report the source release, target
-  repository, before/after product version, schema version, validation results,
-  and final state without recording secrets or customer data.
 - **REQ-172** — Local product development shall use one canonical `main`
   worktree plus task-named temporary worktrees; a generic persistent detached
   worktree shall not be treated as a current development environment.
 
-> **Revision 2026-08-23 (ADR-020).** REQ-164 (security escaping) is met. REQ-167
-> and REQ-170 stand but are satisfied by a documented **path-ownership manifest**
-> plus the existing per-install migration contract — a copy-paste checklist, not
-> an automated updater. REQ-172 remains as worktree hygiene. **Withdrawn as
-> YAGNI:** REQ-165 (immutable release-identity engine), REQ-166 (automated
-> product-diff updater), REQ-168 (per-branch CI automation), REQ-169 (canary
-> fleet rollout), REQ-171 (automated fleet reporting). They return only if the
-> install count outgrows manual copy.
+> **Revision 2026-08-23 (ADR-020).** REQ-164 is met. REQ-167 and REQ-170 are
+> satisfied by the path-ownership manifest plus the per-install migration
+> contract — a checklist, not an automated updater. REQ-172 is worktree hygiene.
+> The fleet-updater requirements (REQ-165/166/168/169/171) were withdrawn as
+> YAGNI and removed from this document on 2026-09-25.
 
 ### Technical decisions
 
 - **Git release, not a package.** Installations already contain the complete
-  Worker and migration chain. An immutable Git ref is the smallest artifact
-  that preserves deletions, migration history, and source provenance.
-- **Classified synchronization, not blind merge or copy.** The release diff is
-  applied only after every changed path is classified as product-owned or
-  install-owned. Unknown paths stop the run, preventing both silent omissions
-  and overwritten installation configuration.
-- **Private target registry, public generic tooling.** Target repository names
-  and local paths belong in `~/.config/ai-local/adsbookcms-fleet.json`; no token
-  or operational fleet inventory is committed to the product repository.
-- **Review before production.** The first implementation creates update
-  branches and evidence. Merge and deploy remain installation-owned actions
-  behind the existing production approval gate.
+  Worker and migration chain; a Git revision is the smallest artifact that
+  preserves deletions, migration history, and source provenance.
+- **Classified copy, not blind overwrite.** Every changed path is product-owned
+  or install-owned (`docs/UPDATE-PATH-OWNERSHIP.md`); an unknown path stops the
+  update before anything is written.
+- **Review before production.** Merge and deploy remain installation-owned
+  actions behind the existing production approval gate.
 
 ## A21 — A landing page may become the product page
 
@@ -257,7 +293,7 @@ remediation evidence is in `docs/AUDIT-2026-08-23.md`; open execution is owned b
 
 ## 0. About this document
 
-ZvaraShop is a standalone direct-response commerce store and CMS on Cloudflare Workers. **This repository produces one Worker, one database, and one store.**
+AdsBookCMS is a direct-response commerce CMS that installs onto Cloudflare Workers. **One installer run produces one Worker, one database, one store.**
 
 The previous version of this document specified a multi-tenant engine with a provisioning installer, a tenant registry, and fleet deployment — none of which exists in this repository. It also defined three requirement IDs twice with different text, and mandated behaviour (`admin`/`admin` login) that the code was deliberately hardened against.
 
@@ -274,7 +310,7 @@ Each requirement carries a status:
 
 ## 1. Product definition
 
-ZvaraShop gives one merchant a complete direct-response storefront: catalog, landing pages, checkout with cash-on-delivery and online payment, order and shipping operations against an Indonesian 3PL aggregator, ad-signal tracking for Meta and Google, and an admin dashboard — deployed as a single Cloudflare Worker the merchant owns.
+AdsBookCMS gives one merchant a complete direct-response storefront: catalog, landing pages, checkout with cash-on-delivery and online payment, order and shipping operations against an Indonesian 3PL aggregator, ad-signal tracking for Meta and Google, and an admin dashboard — deployed as a single Cloudflare Worker the merchant owns.
 
 **Goals**
 1. A merchant can install, configure, and operate a store without a developer after the first deploy.
@@ -349,7 +385,7 @@ The storefront sells on demand: a variant shall be purchasable whenever it is ac
 | REQ-31 | Fee bearer shall be configurable independently for payment fees and COD fees. | Implemented |
 | REQ-32 | Payment channels shall be individually toggleable by the operator. | Implemented |
 | REQ-33 | The payment instruction page shall show only recorded amounts and instructions, with copy-to-clipboard, expiry countdown, and automatic status polling. | Implemented |
-| REQ-34 | The hourly Worker shall query AutoLaris Advice with the stored provider `transaction_id`. `02/PENDING`, `DELIVERED`, and unknown statuses shall not mutate payment; only `rc: 00` paired with an explicit settlement status may atomically and idempotently mark the transaction/order paid and enqueue the deduplicated server Purchase. Provider callbacks remain evidence only (ADR-022), manual owner/admin reconciliation remains available for unproven responses, and no automatic or manual payment transition shall dispatch shipment. | Implemented locally 2026-09-02 — focused Advice and idempotency contracts passed |
+| REQ-34 | Until AutoLaris publishes an authoritative transaction-inquiry contract, only an authenticated owner/admin may manually confirm an AutoLaris payment after checking the provider dashboard. Provider callbacks shall be recorded as evidence and shall never transition payment state (1.3.3, ADR-022); a confirmed payment shall enqueue the server Purchase for the order (A-166). A buyer holding a failed or expired instruction shall be able to request a new one without operator involvement (A-163). Confirmation shall require exact re-entry of the recorded billed total and provider reference, explicit acknowledgement, and an operator note; atomically append immutable audit evidence and mark the payment/order paid; reject released-stock, cancelled, refunded, mismatched, or stale objects; remain idempotent under retries; never call a provider or dispatch shipment; and become visible to the buyer's existing status polling so `/payment` redirects to `/thanks`. The pending-verification queue may refresh once per minute and flag overdue records, but no timer or cron may infer `paid`. | Implemented locally 2026-08-18 — awaiting final A17 evidence reconciliation |
 | REQ-35 | The balance view shall present recorded reconciliation only, and shall not claim to be a live or withdrawable provider wallet. | Implemented |
 | REQ-36 | Every submitted non-COD checkout shall persist a normal pending order before payment is completed. Pending, failed, cancelled, or expired VA, QRIS, and bank-transfer payment states shall remain order states and shall never be reclassified as abandoned capture. | Implemented 2026-08-17 — full-funnel regression passed |
 
@@ -398,7 +434,7 @@ remain separate correctness work.
 
 | ID | Requirement | Status |
 | --- | --- | --- |
-| REQ-60 | Admin access shall require a signed session validated against the D1 `admin_sessions` and credential records, with credential rotation invalidating existing sessions. | Implemented — KV is cache-only per ADR-021 |
+| REQ-60 | Admin access shall require a signed session validated against both KV and the credential record, with credential rotation invalidating existing sessions. | Implemented |
 | REQ-61 | Admin routes shall be authorised per role, and unsafe admin API methods shall require same-origin. | Implemented |
 | REQ-62 | The admin shall provide catalog CRUD, order management and detail, shipping operations, expedition configuration, payment and reconciliation views, ad configuration, store/warehouse/CRM settings, operator management, and developer API keys. | Implemented |
 | REQ-63 | The content workbench shall support manual drafting and AI-assisted generation from live catalog facts, with publication always explicit. | Implemented |
@@ -429,7 +465,7 @@ remain separate correctness work.
 
 | ID | Requirement | Status |
 | --- | --- | --- |
-| REQ-80 | Production deployment shall be an explicit operator action after local verification; CI and branch merges shall not deploy or hold Cloudflare credentials. | Implemented for the standalone repository per ADR-024 and `RELEASE.md` |
+| REQ-80 | Merging to the release branch shall deploy production, and this shall be documented as the release action rather than contradicted. | Implemented **in an install repository**. Not true of this one: the product repository deploys nothing and holds no Cloudflare credentials (ADR-012, `RELEASE.md` §1) |
 | REQ-81 | Schema upgrades shall be forward-only, validated against the bundled chain, and applied atomically by the Worker before database-backed requests; operators may run the same migrations explicitly as a pre-deploy check. | Implemented 2026-08-17 |
 | REQ-82 | The system shall emit structured, labelled logs retained by Workers Logs, and shall send deduplicated firing and recovery notifications for actionable schema and CAPI outbox failures when an operator configures an HTTPS webhook. | Implemented 2026-08-17 |
 | REQ-83 | An install shall report its version and applied schema version so an operator can determine what a given deployment is running. | Implemented — `src/pages/api/admin/health.ts`, role-gated, reporting version and applied schema version; surfaced on the dashboard |

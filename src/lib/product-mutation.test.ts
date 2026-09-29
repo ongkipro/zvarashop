@@ -127,10 +127,7 @@ function validMutationPayload(overrides: Record<string, unknown> = {}) {
 }
 
 test("active product validation accepts complete merchant-owned data", () => {
-  const parsed = parseProductMutationPayload(
-    validMutationPayload({ brand: "  Merek Sendiri  ", description: "  Deskripsi katalog.  " }),
-    false,
-  );
+  const parsed = parseProductMutationPayload(validMutationPayload(), false);
   assert.ok("value" in parsed);
   if ("value" in parsed) {
     assert.equal(parsed.value.title, "Produk Merchant");
@@ -140,29 +137,6 @@ test("active product validation accepts complete merchant-owned data", () => {
       "/assets/uploads/produk-merchant.webp",
     );
     assert.equal(parsed.value.variants[0].stock, 12);
-    assert.equal(parsed.value.brand, "Merek Sendiri");
-    assert.equal(parsed.value.description, "Deskripsi katalog.");
-  }
-});
-
-test("optional catalog copy is normalized and bounded", () => {
-  const parsed = parseProductMutationPayload(
-    validMutationPayload({ brand: "B".repeat(80), description: "D".repeat(400) }),
-    false,
-  );
-  assert.ok("value" in parsed);
-  if ("value" in parsed) {
-    assert.equal(parsed.value.brand?.length, 70);
-    assert.equal(parsed.value.description?.length, 320);
-  }
-  const empty = parseProductMutationPayload(
-    validMutationPayload({ brand: " ", description: " " }),
-    false,
-  );
-  assert.ok("value" in empty);
-  if ("value" in empty) {
-    assert.equal(empty.value.brand, null);
-    assert.equal(empty.value.description, null);
   }
 });
 

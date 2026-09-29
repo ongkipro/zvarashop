@@ -63,6 +63,20 @@ function cleanAccountNumber(value: string) {
   return value.replace(/\D/g, "").slice(0, 24);
 }
 
+// Logo + name, in the list and in the trigger alike, so the chosen bank reads
+// the same way the saved accounts below it do.
+function BankOption({ asset, label }: { asset: string; label: string }) {
+  return (
+    <span className="flex items-center gap-2.5">
+      <img src={asset} alt="" className="h-5 w-10 shrink-0 object-contain" />
+      <span>{label}</span>
+    </span>
+  );
+}
+
+// The server render reads the label from here instead of the raw code.
+const BANK_ITEMS = Object.fromEntries(SELLER_BANK_OPTIONS.map((bank) => [bank.code, bank.label]));
+
 export default function SellerBankAccounts({
   onAccountsChange,
 }: {
@@ -225,36 +239,40 @@ export default function SellerBankAccounts({
         Rekening tujuan transfer
       </h4>
       <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs leading-5 text-amber-950">
-        <strong className="block font-bold">Cek ulang sebelum menyimpan</strong>
+        <strong className="block font-semibold">Cek ulang sebelum menyimpan</strong>
         Pastikan pilihan bank, nama penerima, dan nomor rekening sama persis dengan
         buku tabungan atau aplikasi bank. Rekening aktif langsung tersedia di
         checkout sesuai urutan daftar.
       </div>
 
       <form
-        className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto] md:items-start"
+        className="grid max-w-xl grid-cols-1 gap-4"
         onSubmit={handleSubmit}
         noValidate
       >
         <div className="space-y-1.5">
-          <label htmlFor="seller-bank-code" className="block text-xs font-bold text-slate-700">
+          <label htmlFor="seller-bank-code" className="block text-xs font-medium text-slate-700">
             Bank
           </label>
           <Select
+            items={BANK_ITEMS}
             value={bankCode}
             onValueChange={(value) => setBankCode(value || DEFAULT_BANK_CODE)}
             disabled={pending}
             required
           >
-            <SelectTrigger id="seller-bank-code" className="h-11 border-slate-200 bg-white shadow-sm">
+            <SelectTrigger id="seller-bank-code" className="w-full">
               <SelectValue>
-                {bankByCode.get(bankCode)?.label || "Pilih bank"}
+                {(value: string) => {
+                  const bank = bankByCode.get(value);
+                  return bank ? <BankOption asset={bank.asset} label={bank.label} /> : "Pilih bank";
+                }}
               </SelectValue>
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent alignItemWithTrigger={false}>
               {SELLER_BANK_OPTIONS.map((bank) => (
                 <SelectItem key={bank.code} value={bank.code}>
-                  {bank.label}
+                  <BankOption asset={bank.asset} label={bank.label} />
                 </SelectItem>
               ))}
             </SelectContent>
@@ -262,7 +280,7 @@ export default function SellerBankAccounts({
         </div>
 
         <div className="space-y-1.5">
-          <label htmlFor="seller-bank-holder" className="block text-xs font-bold text-slate-700">
+          <label htmlFor="seller-bank-holder" className="block text-xs font-medium text-slate-700">
             Nama penerima
           </label>
           <Input
@@ -273,7 +291,7 @@ export default function SellerBankAccounts({
               setAccountHolder(cleanAccountHolder(event.target.value));
               setErrors((current) => ({ ...current, holder: undefined }));
             }}
-            className="h-11 border-slate-200 bg-white shadow-sm"
+            
             maxLength={100}
             autoComplete="off"
             aria-invalid={Boolean(errors.holder)}
@@ -283,14 +301,14 @@ export default function SellerBankAccounts({
           />
           <p
             id="seller-bank-holder-help"
-            className={`text-[11px] leading-4 ${errors.holder ? "font-semibold text-rose-700" : "text-slate-500"}`}
+            className={`text-xs leading-4 ${errors.holder ? "font-semibold text-rose-700" : "text-slate-500"}`}
           >
             {errors.holder || "Hanya huruf; tanpa angka. Harus sama dengan nama pemilik rekening."}
           </p>
         </div>
 
         <div className="space-y-1.5">
-          <label htmlFor="seller-bank-number" className="block text-xs font-bold text-slate-700">
+          <label htmlFor="seller-bank-number" className="block text-xs font-medium text-slate-700">
             Nomor rekening
           </label>
           <Input
@@ -300,7 +318,7 @@ export default function SellerBankAccounts({
               setAccountNumber(cleanAccountNumber(event.target.value));
               setErrors((current) => ({ ...current, number: undefined }));
             }}
-            className="h-11 border-slate-200 bg-white font-mono shadow-sm"
+            className="font-mono"
             inputMode="numeric"
             pattern="[0-9]{6,24}"
             minLength={6}
@@ -313,21 +331,20 @@ export default function SellerBankAccounts({
           />
           <p
             id="seller-bank-number-help"
-            className={`text-[11px] leading-4 ${errors.number ? "font-semibold text-rose-700" : "text-slate-500"}`}
+            className={`text-xs leading-4 ${errors.number ? "font-semibold text-rose-700" : "text-slate-500"}`}
           >
             {errors.number || "Hanya 6–24 digit angka; tanpa huruf, spasi, atau tanda baca."}
           </p>
         </div>
 
-        <div className="flex min-h-11 gap-2 md:pt-[25px]">
-          <Button type="submit" size="xl" className="min-w-32" disabled={pending}>
+        <div className="flex flex-wrap gap-2">
+          <Button type="submit" disabled={pending}>
             {pending ? "Menyimpan…" : editingId ? "Simpan Perubahan" : "Tambah Rekening"}
           </Button>
           {editingId && (
             <Button
               type="button"
               variant="outline"
-              size="xl"
               onClick={resetForm}
               disabled={pending}
               aria-label="Batalkan perubahan rekening"
@@ -340,7 +357,7 @@ export default function SellerBankAccounts({
       </form>
 
       <p
-        className={`min-h-5 text-xs font-bold ${statusError ? "text-rose-700" : "text-emerald-700"}`}
+        className={`min-h-5 text-xs font-semibold ${statusError ? "text-rose-700" : "text-emerald-700"}`}
         role={statusError ? "alert" : "status"}
         aria-live="polite"
       >
@@ -371,10 +388,10 @@ export default function SellerBankAccounts({
                 />
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="truncate text-sm font-bold text-slate-950">
+                    <p className="truncate text-sm font-semibold text-slate-950">
                       {account.bank_code} · {account.account_holder}
                     </p>
-                    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${account.is_active ? "bg-emerald-100 text-emerald-800" : "bg-slate-200 text-slate-600"}`}>
+                    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${account.is_active ? "bg-emerald-100 text-emerald-800" : "bg-slate-200 text-slate-600"}`}>
                       {account.is_active && <CheckCircle2 className="size-3" />}
                       {account.is_active ? "Aktif" : "Nonaktif"}
                     </span>

@@ -78,9 +78,6 @@ test("documented journey schemas expose the canonical producer and consumer iden
   assert.ok("rates" in schemas.ShippingQuoteEnvelope.properties);
   assert.ok("order_number" in schemas.CheckoutOrder.properties);
   assert.ok("public_status_token" in schemas.CheckoutOrder.properties);
-  assert.ok("deduplicated" in schemas.CheckoutOrder.properties);
-  assert.ok("200" in headlessOpenApiDocument.paths["/checkout"].post.responses);
-  assert.ok("201" in headlessOpenApiDocument.paths["/checkout"].post.responses);
   assert.deepEqual(schemas.OrderStatusRequest.required, ["order_number", "status_token"]);
   assert.ok("order" in schemas.OrderStatusEnvelope.properties);
   assert.ok("error" in schemas.ErrorEnvelope.properties);

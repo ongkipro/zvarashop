@@ -4,7 +4,13 @@ import { enqueuePurchaseForPaidOrder } from "./paid-order-purchase.ts";
 
 type Row = Record<string, unknown>;
 
-function createDatabase(options: { paymentStatus: string; pixel: boolean; alreadyQueued?: boolean }) {
+function createDatabase(options: {
+  paymentStatus: string;
+  pixel: boolean;
+  alreadyQueued?: boolean;
+  /** What the checkout stored on the order, if anything. */
+  metaRequestContext?: string;
+}) {
   const outbox: Row[] = [];
   const database = {
     prepare(sql: string) {
@@ -30,21 +36,12 @@ function createDatabase(options: { paymentStatus: string; pixel: boolean; alread
               city: "Bogor",
               postal_code: "16111",
               payment_status: options.paymentStatus,
-              ad_click_ids: JSON.stringify({
-                _fbp: "fb.1.1700000000.legacy-browser",
-                _fbc: "fb.1.1700000000.legacy-click",
-              }),
-              meta_request_context: JSON.stringify({
-                externalId: "0123456789abcdef0123456789abcdef",
-                fbp: "fb.1.1700000000.checkout-browser",
-                fbc: "fb.1.1700000000.checkout-click",
-                clientIp: "203.0.113.7",
-                userAgent: "Checkout Browser/1.0",
-              }),
+              ad_click_ids: null,
+              meta_request_context: options.metaRequestContext ?? null,
               product_value: 150_000,
             };
           }
-          if (sql.includes("FROM capi_event_outbox")) return null;
+          if (sql.includes("capi_event_outbox")) return null;
           throw new Error(`unexpected first(): ${sql}`);
         },
         async all() {
@@ -90,12 +87,10 @@ test("a paid order enqueues one Purchase keyed on its order number", async (cont
   // Goods only, the same figure the browser leg sends.
   assert.equal(payload.customData.value, 150_000);
   assert.deepEqual(payload.customData.contentIds, ["100001"]);
-  assert.equal(payload.userData.externalId, "0123456789abcdef0123456789abcdef");
-  assert.equal(payload.userData.fbp, "fb.1.1700000000.checkout-browser");
-  assert.equal(payload.userData.fbc, "fb.1.1700000000.checkout-click");
-  assert.equal(payload.userData.clientIp, "203.0.113.7");
-  assert.equal(payload.userData.userAgent, "Checkout Browser/1.0");
-  assert.equal(payload.userData.country, "id");
+  assert.equal(payload.userData.externalId, "6281234567890");
+  // This order carries no stored context, so there is nothing to send and
+  // nothing is invented to fill the gap.
+  assert.equal("fbp" in payload.userData, false);
 });
 
 test("an unpaid order, an unconfigured pixel, and an already-sent Purchase are all no-ops", async () => {
@@ -111,4 +106,44 @@ test("an unpaid order, an unconfigured pixel, and an already-sent Purchase are a
     status: "deduplicated",
   });
   assert.equal(sent.outbox.length, 0);
+});
+
+/**
+ * A COD Purchase is confirmed hours or days later, from a cron or an admin
+ * click, with no request of the buyer's own. Everything Meta matches on beyond
+ * the phone number has to come off the order or the event goes out weak — so
+ * this fails if the wiring between checkout capture and the server-side event
+ * is ever broken.
+ */
+test("a stored checkout context reaches the server-side Purchase", async (context) => {
+  const originalFetch = globalThis.fetch;
+  context.after(() => {
+    globalThis.fetch = originalFetch;
+  });
+  globalThis.fetch = async () => Response.json({ events_received: 1 });
+
+  const { database, outbox } = createDatabase({
+    paymentStatus: "paid",
+    pixel: true,
+    metaRequestContext: JSON.stringify({
+      fbp: "fb.1.1700000000000.1234567890",
+      fbc: "fb.1.1700000000000.AbCdEf",
+      externalId: "0123456789abcdef0123456789abcdef",
+      clientIp: "203.0.113.9",
+      userAgent: "Mozilla/5.0 (Linux; Android 13)",
+    }),
+  });
+
+  const result = await enqueuePurchaseForPaidOrder(database, locals(database), 41);
+  assert.equal(result.status, "queued");
+  const payload = outbox[0].payload as { userData: Row };
+
+  assert.equal(payload.userData.fbp, "fb.1.1700000000000.1234567890");
+  assert.equal(payload.userData.fbc, "fb.1.1700000000000.AbCdEf");
+  assert.equal(payload.userData.clientIp, "203.0.113.9");
+  assert.equal(payload.userData.userAgent, "Mozilla/5.0 (Linux; Android 13)");
+  // The stored external id is the browser's own; the phone is only the fallback.
+  assert.equal(payload.userData.externalId, "0123456789abcdef0123456789abcdef");
+  // Meta reads a missing country as a missing key rather than a default.
+  assert.equal(payload.userData.country, "id");
 });

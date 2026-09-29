@@ -1,4 +1,5 @@
 import {
+  AUTOLARIS_PAID_CODE,
   AutoLarisClient,
   type AutoLarisCheckoutChannel,
   type AutoLarisPayment,
@@ -126,6 +127,17 @@ export function autoLarisReferenceId(orderNumber: string) {
  * so an order converted to an online payment later still needs a deliverable-
  * looking address that belongs to this store rather than to a stranger.
  */
+/**
+ * The domain a minted buyer email uses. A dotless host — `localhost` in
+ * `npm run dev:local` — is not an email domain AutoLaris accepts, so it gets
+ * the reserved `.invalid` suffix (RFC 2606): still recognisably this store's,
+ * still never deliverable.
+ */
+function mintedEmailDomain(siteUrl: string) {
+  const host = new URL(siteUrl).hostname.toLowerCase();
+  return host.includes(".") ? host : `${host}.invalid`;
+}
+
 export function buyerEmail(
   storedEmail: string | null,
   customerPhone: string,
@@ -133,7 +145,64 @@ export function buyerEmail(
 ) {
   const stored = storedEmail?.trim();
   if (stored) return stored;
-  return `${customerPhone.replace(/\D/g, "")}@${new URL(siteUrl).hostname}`;
+  return `${customerPhone.replace(/\D/g, "")}@${mintedEmailDomain(siteUrl)}`;
+}
+
+/**
+ * True when `orders.customer_email` holds an address this system minted rather
+ * than one a buyer gave.
+ *
+ * The provider requires an email and a COD checkout collects none, so two
+ * places synthesise `<phone digits>@<store host>`: `buyerEmail` above, and
+ * `submit-order.ts` when a non-COD order is created. Nobody owns that address
+ * and no message will ever be delivered to it.
+ *
+ * It matters because Meta scores Event Match Quality on the keys it is given.
+ * Hashing a fabricated `em` does not merely fail to match — it spends a match
+ * key on a value no Meta user carries, which reads as a real signal that never
+ * resolves. Both CAPI legs read this column straight into `em`.
+ *
+ * The test is deliberately two-part. An all-digits local part alone is not
+ * enough: numeric Gmail addresses are ordinary in Indonesia, and dropping one
+ * would throw away a genuine match key. No buyer, however, has an address at
+ * the merchant's own storefront host.
+ */
+export function isSyntheticBuyerEmail(
+  email: string | null | undefined,
+  ...siteUrls: (string | null | undefined)[]
+): boolean {
+  const value = email?.trim().toLowerCase();
+  if (!value) return false;
+  const [localPart, domain] = value.split("@");
+  if (!localPart || !domain || !/^\d+$/.test(localPart)) return false;
+  // Every host this store answers on, not just one. `buyerEmail` mints against
+  // the configured `siteUrl`, but `submit-order.ts` used to mint against the
+  // *request* host — a store reachable on a workers.dev address, a preview
+  // deployment, or any second domain therefore produced addresses the
+  // single-host check did not recognise, and they went to Meta as real match
+  // keys. Found by watching a live `/thanks` enqueue its payload, not by
+  // reading the code. Minting is unified now; this stays for the rows already
+  // written on the other host.
+  for (const siteUrl of siteUrls) {
+    if (!siteUrl) continue;
+    try {
+      if (domain === new URL(siteUrl).hostname.toLowerCase()) return true;
+      if (domain === mintedEmailDomain(siteUrl)) return true;
+    } catch {
+      // An unparseable configured URL simply matches nothing.
+    }
+  }
+  return false;
+}
+
+/** The email worth handing to Meta, or nothing when the stored one is minted. */
+export function matchableCustomerEmail(
+  email: string | null | undefined,
+  ...siteUrls: (string | null | undefined)[]
+): string | undefined {
+  const value = email?.trim();
+  if (!value || isSyntheticBuyerEmail(value, ...siteUrls)) return undefined;
+  return value;
 }
 
 function mapPaymentRecord(row: PaymentTransactionRow): AutoLarisPaymentRecord {
@@ -206,7 +275,7 @@ export async function loadPaymentRecord(database: D1Database, orderId: number) {
  * Records a `failed` transaction row for an order whose payment could not even
  * be attempted (A-170).
  *
- * `createAutoLarisDigitalOrderForPayment` writes its own `failed` row for a provider
+ * `createAutoLarisPaymentForOrder` writes its own `failed` row for a provider
  * error, but a D1 fault before that INSERT left the order with no
  * `payment_transactions` row at all — and with no row there is no channel in
  * the public status, so `/payment` never offered the retry and the buyer had
@@ -279,13 +348,21 @@ export type AutoLarisScheduledReconciliation = {
   unproven: number;
   failed: number;
   paidOrderIds: number[];
+  /**
+   * Reads that carried the provider's success code but a settlement word the
+   * allowlist does not recognise. This is not a failure — it is the evidence
+   * `UNIMPLEMENTED_SPECS.md` has been waiting for, and it used to be counted as
+   * `unproven` beside genuine failures and discarded. Each entry carries the
+   * exact word so the allowlist can be revised from observation instead of
+   * from a guess.
+   */
+  unrecognisedPaidStatuses: string[];
 };
 
 /**
- * Reconciles payment-only digital orders through Advice. This function never
- * dispatches fulfilment. Pending, shipping vocabulary such as `DELIVERED`, and
- * every unknown response are observable no-ops. Guarded D1 writes make
- * concurrent cron executions idempotent.
+ * Hourly provider reconciliation through Advice. Only an explicit paid shape
+ * moves D1; pending, unknown, and failed reads are observable no-ops. The
+ * guarded D1 batch makes concurrent cron executions idempotent.
  */
 export async function reconcileAutoLarisPaymentStatuses(
   database: D1Database,
@@ -299,6 +376,7 @@ export async function reconcileAutoLarisPaymentStatuses(
     unproven: 0,
     failed: 0,
     paidOrderIds: [],
+    unrecognisedPaidStatuses: [],
   };
   const config = (await getProviderConfig(database, locals)).autolaris;
   if (!config.apiKey) return result;
@@ -334,6 +412,21 @@ export async function reconcileAutoLarisPaymentStatuses(
       }
       if (inquiry.settlement !== "paid") {
         result.unproven += 1;
+        // The provider's success code with a word the allowlist does not know.
+        // Never settle on it — a guess must not move money — but never discard
+        // it either: no settled response has ever been observed, so this read is
+        // exactly the capture that closes SCR1, and it was being thrown away.
+        if (inquiry.code === AUTOLARIS_PAID_CODE) {
+          const observed = inquiry.status || "(kosong)";
+          if (!result.unrecognisedPaidStatuses.includes(observed)) {
+            result.unrecognisedPaidStatuses.push(observed);
+          }
+          console.warn("autolaris-paid-code-unknown-status", {
+            orderNumber: row.order_number,
+            code: inquiry.code,
+            status: observed,
+          });
+        }
         continue;
       }
 
@@ -354,7 +447,12 @@ export async function reconcileAutoLarisPaymentStatuses(
                   AND o.stock_restored_at IS NULL
               )`,
           )
-          .bind(paidAt, paidAt, row.transaction_id, row.provider_transaction_id),
+          .bind(
+            paidAt,
+            paidAt,
+            row.transaction_id,
+            row.provider_transaction_id,
+          ),
         database
           .prepare(
             `UPDATE orders
@@ -369,10 +467,7 @@ export async function reconcileAutoLarisPaymentStatuses(
           )
           .bind(row.order_id, row.transaction_id),
       ]);
-      if (
-        Number(changes[0]?.meta?.changes || 0) < 1 &&
-        Number(changes[1]?.meta?.changes || 0) < 1
-      ) continue;
+      if (Number(changes[0]?.meta?.changes || 0) < 1) continue;
 
       result.paidOrderIds.push(row.order_id);
       await recordNotification(database, {
@@ -396,7 +491,7 @@ export async function reconcileAutoLarisPaymentStatuses(
   return result;
 }
 
-export async function createAutoLarisDigitalOrderForPayment(
+export async function createAutoLarisPaymentForOrder(
   database: D1Database,
   locals: App.Locals,
   input: {
@@ -582,7 +677,7 @@ export async function createAutoLarisDigitalOrderForPayment(
         order.warehouse_province,
       ]
         .filter(Boolean)
-        .join(", ") || order.address,
+        .join(", "),
       receiverName: order.customer_name,
       receiverPhone: order.customer_phone,
       receiverEmail: customerEmail,
@@ -595,6 +690,7 @@ export async function createAutoLarisDigitalOrderForPayment(
       ]
         .filter(Boolean)
         .join(", "),
+      callbackUrl: "",
       grandTotal: order.total_amount,
       codValue: 0,
       remark: order.order_number,

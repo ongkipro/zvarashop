@@ -92,7 +92,28 @@ test("provider-locked AutoLaris channels cannot be removed from the disabled pol
   ]);
 });
 
-test("AutoLaris online checkout creates one digital order without dispatch", async (context) => {
+test("provider-locked AutoLaris channels fail before an outbound payment request", async (context) => {
+  const originalFetch = globalThis.fetch;
+  context.after(() => {
+    globalThis.fetch = originalFetch;
+  });
+  let providerCalls = 0;
+  globalThis.fetch = async () => {
+    providerCalls += 1;
+    return new Response(null, { status: 500 });
+  };
+
+  await assert.rejects(
+    new AutoLarisClient("qa-key").createOrder({
+      ...digitalOrderInput(),
+      channelCode: "VABSI",
+    }),
+    /tidak aktif di provider/i,
+  );
+  assert.equal(providerCalls, 0);
+});
+
+test("AutoLaris Create Order maps nested QRIS instructions and provider expiry", async (context) => {
   const originalFetch = globalThis.fetch;
   context.after(() => {
     globalThis.fetch = originalFetch;
@@ -109,7 +130,7 @@ test("AutoLaris online checkout creates one digital order without dispatch", asy
       data: {
         transaction_id: "874546",
         biaya_admin: 84,
-        total: 12_084,
+        total: 118_484,
         payment_info: {
           expired: "2026-09-03 16:42:00",
           va: "",
@@ -131,7 +152,6 @@ test("AutoLaris online checkout creates one digital order without dispatch", asy
   );
   assert.equal(requestedBody?.courir_id, 1);
   assert.equal(requestedBody?.channel_code, "QRIS");
-  assert.equal(requestedBody?.callback_url, "");
   assert.deepEqual(payment, {
     transactionId: "874546",
     virtualAccount: undefined,
@@ -140,39 +160,9 @@ test("AutoLaris online checkout creates one digital order without dispatch", asy
     url: undefined,
     amount: 12_000,
     admin: 84,
-    total: 12_084,
+    total: 118_484,
     expiresAt: "2026-09-03T09:42:00.000Z",
   });
-});
-
-test("provider-locked AutoLaris channels and invalid references fail before fetch", async (context) => {
-  const originalFetch = globalThis.fetch;
-  context.after(() => {
-    globalThis.fetch = originalFetch;
-  });
-  let providerCalls = 0;
-  globalThis.fetch = async () => {
-    providerCalls += 1;
-    return new Response(null, { status: 500 });
-  };
-
-  // The provider answers `rc: "01" / Invalid parameter` for each of these, with
-  // no field named, so a customer must never be the one who discovers them.
-  await assert.rejects(
-    new AutoLarisClient("qa-key").createOrder({
-      ...digitalOrderInput(),
-      channelCode: "VABSI",
-    }),
-    /tidak aktif di provider/i,
-  );
-  await assert.rejects(
-    new AutoLarisClient("qa-key").createOrder({
-      ...digitalOrderInput(),
-      reffId: "INV-10001",
-    }),
-    /referensi AutoLaris harus berupa angka/i,
-  );
-  assert.equal(providerCalls, 0);
 });
 
 test("an unpaid AutoLaris transaction reads back as pending and nothing else", async (context) => {
@@ -204,7 +194,7 @@ test("an unpaid AutoLaris transaction reads back as pending and nothing else", a
   });
 });
 
-test("Advice accepts explicit settlement but never treats DELIVERED as paid", async (context) => {
+test("Advice accepts only rc 00 with an explicit settled status as paid", async (context) => {
   const originalFetch = globalThis.fetch;
   context.after(() => {
     globalThis.fetch = originalFetch;
@@ -216,15 +206,30 @@ test("Advice accepts explicit settlement but never treats DELIVERED as paid", as
 
   assert.equal(inquiry.settlement, "paid");
 
+  // The provider's own guide names these as unsafe: `SUCCESS` and `BERHASIL`
+  // are too generic, and `rc: "00"` means the API call succeeded rather than
+  // the payment. Reading either as settled marks an order paid that may not be.
+  for (const generic of ["SUCCESS", "BERHASIL"]) {
+    globalThis.fetch = async () =>
+      Response.json({ rc: "00", ket: generic, data: { awb: "" } });
+    const ambiguous = await new AutoLarisClient("qa-key").inquirePayment("956125");
+    assert.equal(
+      ambiguous.settlement,
+      "unproven",
+      `${generic} is too generic to settle a payment`,
+    );
+  }
+
+  // `DELIVERED` is shipping vocabulary and never settlement.
   globalThis.fetch = async () =>
     Response.json({ rc: "00", ket: "DELIVERED", data: { awb: "" } });
-  const delivered = await new AutoLarisClient("qa-key").inquirePayment("956124");
-  assert.equal(delivered.settlement, "unproven");
+  const shipping = await new AutoLarisClient("qa-key").inquirePayment("956126");
+  assert.equal(shipping.settlement, "unproven");
 
   globalThis.fetch = async () =>
-    Response.json({ rc: "00", ket: "SUCCESS", data: { awb: "" } });
-  const genericSuccess = await new AutoLarisClient("qa-key").inquirePayment("956125");
-  assert.equal(genericSuccess.settlement, "unproven");
+    Response.json({ rc: "00", ket: "UNKNOWN", data: { awb: "" } });
+  const unknown = await new AutoLarisClient("qa-key").inquirePayment("956124");
+  assert.equal(unknown.settlement, "unproven");
 });
 
 test("test-autolaris verifies the stored key against the provider without leaking it", async (context) => {
@@ -516,7 +521,7 @@ function digitalOrderInput(
   };
 }
 
-test("createOrder payload defaults to a digital product: courir_id 1, cod_value 0", () => {
+test("createOrder payload defaults to courir_id 1 and prepaid cod_value 0", () => {
   const payload = buildAutoLarisCreateOrderPayload(digitalOrderInput());
   assert.equal(payload.courir_id, 1);
   assert.equal(payload.cod_value, "0");

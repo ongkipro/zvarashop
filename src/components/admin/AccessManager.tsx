@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useConfirm } from "./useConfirm";
 import {
   AlertTriangle,
   Check,
@@ -9,7 +10,6 @@ import {
   Minus,
   Pencil,
   RefreshCw,
-  Search,
   ShieldAlert,
   ShieldCheck,
   Sparkles,
@@ -17,12 +17,35 @@ import {
   UserCheck,
   UserPlus,
   Users,
+  UserCog,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { SearchInput } from "@/components/admin/filter-bar";
+import { FilterSelect } from "@/components/admin/filter-bar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import type { AdminRole } from "../../lib/auth";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+
+const ROLE_FILTER_LABELS: Record<string, string> = {
+  all: "Semua Role",
+  owner: "Owner",
+  admin: "Admin Ops",
+  advertiser: "Operator Ads",
+  customer_service: "Operator CS",
+};
+const ASSIGNABLE_ROLE_OPTIONS: Record<string, string> = {
+  admin: "Admin Ops (Akses Seluruh Operasional)",
+  advertiser: "Operator Ads (Produk, Content & Ads Signal)",
+  customer_service: "Operator CS (Order, Pengiriman & WA)",
+};
+const ASSIGNABLE_ROLE_SHORT_LABELS: Record<string, string> = {
+  admin: "Admin Ops",
+  advertiser: "Operator Ads",
+  customer_service: "Operator CS",
+};
+
 
 type AssignableRole = Exclude<AdminRole, "owner">;
 
@@ -50,7 +73,7 @@ const ROLE_DESCRIPTIONS: Record<AssignableRole, string> = {
   advertiser:
     "Akses khusus pemasaran: Dashboard analytics, Katalog Produk, Form Storefront, dan Signals OS (Meta/Google Ads).",
   customer_service:
-    "Akses khusus pelayanan: Dashboard sales, Order Management, Pengiriman kurir, Cek Risiko No. WA & Cek Ongkir.",
+    "Akses khusus pelayanan: Dashboard penjualan, Pesanan, Pengiriman kurir, Cek Risiko No. WA & Cek Ongkir.",
 };
 
 const ROLE_BADGE_STYLES: Record<
@@ -162,6 +185,7 @@ function generateRandomPassword() {
 }
 
 export function AccessManager() {
+  const { confirm, dialog: confirmDialog } = useConfirm();
   const [users, setUsers] = useState<AccessUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -347,7 +371,7 @@ export function AccessManager() {
   };
 
   const remove = async (user: AccessUser) => {
-    if (!window.confirm(`Cabut seluruh hak akses akun "${user.username}"?`)) {
+    if (!(await confirm({ title: "Cabut akses akun?", description: `Akun "${user.username}" kehilangan seluruh hak akses dan sesinya berakhir.`, confirmLabel: "Cabut akses" }))) {
       return;
     }
     setSaving(true);
@@ -374,53 +398,54 @@ export function AccessManager() {
 
   return (
     <div className="space-y-6">
+      {confirmDialog}
       {/* Overview Stats Bar */}
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs">
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
           <div className="flex items-center gap-2 text-slate-500">
             <Users className="size-4 text-emerald-600" />
-            <span className="text-xs font-bold">Total Akun</span>
+            <span className="text-xs font-semibold">Total Akun</span>
           </div>
-          <p className="mt-2 text-2xl font-black text-slate-950">{stats.total}</p>
+          <p className="mt-2 text-2xl font-semibold text-slate-950">{stats.total}</p>
         </div>
-        <div className="rounded-2xl border border-emerald-200/80 bg-emerald-50/50 p-4 shadow-xs">
+        <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/50 p-4 shadow-xs">
           <div className="flex items-center gap-2 text-emerald-800">
             <ShieldCheck className="size-4 text-emerald-600" />
-            <span className="text-xs font-bold">Owner</span>
+            <span className="text-xs font-semibold">Owner</span>
           </div>
-          <p className="mt-2 text-2xl font-black text-emerald-950">{stats.owner}</p>
+          <p className="mt-2 text-2xl font-semibold text-emerald-950">{stats.owner}</p>
         </div>
-        <div className="rounded-2xl border border-blue-200/80 bg-blue-50/50 p-4 shadow-xs">
+        <div className="rounded-xl border border-blue-200/80 bg-blue-50/50 p-4 shadow-xs">
           <div className="flex items-center gap-2 text-blue-800">
             <CircleUserRound className="size-4 text-blue-600" />
-            <span className="text-xs font-bold">Admin Ops</span>
+            <span className="text-xs font-semibold">Admin Ops</span>
           </div>
-          <p className="mt-2 text-2xl font-black text-blue-950">{stats.admin}</p>
+          <p className="mt-2 text-2xl font-semibold text-blue-950">{stats.admin}</p>
         </div>
-        <div className="rounded-2xl border border-purple-200/80 bg-purple-50/50 p-4 shadow-xs">
+        <div className="rounded-xl border border-purple-200/80 bg-purple-50/50 p-4 shadow-xs">
           <div className="flex items-center gap-2 text-purple-800">
             <Sparkles className="size-4 text-purple-600" />
-            <span className="text-xs font-bold">Operator Ads</span>
+            <span className="text-xs font-semibold">Operator Ads</span>
           </div>
-          <p className="mt-2 text-2xl font-black text-purple-950">{stats.advertiser}</p>
+          <p className="mt-2 text-2xl font-semibold text-purple-950">{stats.advertiser}</p>
         </div>
-        <div className="rounded-2xl border border-amber-200/80 bg-amber-50/50 p-4 col-span-2 sm:col-span-1 shadow-xs">
+        <div className="rounded-xl border border-amber-200/80 bg-amber-50/50 p-4 col-span-2 sm:col-span-1 shadow-xs">
           <div className="flex items-center gap-2 text-amber-800">
             <UserCheck className="size-4 text-amber-600" />
-            <span className="text-xs font-bold">Operator CS</span>
+            <span className="text-xs font-semibold">Operator CS</span>
           </div>
-          <p className="mt-2 text-2xl font-black text-amber-950">{stats.cs}</p>
+          <p className="mt-2 text-2xl font-semibold text-amber-950">{stats.cs}</p>
         </div>
       </section>
 
       {/* Main Grid: User List & Add Form */}
       <div className="grid grid-cols-1 min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
         {/* Left Column: User Directory */}
-        <Card className="min-w-0 rounded-2xl border-slate-200 shadow-xs">
+        <Card className="min-w-0 rounded-xl border-slate-200 shadow-xs">
           <CardHeader className="border-b border-slate-100 pb-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <CardTitle className="text-base font-black text-slate-950">
+                <CardTitle className="text-base font-semibold text-slate-950">
                   Daftar Pengguna Sistem
                 </CardTitle>
                 <p className="mt-0.5 text-xs text-slate-500">
@@ -430,13 +455,11 @@ export function AccessManager() {
               <Button
                 type="button"
                 variant="outline"
-                size="sm"
                 onClick={() => void load()}
                 disabled={loading}
-                className="h-8.5 rounded-xl border-slate-200 text-xs font-bold text-slate-700"
               >
                 <RefreshCw
-                  className={`mr-1.5 size-3.5 ${loading ? "animate-spin" : ""}`}
+                  className={loading ? "animate-spin" : undefined}
                 />
                 Refresh
               </Button>
@@ -444,26 +467,17 @@ export function AccessManager() {
 
             {/* Filter & Search Controls */}
             <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-2.5 size-4 text-slate-400" />
-                <Input
-                  placeholder="Cari username, nama, atau email…"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="h-9 rounded-xl border-slate-200 bg-slate-50/50 pl-9 text-xs"
+              <SearchInput className="flex-1" placeholder="Cari username, nama, atau email" aria-label="Cari akun" value={searchTerm} onValueChange={setSearchTerm} />
+              <div className="w-full sm:w-48">
+                <FilterSelect
+                  id="access-role-filter"
+                  ariaLabel="Filter role"
+                  icon={UserCog}
+                  value={roleFilter}
+                  onValueChange={setRoleFilter}
+                  options={Object.entries(ROLE_FILTER_LABELS).map(([value, label]) => ({ value, label }))}
                 />
               </div>
-              <select
-                value={roleFilter}
-                onChange={(e) => setRoleFilter(e.target.value)}
-                className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-300"
-              >
-                <option value="all">Semua Role</option>
-                <option value="owner">Owner</option>
-                <option value="admin">Admin Ops</option>
-                <option value="advertiser">Operator Ads</option>
-                <option value="customer_service">Operator CS</option>
-              </select>
             </div>
           </CardHeader>
 
@@ -477,7 +491,7 @@ export function AccessManager() {
             ) : filteredUsers.length === 0 ? (
               <div className="p-8 text-center">
                 <ShieldAlert className="mx-auto size-8 text-slate-300" />
-                <p className="mt-2 text-xs font-bold text-slate-600">
+                <p className="mt-2 text-xs font-semibold text-slate-600">
                   Tidak ada pengguna yang cocok dengan kriteria pencarian.
                 </p>
               </div>
@@ -497,19 +511,19 @@ export function AccessManager() {
                     >
                       <div className="flex items-start gap-3 min-w-0">
                         {/* Avatar */}
-                        <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-slate-900 font-mono text-sm font-black text-white shadow-xs">
+                        <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-slate-900 font-mono text-sm font-semibold text-white shadow-xs">
                           {initial}
                         </div>
 
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
-                            <p className="truncate font-extrabold text-slate-950">
+                            <p className="truncate font-semibold text-slate-950">
                               {user.display_name || user.username}
                             </p>
 
                             {/* Role Badge */}
                             <span
-                              className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider ${style.badge}`}
+                              className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wider ${style.badge}`}
                             >
                               <span
                                 className={`size-1.5 shrink-0 rounded-full ${style.dot}`}
@@ -519,14 +533,14 @@ export function AccessManager() {
                             </span>
 
                             {/* Active Status */}
-                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-extrabold text-emerald-700 border border-emerald-200/60">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700 border border-emerald-200/60">
                               <span className="size-1.5 rounded-full bg-emerald-500" />
                               Aktif
                             </span>
                           </div>
 
                           <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-slate-500">
-                            <span className="font-mono font-bold text-slate-700">
+                            <span className="font-mono font-semibold text-slate-700">
                               @{user.username}
                             </span>
                             {user.email && (
@@ -535,7 +549,7 @@ export function AccessManager() {
                           </div>
 
                           {Boolean(user.must_change_password) && (
-                            <p className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-bold text-amber-700">
+                            <p className="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-amber-700">
                               <AlertTriangle className="size-3.5 text-amber-600" />
                               Wajib ganti password pada login berikutnya.
                             </p>
@@ -552,7 +566,7 @@ export function AccessManager() {
                             size="sm"
                             title="Edit profil & role"
                             onClick={() => handleOpenEdit(user)}
-                            className="h-8 rounded-lg px-2.5 text-xs font-bold text-slate-700 hover:bg-slate-200/60"
+                            className="px-2.5 text-slate-700 hover:bg-slate-200/60"
                           >
                             <Pencil className="mr-1 size-3.5 text-slate-500" />
                             Edit
@@ -563,7 +577,7 @@ export function AccessManager() {
                             size="sm"
                             title="Reset password sementara"
                             onClick={() => handleOpenReset(user)}
-                            className="h-8 rounded-lg px-2.5 text-xs font-bold text-amber-700 hover:bg-amber-100/60 hover:text-amber-800"
+                            className="px-2.5 text-amber-700 hover:bg-amber-100/60 hover:text-amber-800"
                           >
                             <KeyRound className="mr-1 size-3.5" />
                             Reset
@@ -575,7 +589,7 @@ export function AccessManager() {
                             title="Cabut akses"
                             disabled={saving}
                             onClick={() => void remove(user)}
-                            className="h-8 rounded-lg px-2.5 text-xs font-bold text-rose-700 hover:bg-rose-100/60 hover:text-rose-800"
+                            className="px-2.5 text-rose-700 hover:bg-rose-100/60 hover:text-rose-800"
                           >
                             <Trash2 className="mr-1 size-3.5" />
                             Hapus
@@ -591,9 +605,9 @@ export function AccessManager() {
         </Card>
 
         {/* Right Column: Add User Form */}
-        <Card className="min-w-0 rounded-2xl border-slate-200 shadow-xs h-fit">
+        <Card className="min-w-0 rounded-xl border-slate-200 shadow-xs h-fit">
           <CardHeader className="border-b border-slate-100 pb-4">
-            <CardTitle className="flex items-center gap-2 text-base font-black text-slate-950">
+            <CardTitle className="flex items-center gap-2 text-base font-semibold text-slate-950">
               <UserPlus className="size-4 text-emerald-600" />
               Tambah Pengguna Baru
             </CardTitle>
@@ -604,45 +618,52 @@ export function AccessManager() {
           <CardContent className="p-4">
             <form onSubmit={create} className="space-y-4">
               <div>
-                <label className="text-xs font-extrabold text-slate-900">
+                <label htmlFor="access-display-name" className="text-xs font-semibold text-slate-900">
                   Nama Lengkap <span className="text-rose-500">*</span>
                 </label>
                 <Input
+                  id="access-display-name"
                   required
                   minLength={2}
                   maxLength={120}
                   placeholder="Misal: Ahmad Fauzi"
                   value={form.display_name}
                   onChange={(e) => setForm({ ...form, display_name: e.target.value })}
-                  className="mt-1 h-9 rounded-xl border-slate-200 text-xs"
+                  className="mt-1"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-extrabold text-slate-900">
+                <label className="text-xs font-semibold text-slate-900">
                   Role & Peran Akses <span className="text-rose-500">*</span>
                 </label>
-                <select
+                <Select
+                  items={ASSIGNABLE_ROLE_OPTIONS}
                   value={form.role}
-                  onChange={(e) =>
-                    setForm({ ...form, role: e.target.value as AssignableRole })
+                  onValueChange={(value) =>
+                    value && setForm({ ...form, role: value as AssignableRole })
                   }
-                  className="mt-1 h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs font-extrabold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                 >
-                  <option value="admin">Admin Ops (Akses Seluruh Operasional)</option>
-                  <option value="advertiser">Operator Ads (Produk, Content & Ads Signal)</option>
-                  <option value="customer_service">Operator CS (Order, Pengiriman & WA)</option>
-                </select>
-                <p className="mt-1.5 rounded-lg bg-slate-50 p-2 text-[11px] leading-4 text-slate-600 border border-slate-100">
+                  <SelectTrigger aria-label="Role" className="mt-1 w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(ASSIGNABLE_ROLE_OPTIONS).map(([value, label]) => (
+                      <SelectItem key={value} value={value}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="mt-1.5 rounded-lg bg-slate-50 p-2 text-xs leading-4 text-slate-600 border border-slate-100">
                   {ROLE_DESCRIPTIONS[form.role]}
                 </p>
               </div>
 
               <div>
-                <label className="text-xs font-extrabold text-slate-900">
+                <label htmlFor="access-username" className="text-xs font-semibold text-slate-900">
                   Username Login <span className="text-rose-500">*</span>
                 </label>
                 <Input
+                  id="access-username"
                   required
                   minLength={3}
                   maxLength={64}
@@ -652,28 +673,29 @@ export function AccessManager() {
                   onChange={(e) =>
                     setForm({ ...form, username: e.target.value.toLowerCase() })
                   }
-                  className="mt-1 h-9 font-mono rounded-xl border-slate-200 text-xs"
+                  className="mt-1 font-mono"
                 />
-                <span className="text-[10px] text-slate-400">
+                <span className="text-xs text-slate-400">
                   3–64 karakter (huruf kecil, angka, titik, garis bawah, strip).
                 </span>
               </div>
 
               <div>
-                <label className="text-xs font-extrabold text-slate-900">Email Opsional</label>
+                <label htmlFor="access-email" className="text-xs font-semibold text-slate-900">Email Opsional</label>
                 <Input
+                  id="access-email"
                   type="email"
                   maxLength={160}
                   placeholder="ahmad@perusahaan.com"
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  className="mt-1 h-9 rounded-xl border-slate-200 text-xs"
+                  className="mt-1"
                 />
               </div>
 
               <div>
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-extrabold text-slate-900">
+                  <label htmlFor="access-password" className="text-xs font-semibold text-slate-900">
                     Password Sementara <span className="text-rose-500">*</span>
                   </label>
                   <button
@@ -681,13 +703,14 @@ export function AccessManager() {
                     onClick={() =>
                       setForm({ ...form, password: generateRandomPassword() })
                     }
-                    className="text-[10px] font-bold text-emerald-700 hover:underline"
+                    className="text-xs font-semibold text-emerald-700 hover:underline"
                   >
                     Acak Password
                   </button>
                 </div>
                 <div className="relative mt-1">
                   <Input
+                    id="access-password"
                     required
                     type={showPassword ? "text" : "password"}
                     minLength={8}
@@ -696,11 +719,13 @@ export function AccessManager() {
                     placeholder="Minimal 8 karakter"
                     value={form.password}
                     onChange={(e) => setForm({ ...form, password: e.target.value })}
-                    className="h-9 rounded-xl border-slate-200 pr-9 text-xs font-mono"
+                    className="pr-9 font-mono"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"}
+                    aria-pressed={showPassword}
                     className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600"
                   >
                     {showPassword ? (
@@ -715,7 +740,7 @@ export function AccessManager() {
               <Button
                 type="submit"
                 disabled={saving}
-                className="w-full min-h-10 rounded-xl bg-slate-950 font-bold text-white shadow-xs hover:bg-slate-900"
+                className="w-full bg-slate-950 text-white hover:bg-slate-900"
               >
                 {saving ? "Menyimpan…" : "Tambah Pengguna Baru"}
               </Button>
@@ -727,8 +752,8 @@ export function AccessManager() {
       {/* Edit User Modal Dialog */}
       {editingUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 backdrop-blur-xs p-4">
-          <div className="max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl ring-1 ring-slate-950/10 animate-in fade-in zoom-in-95 duration-150">
-            <h3 className="text-base font-black text-slate-950">
+          <div className="max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-xl bg-white p-6 shadow-2xl ring-1 ring-slate-950/10 animate-in fade-in zoom-in-95 duration-150">
+            <h3 className="text-base font-semibold text-slate-950">
               Edit Profil & Peran Pengguna
             </h3>
             <p className="mt-1 text-xs text-slate-500">
@@ -737,43 +762,45 @@ export function AccessManager() {
 
             <form onSubmit={saveUserEdit} className="mt-4 space-y-4">
               <div>
-                <label className="text-xs font-bold text-slate-700">Nama Lengkap</label>
+                <label className="text-xs font-semibold text-slate-700">Nama Lengkap</label>
                 <Input
                   required
                   value={editForm.display_name}
                   onChange={(e) =>
                     setEditForm({ ...editForm, display_name: e.target.value })
                   }
-                  className="mt-1 h-9 rounded-xl border-slate-200 text-xs"
+                  className="mt-1"
                 />
               </div>
               <div>
-                <label className="text-xs font-bold text-slate-700">Email</label>
+                <label className="text-xs font-semibold text-slate-700">Email</label>
                 <Input
                   type="email"
                   value={editForm.email}
                   onChange={(e) =>
                     setEditForm({ ...editForm, email: e.target.value })
                   }
-                  className="mt-1 h-9 rounded-xl border-slate-200 text-xs"
+                  className="mt-1"
                 />
               </div>
               <div>
-                <label className="text-xs font-bold text-slate-700">Role</label>
-                <select
+                <label className="text-xs font-semibold text-slate-700">Role</label>
+                <Select
+                  items={ASSIGNABLE_ROLE_SHORT_LABELS}
                   value={editForm.role}
-                  onChange={(e) =>
-                    setEditForm({
-                      ...editForm,
-                      role: e.target.value as AssignableRole,
-                    })
+                  onValueChange={(value) =>
+                    value && setEditForm({ ...editForm, role: value as AssignableRole })
                   }
-                  className="mt-1 h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-900"
                 >
-                  <option value="admin">Admin Ops</option>
-                  <option value="advertiser">Operator Ads</option>
-                  <option value="customer_service">Operator CS</option>
-                </select>
+                  <SelectTrigger aria-label="Role" className="mt-1 w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(ASSIGNABLE_ROLE_SHORT_LABELS).map(([value, label]) => (
+                      <SelectItem key={value} value={value}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="mt-6 flex justify-end gap-2">
@@ -782,7 +809,7 @@ export function AccessManager() {
                   variant="outline"
                   size="sm"
                   onClick={() => setEditingUser(null)}
-                  className="rounded-xl border-slate-200 text-xs font-bold"
+                  className="border-slate-200"
                 >
                   Batal
                 </Button>
@@ -790,7 +817,7 @@ export function AccessManager() {
                   type="submit"
                   size="sm"
                   disabled={saving}
-                  className="rounded-xl bg-slate-950 text-xs font-bold text-white"
+                  className="bg-slate-950 text-white"
                 >
                   {saving ? "Menyimpan…" : "Simpan Perubahan"}
                 </Button>
@@ -803,10 +830,10 @@ export function AccessManager() {
       {/* Reset Password Modal Dialog */}
       {resetUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 backdrop-blur-xs p-4">
-          <div className="max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl ring-1 ring-slate-950/10 animate-in fade-in zoom-in-95 duration-150">
+          <div className="max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-xl bg-white p-6 shadow-2xl ring-1 ring-slate-950/10 animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-center gap-2 text-amber-700">
               <KeyRound className="size-5" />
-              <h3 className="text-base font-black text-slate-950">
+              <h3 className="text-base font-semibold text-slate-950">
                 Reset Password Sementara
               </h3>
             </div>
@@ -817,13 +844,13 @@ export function AccessManager() {
             <form onSubmit={savePasswordReset} className="mt-4 space-y-4">
               <div>
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-slate-700">
+                  <label className="text-xs font-semibold text-slate-700">
                     Password Sementara Baru
                   </label>
                   <button
                     type="button"
                     onClick={() => setNewPasswordValue(generateRandomPassword())}
-                    className="text-[10px] font-bold text-emerald-700 hover:underline"
+                    className="text-xs font-semibold text-emerald-700 hover:underline"
                   >
                     Acak Ulang
                   </button>
@@ -833,12 +860,12 @@ export function AccessManager() {
                   minLength={8}
                   value={newPasswordValue}
                   onChange={(e) => setNewPasswordValue(e.target.value)}
-                  className="mt-1 h-9 rounded-xl border-slate-200 font-mono text-xs"
+                  className="mt-1 font-mono"
                 />
               </div>
 
-              <div className="rounded-xl bg-amber-50 p-3 text-[11px] text-amber-900 border border-amber-200/80">
-                ⚠️ Berikan password di atas kepada pengguna. Pengguna wajib mengganti password ini pada login berikutnya.
+              <div className="rounded-xl bg-amber-50 p-3 text-xs text-amber-900 border border-amber-200/80">
+                Berikan password di atas kepada pengguna. Pengguna wajib mengganti password ini pada login berikutnya.
               </div>
 
               <div className="mt-6 flex justify-end gap-2">
@@ -847,7 +874,7 @@ export function AccessManager() {
                   variant="outline"
                   size="sm"
                   onClick={() => setResetUser(null)}
-                  className="rounded-xl border-slate-200 text-xs font-bold"
+                  className="border-slate-200"
                 >
                   Batal
                 </Button>
@@ -855,7 +882,7 @@ export function AccessManager() {
                   type="submit"
                   size="sm"
                   disabled={saving}
-                  className="rounded-xl bg-amber-600 text-xs font-bold text-white hover:bg-amber-700"
+                  className="bg-amber-600 text-white hover:bg-amber-700"
                 >
                   {saving ? "Menyimpan…" : "Konfirmasi Reset Password"}
                 </Button>
@@ -866,9 +893,9 @@ export function AccessManager() {
       )}
 
       {/* Permissions Matrix Reference Table */}
-      <Card className="min-w-0 rounded-2xl border-slate-200 shadow-xs">
+      <Card className="min-w-0 rounded-xl border-slate-200 shadow-xs">
         <CardHeader className="border-b border-slate-100 pb-4">
-          <CardTitle className="flex items-center gap-2 text-base font-black text-slate-950">
+          <CardTitle className="flex items-center gap-2 text-base font-semibold text-slate-950">
             <ShieldCheck className="size-5 text-blue-600" aria-hidden="true" />
             Matriks Hak Akses & Matrix Permission per Role
           </CardTitle>
@@ -887,9 +914,9 @@ export function AccessManager() {
             {PERMISSION_ROWS.map((row) => (
               <section
                 key={row.capability}
-                className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs"
+                className="rounded-xl border border-slate-200/80 bg-white p-4 shadow-2xs"
               >
-                <h3 className="font-extrabold text-slate-950">{row.capability}</h3>
+                <h3 className="font-semibold text-slate-950">{row.capability}</h3>
                 <p className="mt-0.5 text-xs text-slate-500">{row.description}</p>
                 <div className="mt-3 grid grid-cols-1 gap-2 min-[420px]:grid-cols-2">
                   {PERMISSION_COLUMNS.map((column) => {
@@ -900,11 +927,11 @@ export function AccessManager() {
                         key={column.role}
                         className="flex items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2 border border-slate-100"
                       >
-                        <span className="text-[10px] font-bold text-slate-600">
+                        <span className="text-xs font-semibold text-slate-600">
                           {column.label}
                         </span>
                         <span
-                          className={`inline-flex items-center gap-1 text-[10px] font-black ${
+                          className={`inline-flex items-center gap-1 text-xs font-semibold ${
                             allowed ? "text-emerald-700" : "text-slate-400"
                           }`}
                         >
@@ -924,13 +951,13 @@ export function AccessManager() {
           </div>
 
           {/* Desktop Table View */}
-          <div className="hidden overflow-x-auto rounded-2xl border border-slate-200 md:block">
+          <div className="hidden overflow-x-auto rounded-xl border border-slate-200 md:block">
             <table className="w-full min-w-[640px] text-left text-xs">
               <thead className="bg-slate-50/80">
                 <tr>
                   <th
                     scope="col"
-                    className="px-4 py-3.5 text-[10px] font-black uppercase tracking-wide text-slate-500"
+                    className="px-4 py-3.5 text-xs font-semibold uppercase tracking-wide text-slate-500"
                   >
                     Area Operasional
                   </th>
@@ -940,7 +967,7 @@ export function AccessManager() {
                       scope="col"
                       className="px-4 py-3.5 text-center"
                     >
-                      <span className="text-[11px] font-black text-slate-900">
+                      <span className="text-xs font-semibold text-slate-900">
                         {column.label}
                       </span>
                     </th>
@@ -951,8 +978,8 @@ export function AccessManager() {
                 {PERMISSION_ROWS.map((row) => (
                   <tr key={row.capability} className="hover:bg-slate-50/50">
                     <td className="px-4 py-3.5">
-                      <p className="font-extrabold text-slate-950">{row.capability}</p>
-                      <p className="mt-0.5 text-[11px] text-slate-500">
+                      <p className="font-semibold text-slate-950">{row.capability}</p>
+                      <p className="mt-0.5 text-xs text-slate-500">
                         {row.description}
                       </p>
                     </td>
@@ -962,7 +989,7 @@ export function AccessManager() {
                       return (
                         <td key={column.role} className="px-4 py-3.5 text-center">
                           <span
-                            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-extrabold ${
+                            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${
                               allowed
                                 ? "bg-emerald-50 text-emerald-800 border border-emerald-200/80"
                                 : "bg-slate-100 text-slate-400"

@@ -12,6 +12,8 @@ import MetaLandingTracker from '../components/storefront/tracking/MetaLandingTra
 import GeoIpResolvedForm from '../components/storefront/forms/GeoIpResolvedForm.astro';
 import Icon from '../components/storefront/shared/Icon.astro';
 import SocialProofToast from '../components/storefront/shared/SocialProofToast.astro';
+import { recentOrderCount } from '../lib/social-proof';
+import { getRuntimeEnv } from '../lib/env';
 import { getStorefrontProduct } from '../lib/catalog';
 import { nativeLandingCanonicalPath } from '../lib/landing-pages';
 import { defaultCatalogContentId } from '../lib/catalog-feed';
@@ -42,6 +44,7 @@ const dangerIcon = 'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center tex
 
 const cheapest = [...product.variants].sort((a, b) => a.price - b.price)[0] ?? null;
 const price = cheapest?.price ?? product.price;
+const socialProofOrders = await recentOrderCount(getRuntimeEnv(Astro.locals)?.OMS_DB as D1Database | undefined);
 ---
 
 <BaseLayout
@@ -548,8 +551,7 @@ const price = cheapest?.price ?? product.price;
     </div>
 
     <SocialProofToast
-      productLabel={product.productName}
-      productImage="/images/landing/pembersih-saluran/hero.webp"
+      orderCount={socialProofOrders}
       heroSelector="#landing-hero"
       formSelector="#form-pemesanan"
     />

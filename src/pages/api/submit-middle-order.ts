@@ -1,10 +1,11 @@
 import type { APIRoute } from "astro";
-import { hasClickId, readOrderClickIds, serializeClickIds } from "../../lib/click-ids";
 import {
   captureMetaOrderContext,
   serializeMetaOrderContext,
 } from "../../lib/meta-order-context";
+import { hasClickId, readClickIdCookie, serializeClickIds } from "../../lib/click-ids";
 import { normalizePhoneNumber } from "../../lib/order-schema";
+import { isValidWa62 } from "../../lib/validation";
 import { getRuntimeEnv } from "../../lib/env";
 import { loadStoreCodDisabledProvinceCodes } from "../../lib/form-mode";
 import { resolveGeoLocation } from "../../lib/geo";
@@ -67,12 +68,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
       400,
     );
   if (String(body.website || "").trim()) {
-    // Answered exactly like a generic invalid payload. Naming the control that
-    // caught it — as `HONEYPOT_TRIGGERED` did — tells a bot which field to
-    // leave empty on its next attempt, which is the one thing a honeypot must
-    // never do. The hit is still countable, server-side, where the attacker
-    // cannot read it.
-    console.warn("checkout-honeypot-triggered", { path: "submit-middle-order" });
+    // Answered exactly like a generic invalid payload. Naming the control
+    // that caught it tells a bot which field to leave empty next time, which
+    // is the one thing a honeypot must never do. The hit stays countable
+    // server-side, where the attacker cannot read it.
+    console.warn('checkout-honeypot-triggered', { path: 'submit-middle-order' });
     return json(
       {
         success: false,
@@ -109,11 +109,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
       },
       422,
     );
-  if (!/^(08|628)\d{8,11}$/.test(customerPhone))
+  // The same operator + length rule as the full checkout (order-schema.ts);
+  // this endpoint used to keep its own, stricter regex.
+  if (!isValidWa62(customerPhone))
     return json(
       {
         success: false,
-        error: "Nomor HP harus berisi 10-13 digit (contoh: 081234567890)",
+        error: "Nomor WhatsApp / HP tidak valid. Contoh: 081234567890",
         code: "VALIDATION_ERROR",
       },
       422,
@@ -183,8 +185,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
   try {
     // Attribution captured at the ad landing by the middleware; kept with the
     // order so a COD sale confirmed later can be uploaded to Google Ads.
-    const clickIds = readOrderClickIds(request);
+    const clickIds = readClickIdCookie(request);
     const storedClickIds = hasClickId(clickIds) ? serializeClickIds(clickIds) : undefined;
+    // Same reason as the full form: the Purchase that matters is sent later,
+    // from a request this buyer will never make again.
     const metaRequestContext = serializeMetaOrderContext(
       captureMetaOrderContext(request),
     );
@@ -204,14 +208,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
       adClickIds: storedClickIds,
       metaRequestContext,
     });
-    if (order.created) {
-      scheduleReceiverPerformanceRefresh(
-        database,
-        order.orderNumber,
-        customerPhone,
-        locals,
-      );
-    }
+    scheduleReceiverPerformanceRefresh(
+      database,
+      order.orderNumber,
+      customerPhone,
+      locals,
+    );
     const data = {
       id: order.id,
       order_id: order.orderNumber,
@@ -236,7 +238,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
     };
     return json({
       success: true,
-      deduplicated: !order.created,
       data: { order: data, ...data },
       order: data,
       ...data,

@@ -2,14 +2,14 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
 import {
-  classifyAlerting,
   classifyAutoLaris,
   classifyCapiDelivery,
   classifyCapiOutbox,
-  classifyGoogleAdsOutbox,
   classifyMengantar,
   summarizeHealth,
   type HealthSignal,
+  classifyAlerting,
+  classifyGoogleAdsOutbox,
 } from "./operational-health.ts";
 
 const NOW = Date.parse("2026-08-16T12:00:00.000Z");
@@ -68,23 +68,6 @@ test("an unreadable outbox is unknown, never a depth of zero", () => {
   assert.equal(health.state, "unknown");
   assert.equal(health.reason, "unreadable");
   assert.deepEqual(health.metrics, {});
-});
-
-test("Google Ads terminal failures and a stalled queue are visible", () => {
-  assert.equal(classifyGoogleAdsOutbox({
-    pending: 0,
-    failed: 2,
-    overdue: 0,
-    oldestCreatedAt: minutesAgo(90),
-  }, NOW).reason, "terminal-failures");
-  const stalled = classifyGoogleAdsOutbox({
-    pending: 3,
-    failed: 0,
-    overdue: 3,
-    oldestCreatedAt: minutesAgo(120),
-  }, NOW);
-  assert.equal(stalled.state, "degraded");
-  assert.equal(stalled.reason, "stalled");
 });
 
 test("a pipeline nobody has used is unknown, not degraded", () => {
@@ -174,7 +157,7 @@ test("a store that has never taken a gateway payment is unknown", () => {
     {
       rowsScanned: 0,
       lastOutboundAt: null,
-      lastManualConfirmationAt: null,
+      lastPaidAt: null,
       failedInWindow: 0,
     },
     NOW,
@@ -188,7 +171,7 @@ test("payments created but not yet paid is nobody paid today, not an outage", ()
     {
       rowsScanned: 9,
       lastOutboundAt: minutesAgo(10),
-      lastManualConfirmationAt: null,
+      lastPaidAt: null,
       failedInWindow: 0,
     },
     NOW,
@@ -198,7 +181,7 @@ test("payments created but not yet paid is nobody paid today, not an outage", ()
   // data" beside a column of real transactions. Healthy, awaiting an operator
   // step the reason already names.
   assert.equal(health.state, "healthy");
-  assert.equal(health.reason, "awaiting-first-manual-confirmation");
+  assert.equal(health.reason, "awaiting-first-payment");
   assert.equal(health.ageMinutes, 10, "outbound contact is still reported");
 });
 
@@ -207,7 +190,7 @@ test("create-payment calls that all failed are degraded", () => {
     {
       rowsScanned: 9,
       lastOutboundAt: null,
-      lastManualConfirmationAt: null,
+      lastPaidAt: null,
       failedInWindow: 9,
     },
     NOW,
@@ -221,13 +204,13 @@ test("an audited manual confirmation reports the last verified payment", () => {
     {
       rowsScanned: 9,
       lastOutboundAt: minutesAgo(90),
-      lastManualConfirmationAt: minutesAgo(3),
+      lastPaidAt: minutesAgo(3),
       failedInWindow: 1,
     },
     NOW,
   );
   assert.equal(health.state, "healthy");
-  assert.equal(health.reason, "manually-confirmed");
+  assert.equal(health.reason, "payment-confirmed");
   assert.equal(health.ageMinutes, 3);
 });
 
@@ -248,51 +231,29 @@ test("a fault is louder than a blank when the panel is summarised", () => {
   );
 });
 
-// The 2026-09-03 incident: 116 terminal rows and 24 live ones past every retry
-// window. `failed > 0` returned first, so the operator was shown only the half
-// that was already lost, and nothing said the drain had stopped clearing the
-// half that was still recoverable.
+// On a sibling install a Meta outage turned `capi-outbox` degraded within the
+// hour and ran two days before anyone opened the panel. Two things made that
+// possible: the queue's own signal reported only half of what was wrong, and
+// nothing could tell the operator at all.
 
 test("a queue that is both stalled and holding terminal failures reports both", () => {
-  const now = Date.parse("2026-09-04T04:00:00.000Z");
+  const now = Date.parse("2026-09-08T04:00:00.000Z");
   const signal = classifyCapiOutbox(
-    {
-      pending: 24,
-      failed: 116,
-      overdue: 24,
-      oldestCreatedAt: "2026-09-01T12:31:09.595Z",
-    },
+    { pending: 24, failed: 116, overdue: 24, oldestCreatedAt: "2026-09-05T12:31:09.595Z" },
     now,
   );
   assert.equal(signal.state, "degraded");
   assert.equal(signal.reason, "stalled-with-terminal-failures");
-  assert.deepEqual(signal.metrics, { pending: 24, failed: 116, overdue: 24 });
 });
 
 test("terminal failures alone still read as terminal failures", () => {
-  const now = Date.parse("2026-09-04T04:00:00.000Z");
+  const now = Date.parse("2026-09-08T04:00:00.000Z");
   const signal = classifyCapiOutbox(
-    { pending: 0, failed: 3, overdue: 0, oldestCreatedAt: "2026-09-04T03:55:00.000Z" },
+    { pending: 0, failed: 3, overdue: 0, oldestCreatedAt: "2026-09-08T03:55:00.000Z" },
     now,
   );
   assert.equal(signal.reason, "terminal-failures");
 });
-
-test("a backlog inside its backoff is draining, not stalled", () => {
-  const now = Date.parse("2026-09-04T04:00:00.000Z");
-  const signal = classifyCapiOutbox(
-    { pending: 4, failed: 0, overdue: 4, oldestCreatedAt: "2026-09-04T03:40:00.000Z" },
-    now,
-  );
-  assert.equal(signal.state, "healthy");
-  assert.equal(signal.reason, "draining");
-});
-
-// The Meta outage of 2026-09-03 turned `capi-outbox` degraded within the hour
-// and ran two days before anyone opened the panel. `OPS_ALERT_WEBHOOK_URL` was
-// never set, so every transition the scheduled Worker computed went nowhere.
-// An alerting system nobody wired is worse than none: it creates confidence
-// that something is watching.
 
 test("an unwired alert channel is reported, in amber rather than red", () => {
   const signal = classifyAlerting(false, Date.now());
@@ -310,14 +271,84 @@ test("a wired alert channel reads healthy", () => {
   assert.equal(signal.reason, "configured");
 });
 
-test("the panel explains both alerting states", () => {
+test("the panel explains both new states", () => {
   const source = readFileSync(
     new URL("../components/admin/OperationalHealth.tsx", import.meta.url),
     "utf8",
   );
   assert.match(source, /alerting: "Saluran peringatan"/);
-  for (const reason of ["configured", '"not-configured"']) {
-    assert.ok(source.includes(reason), `panel must describe the ${reason} state`);
-  }
   assert.match(source, /OPS_ALERT_WEBHOOK_URL belum diatur/);
+  assert.match(source, /"stalled-with-terminal-failures":/);
+});
+
+// The Google outbox shipped with no health signal at all, and that absence had
+// a cost: a head-of-line block in reconciliation stopped discovery entirely and
+// nothing reported it (UNIMPLEMENTED_SPECS.md, task A-227).
+
+test("the Google Ads outbox reports the same states as the Meta one", () => {
+  const now = Date.parse("2026-09-09T04:00:00.000Z");
+  assert.equal(
+    classifyGoogleAdsOutbox({ pending: 0, failed: 0, overdue: 0, oldestCreatedAt: null }, now).reason,
+    "empty",
+  );
+  assert.equal(
+    classifyGoogleAdsOutbox(
+      { pending: 3, failed: 0, overdue: 0, oldestCreatedAt: "2026-09-09T03:55:00.000Z" },
+      now,
+    ).state,
+    "healthy",
+    "a backlog inside its backoff is draining, not stalled",
+  );
+  const stalled = classifyGoogleAdsOutbox(
+    { pending: 3, failed: 0, overdue: 3, oldestCreatedAt: "2026-09-08T00:00:00.000Z" },
+    now,
+  );
+  assert.equal(stalled.reason, "stalled");
+  const both = classifyGoogleAdsOutbox(
+    { pending: 3, failed: 9, overdue: 3, oldestCreatedAt: "2026-09-08T00:00:00.000Z" },
+    now,
+  );
+  assert.equal(both.reason, "stalled-with-terminal-failures");
+  assert.deepEqual(both.metrics, { pending: 3, failed: 9, overdue: 3 });
+});
+
+test("an unreadable Google outbox is unknown, never a depth of zero", () => {
+  const signal = classifyGoogleAdsOutbox(null, Date.now());
+  assert.equal(signal.state, "unknown");
+  assert.equal(signal.reason, "unreadable");
+});
+
+test("the panel names the Google outbox and reads its counters", () => {
+  const source = readFileSync(
+    new URL("../components/admin/OperationalHealth.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(source, /"google-ads-outbox": "Antrean Google Ads offline"/);
+  // Both queues share one vocabulary rather than the second needing its own.
+  assert.match(source, /signal\.id === "capi-outbox" \|\| signal\.id === "google-ads-outbox"/);
+});
+
+test("a failure older than the alert window no longer holds the alert open (A-283)", () => {
+  // Failed rows are kept 30 days. Counting every one kept the queue degraded
+  // for a month, so the next outage carried the same reason and was
+  // deduplicated into silence.
+  const old = classifyCapiOutbox(
+    { pending: 0, failed: 3, recentFailed: 0, overdue: 0, oldestCreatedAt: minutesAgo(60 * 48) },
+    NOW,
+  );
+  assert.equal(old.state, "healthy");
+  assert.equal(old.reason, "earlier-failures");
+  assert.equal(old.metrics.failed, 3, "still visible on the panel");
+
+  const fresh = classifyCapiOutbox(
+    { pending: 0, failed: 4, recentFailed: 1, overdue: 0, oldestCreatedAt: minutesAgo(60 * 48) },
+    NOW,
+  );
+  assert.equal(fresh.state, "degraded");
+  assert.equal(fresh.reason, "terminal-failures");
+
+  assert.equal(
+    classifyGoogleAdsOutbox({ pending: 0, failed: 2, recentFailed: 0, overdue: 0, oldestCreatedAt: minutesAgo(60 * 30) }, NOW).state,
+    "healthy",
+  );
 });

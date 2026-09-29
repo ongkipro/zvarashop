@@ -1,4 +1,4 @@
 ---
 export const prerender = false;
-return Astro.redirect('/lem-jaysuing', 301);
+return Astro.redirect(`/lem-jaysuing${Astro.url.search}`, 301);
 ---

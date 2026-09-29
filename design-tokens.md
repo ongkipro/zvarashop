@@ -1,54 +1,53 @@
 ---
-name: zvarashop-storefront
-description: Product neutrals with one brand orange, darkened until it passes AA
+name: adsbookcms-storefront
+description: Monochrome ink on white, Dawn-clean, one 480px column
 theme: { default: light, dark: out-of-scope,
          white-temperature: neutral,
-         why: "The neutrals are the product's own. This store overrides the
-               accent and nothing else, which is what ADR-019 as amended makes
-               the re-brand surface." }
+         why: "The public surface is black and white so a landing page or a
+               custom product page can introduce its own colour without
+               fighting a house accent." }
 colors:
-  accent:        "#C93A1B"                 # --sf-accent        5.12:1 on white, 5.12:1 under white
-  accent-strong: "#A32E12"                 # --sf-accent-strong 7.10:1 — hover, pressed
-  accent-soft:   "#FDF0EC"                 # --sf-accent-soft   ink #111111 on it is 16.95:1
-  accent-ring:   "rgba(201, 58, 27, 0.28)" # --sf-accent-ring   focus ring, derived from accent
+  ink:            "#111111"   # primary text, solid buttons, inverse surfaces
+  ink-secondary:  "#555555"   # body copy, 7.4:1 on white
+  ink-muted:      "#767676"   # captions, 4.6:1 on white - the floor
+  canvas:         "#FAFAFA"   # page behind the column
+  surface:        "#FFFFFF"   # the 480px reading column, cards
+  raised:         "#F5F5F5"   # media wells, inactive chips
+  border:         "#E5E5E5"   # hairline, used sparingly
+  on-ink:         "#FFFFFF"   # text on ink
+  focus:          "#2563EB"   # focus ring only - see accessibility notes
+typography: { display: "Inter 700", body: "Inter 400", emphasis: "Inter 600" }
+spacing: { base: 4px }
+radius: { none: 0 }           # Shape Lock: square. Dawn is square.
+shadows: { none }             # hairlines instead
+motion: { duration-base: 200ms, easing: ease-out }
 ---
 
 ## Rationale
 
-This store does not re-theme the product. It overrides four of the eight
-`--sf-*` tokens `form-hybrid.css` declares — the accent family — and leaves the
-neutrals, the field, its border, the alternate surface and the hairline exactly
-as the product ships them. That is deliberate: the smaller the override, the
-more of the product's own work the store keeps getting for free.
+The storefront was warm neutrals plus a gold accent. That reads as a brand, and
+this is not a brand — it is a CMS that installs for any merchant, and the store
+that renders it has its own. A monochrome public surface stays out of the way:
+a landing page can bring one colour and own it completely, and a custom product
+page can do the same without arguing with a house gold that appears in twelve
+badge backgrounds.
 
-The orange is the brand and stays the brand. It is darker than it was, and the
-reason is measured rather than aesthetic.
+Neutral rather than warm or cool on purpose. A temperature is a brand decision,
+and this palette is deliberately declining to make one on the merchant's behalf.
+Three neutral steps carry the hierarchy — canvas behind the column, white
+surface, and a light well for media — so depth comes from the neutrals rather
+than from shadows sprinkled on flat white.
+
+Square corners and hairlines follow Dawn: borders separate, they do not frame.
+A photo does not need a box drawn around it when it already has edges.
 
 ## Accessibility notes
 
-The install shipped `#EE4D2D` across 86 usages before 2026-08-23. That colour
-is **3.66:1 on white and 3.66:1 under white** — failing WCAG AA 4.5:1 in both
-directions, on the buttons and prices a buyer has to read. It was the same
-defect ADR-019 originally removed the product's gold accent for, running live
-on a store taking real orders.
-
-| Pair | Ratio |
-| --- | --- |
-| `accent` as text on white | 5.12:1 |
-| white on `accent` | 5.12:1 |
-| `accent-strong` as text on white | 7.10:1 |
-| ink `#111111` on `accent-soft` | 16.95:1 |
-
-`#D6401F` was the first candidate and clears the bar at 4.55:1, but with no
-headroom — a single future tweak to a background puts it back under. `#C93A1B`
-was taken instead for the 0.6 of margin, and reads as the same orange.
-
-`accent-soft` is a fill with text on it, so it is measured against the ink that
-sits on it, not against white. That distinction is what a sister install got
-wrong: it shipped a struck-through price at 4.41:1 because its contrast table
-listed surfaces but not fills.
-
-`accent-ring` is the one token that is not a hex, which is exactly why it was
-missed on the first pass and left an orange button wearing a blue focus ring.
-A ring needs 3:1 as an indicator, not 4.5:1; it is derived from the accent so
-it cannot drift away from it.
+- `ink-muted` `#767676` is 4.6:1 on `#FFFFFF` — the floor for body copy. Do not
+  lighten it. `#999999`, which the tree used, is 2.8:1 and fails.
+- The focus ring stays blue. It is the one colour left, and it is deliberate:
+  monochrome cannot express focus against a monochrome page, and a 3:1
+  non-text contrast minimum applies to focus indicators.
+- Ink on white is 18.1:1; `ink-secondary` on white is 7.4:1.
+- Nothing conveys state by colour alone — sold out, selected and error all
+  carry a text or weight change as well.

@@ -36,8 +36,6 @@ const completeProductRow = {
   title: "Pupuk Organik Super",
   slug: "pupuk-organik-super",
   category: "Pupuk",
-  brand: "Merek Katalog",
-  description: "Deskripsi katalog merchant.",
   image_url: "/assets/uploads/pupuk.webp",
   is_active: 1,
 };
@@ -85,12 +83,10 @@ test("D1 rows are the sole source of public identity, image, price, and variants
   assert.equal(products[0].productName, "Pupuk Organik Super");
   assert.equal(products[0].slug, "pupuk-organik-super");
   assert.equal(products[0].category, "Pupuk");
-  assert.equal(products[0].brand, "Merek Katalog");
   assert.equal(products[0].image, "/assets/uploads/pupuk.webp");
   assert.equal(products[0].heroImage, "/assets/uploads/pupuk.webp");
   assert.deepEqual(products[0].images, ["/assets/uploads/pupuk.webp"]);
   assert.equal(products[0].headline, "Merchant-authored headline");
-  assert.equal(products[0].seoDescription, "Merchant SEO description");
   assert.equal(products[0].price, 120000);
   // Both variants publish. The second carries `stock: 0`, which used to
   // remove it from the storefront — the merchant sells on demand and a

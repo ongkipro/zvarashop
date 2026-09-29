@@ -8,6 +8,8 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import MetaLandingTracker from '../components/storefront/tracking/MetaLandingTracker.astro';
 import GeoIpResolvedForm from '../components/storefront/forms/GeoIpResolvedForm.astro';
 import SocialProofToast from '../components/storefront/shared/SocialProofToast.astro';
+import { recentOrderCount } from '../lib/social-proof';
+import { getRuntimeEnv } from '../lib/env';
 import { getStorefrontProduct, getStorefrontProducts } from '../lib/catalog';
 import { nativeLandingCanonicalPath } from '../lib/landing-pages';
 import { defaultCatalogContentId } from '../lib/catalog-feed';
@@ -42,6 +44,7 @@ const seoDescription =
 const cheapest = [...product.variants].sort((a, b) => a.price - b.price)[0] ?? null;
 const price = cheapest?.price ?? product.price;
 const comparePrice = cheapest?.comparePrice ?? Math.round(price * 1.8);
+const socialProofOrders = await recentOrderCount(getRuntimeEnv(Astro.locals)?.OMS_DB as D1Database | undefined);
 ---
 
 <BaseLayout
@@ -381,8 +384,7 @@ const comparePrice = cheapest?.comparePrice ?? Math.round(price * 1.8);
 
     <!-- Social Proof Notification -->
     <SocialProofToast
-      productLabel="GIA Serbuk Anti Tersumbat 110g"
-      productImage="/images/landing/gia-anti-sumbat/hero-giana-overclaim.webp"
+      orderCount={socialProofOrders}
       heroSelector="#landing-hero"
       formSelector="#form-pemesanan"
     />

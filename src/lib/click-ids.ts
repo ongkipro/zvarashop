@@ -41,6 +41,14 @@ export const CLICK_ID_KEYS = [
 export type ClickIdKey = (typeof CLICK_ID_KEYS)[number];
 export type ClickIds = Partial<Record<ClickIdKey, string>>;
 
+/**
+ * The subset that means an ad click actually happened.
+ *
+ * `CLICK_ID_KEYS` also carries the five UTM tags, and a UTM tag is not a click:
+ * anyone can put one on a WhatsApp broadcast, an email, or an organic post.
+ * Only these keys represent a paid click that a conversion can be attributed
+ * back to.
+ */
 export const AD_CLICK_KEYS = [
   "gclid",
   "gbraid",
@@ -50,33 +58,42 @@ export const AD_CLICK_KEYS = [
   "_fbp",
 ] as const satisfies readonly ClickIdKey[];
 
+/** True when this set carries a real ad click, not merely campaign tags. */
 export function hasAdClickId(ids: ClickIds): boolean {
   return AD_CLICK_KEYS.some((key) => Boolean(ids[key]));
 }
 
-/** Preserve paid attribution when a later visit carries only UTM campaign tags. */
+/**
+ * Keys only an ad click puts on a URL. `_fbp`/`_fbc` are also ad keys, but they
+ * are browser cookies the embed widget copies onto every iframe URL, so their
+ * mere arrival is not a new click and must not erase a stored `gclid`.
+ */
+const FRESH_CLICK_KEYS = ["gclid", "gbraid", "wbraid", "fbclid"] as const satisfies readonly ClickIdKey[];
+
+/**
+ * What the cookie should hold after a landing, given what it already held.
+ *
+ * The middleware used to write the parsed URL straight over the cookie, and
+ * `hasClickId` counts a bare `utm_source` as a reason to write. So a visitor
+ * who clicked a Google ad on Monday and opened the merchant's
+ * `?utm_source=whatsapp` follow-up on Wednesday had their `gclid` erased —
+ * and in a COD funnel the sale is confirmed on Friday, when that `gclid` is
+ * the only thing that can attribute it. The click was paid for and the
+ * conversion was silently unattributable.
+ *
+ * - A new ad click replaces the stored set wholesale: last touch wins, and its
+ *   campaign tags belong to it.
+ * - Campaign tags alone keep the stored click identity and describe the
+ *   current visit, so stale tags from an older click do not linger either.
+ */
 export function mergeClickIds(stored: ClickIds, incoming: ClickIds): ClickIds {
-  const merged = { ...stored, ...incoming };
-
-  // Replace only the identifier family that received a new click. A later
-  // Google click must not erase Meta's fbc/fbp, and a later Meta click must not
-  // erase Google's gclid/gbraid/wbraid. Each ad platform needs its own last
-  // attributable click when the order is confirmed days later.
-  const googleKeys = ["gclid", "gbraid", "wbraid"] as const;
-  const incomingGoogle = googleKeys.some((key) => Boolean(incoming[key]));
-  if (incomingGoogle) {
-    for (const key of googleKeys) {
-      if (!incoming[key]) delete merged[key];
-    }
+  if (FRESH_CLICK_KEYS.some((key) => Boolean(incoming[key]))) return incoming;
+  const preserved: ClickIds = {};
+  for (const key of AD_CLICK_KEYS) {
+    const value = stored[key];
+    if (value) preserved[key] = value;
   }
-
-  const incomingMetaClick = Boolean(incoming.fbclid || incoming._fbc);
-  if (incomingMetaClick) {
-    if (!incoming.fbclid) delete merged.fbclid;
-    if (!incoming._fbc) delete merged._fbc;
-  }
-
-  return merged;
+  return { ...preserved, ...incoming };
 }
 
 // Click ids and tracking tokens are URL-safe strings up to 256 chars.
@@ -141,12 +158,25 @@ export function hasClickId(ids: ClickIds): boolean {
 // step with the identical pattern in `meta-event-contract.ts`, which guards the
 // browser-supplied copy of the same two values.
 const FB_BROWSER_ID_PATTERN = /^fb\.\d\.\d{10,20}\..+$/;
-const META_EXTERNAL_ID_PATTERN = /^[a-f0-9]{32}$/;
 
+/**
+ * `_fbp` and `_fbc` are only usable as CAPI match keys in Meta's own
+ * `fb.N.timestamp.payload` shape; anything else degrades event match quality
+ * rather than improving it. Exported so the order context that carries these
+ * to the server-side Purchase validates them with the same rule this module
+ * already applies when it reads the cookie.
+ */
 export function isValidMetaBrowserId(value: unknown): value is string {
   return typeof value === "string" && FB_BROWSER_ID_PATTERN.test(value);
 }
+const META_EXTERNAL_ID_PATTERN = /^[a-f0-9]{32}$/;
 
+/**
+ * The 32-hex `external_id` the storefront mints and stores in its own cookie.
+ * Exported alongside `isValidMetaBrowserId` so a caller carrying these values
+ * to a server-side Purchase cannot invent a looser rule than the one this
+ * module enforces when it reads them back.
+ */
 export function isValidMetaExternalId(value: unknown): value is string {
   return typeof value === "string" && META_EXTERNAL_ID_PATTERN.test(value);
 }
@@ -191,33 +221,13 @@ export function readMetaBrowserIds(
   const directFbc = readCookieValue(cookieHeader, "_fbc");
   return {
     externalId:
-      externalId && isValidMetaExternalId(externalId)
+      externalId && META_EXTERNAL_ID_PATTERN.test(externalId)
         ? externalId
         : undefined,
-    fbp: fbp && isValidMetaBrowserId(fbp) ? fbp : undefined,
+    fbp: fbp && FB_BROWSER_ID_PATTERN.test(fbp) ? fbp : undefined,
     fbc:
-      directFbc && isValidMetaBrowserId(directFbc)
+      directFbc && FB_BROWSER_ID_PATTERN.test(directFbc)
         ? directFbc
-        : clickIds._fbc && isValidMetaBrowserId(clickIds._fbc)
-          ? clickIds._fbc
-          : undefined,
-  };
-}
-
-/**
- * Attribution persisted with an order.
- *
- * The click-id cookie is written on the landing response, while `_fbp` is
- * normally created later by the Pixel bootstrap. Reading both sources at the
- * checkout boundary prevents the delayed paid-order Purchase from losing the
- * newer browser ID.
- */
-export function readOrderClickIds(request: Request): ClickIds {
-  const clickIds = readClickIdCookie(request);
-  const browserIds = readMetaBrowserIds(request);
-  return {
-    ...clickIds,
-    ...(browserIds.fbp ? { _fbp: browserIds.fbp } : {}),
-    ...(browserIds.fbc ? { _fbc: browserIds.fbc } : {}),
+        : clickIds._fbc,
   };
 }

@@ -1,17 +1,19 @@
 import type { APIRoute } from 'astro';
-import { drainCapiOutbox, deliverCapiEvent, enqueueCapiEvent } from '../../lib/capi-outbox.ts';
-import { getStoreAdsConfig } from '../../lib/store-ads.ts';
-import { validateMetaEventPayload } from '../../lib/meta-event-contract.ts';
-import { getRuntimeEnv } from '../../lib/env.ts';
-import { toE164Digits } from '../../lib/meta-capi.ts';
-import { isSyntheticBuyerEmail, resolveMetaCountry } from '../../lib/meta-identity.ts';
-import { checkRateLimit, getClientIp, rateLimitHeaders } from '../../lib/rate-limit.ts';
-import { readMetaBrowserIds } from '../../lib/click-ids.ts';
+import { drainCapiOutbox, deliverCapiEvent, enqueueCapiEvent } from '../../lib/capi-outbox';
+import { getStoreAdsConfig } from '../../lib/store-ads';
+import { validateMetaEventPayload } from '../../lib/meta-event-contract';
+import { getRuntimeEnv } from '../../lib/env';
+import { toE164Digits } from '../../lib/meta-capi';
+import { checkRateLimit, getClientIp, rateLimitHeaders } from '../../lib/rate-limit';
+import { readMetaBrowserIds } from '../../lib/click-ids';
+import { resolveMetaCountry } from '../../lib/meta-identity';
+import { matchableCustomerEmail } from '../../lib/autolaris-payment';
 import {
   findPurchaseOrderByStatusToken,
+  isMetaPurchaseOrderEligible,
   resolveMetaPurchaseContentIds,
   type MetaPurchaseOrder,
-} from '../../lib/meta-purchase-order.ts';
+} from '../../lib/meta-purchase-order';
 
 export const prerender = false;
 
@@ -70,21 +72,27 @@ function getPurchaseReference(
 
 export const POST: APIRoute = async ({ request, locals }) => {
   try {
+    // The only public POST in this repository that carried no rate limit, and
+    // the one with the most to spend: each accepted event inserts a row into
+    // `capi_event_outbox` — which nothing prunes — and then makes a real call
+    // to graph.facebook.com, with `drainCapiOutbox` free to make ten more.
+    //
+    // `event_id` deduplication stops a *replay*, not a flood: an attacker
+    // minting fresh ids is never deduplicated. The cost is not only D1 rows
+    // and Worker subrequests. Purchase is safe — it must resolve to an order
+    // and its status token — but `PageView` and `ViewContent` are not, so
+    // fabricated funnel events could be injected into a merchant's pixel and
+    // quietly degrade the optimisation data they are paying Meta to learn
+    // from, while burning the CAPI quota real conversions need.
+    //
+    // 60/minute per IP, the same ceiling `/api/shipping-rates` uses. A real
+    // session fires a handful of events per page; this bites only a machine.
     const database = getRuntimeEnv(locals)?.OMS_DB as D1Database | undefined;
     const clientIp = getClientIp(request.headers);
-    const rateLimit = await checkRateLimit(
-      database,
-      `public-meta-event:${clientIp}`,
-      60,
-      60_000,
-    );
+    const rateLimit = await checkRateLimit(database, `public-meta-event:${clientIp}`, 60, 60_000);
     if (!rateLimit.allowed) {
       return new Response(
-        JSON.stringify({
-          success: false,
-          error: 'Terlalu banyak event. Coba lagi sebentar.',
-          code: 'RATE_LIMITED',
-        }),
+        JSON.stringify({ success: false, error: 'Terlalu banyak event. Coba lagi sebentar.', code: 'RATE_LIMITED' }),
         {
           status: 429,
           headers: {
@@ -130,6 +138,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
       if (!purchaseOrder) {
         return json({ success: false, error: 'Order Purchase tidak ditemukan atau token tidak valid.' }, 404);
       }
+      if (!isMetaPurchaseOrderEligible(purchaseOrder)) {
+        return json({ success: false, error: 'Order belum memenuhi syarat Purchase.' }, 409);
+      }
       purchaseOrderNumber = purchaseOrder.order_number;
     }
 
@@ -144,24 +155,23 @@ export const POST: APIRoute = async ({ request, locals }) => {
     // the dedicated external ID cookie wins over phone so every funnel event for
     // one visitor keeps the same advertiser-issued identity.
     const browserIds = readMetaBrowserIds(request);
-    // One guard, at the boundary where both halves of the pair are known. An
-    // online-payment order carries `<phone digits>@<store host>`, minted only so
-    // a payment provider had an address to accept, and it was being hashed into
-    // `em` for every paid Purchase — a match key nobody owns, scored against
-    // this store's match quality rather than ignored. Guarding the resolved
-    // value covers the headless route's `payload.email` on the same line.
-    const resolvedPhone = purchaseOrder?.customer_phone || payload.phone;
-    const resolvedEmail = purchaseOrder?.customer_email || payload.email;
     const event = {
       eventName: payload.eventName,
       eventId,
       eventSourceUrl: payload.eventSourceUrl,
       userData: {
-        phone: resolvedPhone,
+        phone: purchaseOrder?.customer_phone || payload.phone,
         name: purchaseOrder?.customer_name || payload.name,
-        email: isSyntheticBuyerEmail(resolvedEmail, resolvedPhone)
-          ? undefined
-          : resolvedEmail,
+        // Never the address `buyerEmail`/`submit-order` mint for the payment
+        // provider: it is `<phone digits>@<store host>`, nobody owns it, and Meta
+        // scores match quality on every key it is handed.
+        email:
+          matchableCustomerEmail(
+            purchaseOrder?.customer_email,
+            locals.tenant.siteUrl,
+            request.url,
+          ) ||
+          payload.email,
         city: purchaseOrder?.city || payload.city,
         province: purchaseOrder?.province || payload.province,
         postalCode: purchaseOrder?.postal_code || payload.postalCode,
@@ -177,7 +187,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
           browserIds.externalId || purchaseExternalId || payload.externalId,
         fbp: payload.fbp || browserIds.fbp,
         fbc: payload.fbc || browserIds.fbc,
-        clientIp,
+        clientIp: getClientIp(request.headers),
         userAgent: request.headers.get('user-agent') || undefined,
       },
       customData: {
@@ -200,6 +210,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     const delivered = await deliverCapiEvent(
       database,
+      event.eventName,
       eventId,
       adsConfig.metaPixelId,
       adsConfig.metaCapiToken,

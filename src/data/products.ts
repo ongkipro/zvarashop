@@ -35,7 +35,6 @@ export type Product = {
   images?: string[];
   tag?: string;
   category: string;
-  brand?: string;
   relatedCategories: string[];
   relatedTags?: string[];
   description: string;

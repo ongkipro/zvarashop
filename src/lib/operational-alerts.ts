@@ -53,6 +53,9 @@ type AlertLogger = Pick<Console, "error" | "info">;
 type EvaluateOptions = {
   store?: AlertStateStore;
   webhookUrl?: string;
+  /** Which install is speaking — its site URL. Several installs can share one
+   * webhook, and an alert that does not name its store cannot be acted on. */
+  source?: string;
   notify?: (event: OperationalAlertEvent) => Promise<void>;
   now?: () => string;
   logger?: AlertLogger;
@@ -85,9 +88,22 @@ function parseStoredState(value: string | null): StoredAlertState | null {
   return null;
 }
 
+/**
+ * The webhook body: the redacted event, the install that raised it, and one
+ * readable line under the two keys chat webhooks render — `text` (Slack,
+ * Google Chat, Mattermost) and `content` (Discord). A generic JSON receiver
+ * still gets every field it had before.
+ */
+export function alertWebhookBody(event: OperationalAlertEvent, source?: string) {
+  const store = source?.trim() || undefined;
+  const line = `[${event.status === "firing" ? "FIRING" : "RECOVERED"}]${store ? ` ${store}` : ""} ${event.signal}: ${event.reason} (${event.transitionAt})`;
+  return { ...event, store, text: line, content: line };
+}
+
 async function postAlertWebhook(
   webhookUrl: string,
   event: OperationalAlertEvent,
+  source?: string,
 ) {
   let url: URL;
   try {
@@ -99,10 +115,13 @@ async function postAlertWebhook(
     throw new Error("alert webhook must use https");
   }
 
+  // Bounded: during a schema outage this runs on the request path, and a
+  // hanging webhook must not hang the storefront's 503 with it.
   const response = await fetch(url.toString(), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(event),
+    body: JSON.stringify(alertWebhookBody(event, source)),
+    signal: AbortSignal.timeout(5_000),
   });
   if (!response.ok) throw new Error("alert webhook rejected notification");
 }
@@ -120,25 +139,17 @@ export function alertsFromOperationalHealth(
           reason: `schema-${schemaState}`,
         };
 
-  const outbox = health.signals.find((signal) => signal.id === "capi-outbox");
-  const capi: OperationalAlertSignal = !outbox
-    ? { id: "capi-outbox", state: "unknown", reason: "unreadable" }
-    : outbox.state === "degraded"
-      ? { id: "capi-outbox", state: "firing", reason: outbox.reason }
-      : outbox.state === "healthy"
-        ? { id: "capi-outbox", state: "healthy", reason: outbox.reason }
-        : { id: "capi-outbox", state: "unknown", reason: outbox.reason };
+  // Both conversion queues alert the same way. Google's used to reach only the
+  // health panel, which is how A-182's head-of-line block went unnoticed.
+  const queue = (id: "capi-outbox" | "google-ads-outbox"): OperationalAlertSignal => {
+    const signal = health.signals.find((candidate) => candidate.id === id);
+    if (!signal) return { id, state: "unknown", reason: "unreadable" };
+    if (signal.state === "degraded") return { id, state: "firing", reason: signal.reason };
+    if (signal.state === "healthy") return { id, state: "healthy", reason: signal.reason };
+    return { id, state: "unknown", reason: signal.reason };
+  };
 
-  const googleOutbox = health.signals.find((signal) => signal.id === "google-ads-outbox");
-  const google: OperationalAlertSignal = !googleOutbox
-    ? { id: "google-ads-outbox", state: "unknown", reason: "unreadable" }
-    : googleOutbox.state === "degraded"
-      ? { id: "google-ads-outbox", state: "firing", reason: googleOutbox.reason }
-      : googleOutbox.state === "healthy"
-        ? { id: "google-ads-outbox", state: "healthy", reason: googleOutbox.reason }
-        : { id: "google-ads-outbox", state: "unknown", reason: googleOutbox.reason };
-
-  return [schema, capi, google];
+  return [schema, queue("capi-outbox"), queue("google-ads-outbox")];
 }
 
 export function schemaAlertFromError(
@@ -231,7 +242,7 @@ async function evaluateSignal(
     ? options.notify
     : options.webhookUrl
       ? (payload: OperationalAlertEvent) =>
-          postAlertWebhook(options.webhookUrl as string, payload)
+          postAlertWebhook(options.webhookUrl as string, payload, options.source)
       : null;
 
   if (repeated && previous.notification !== "pending") {
@@ -250,12 +261,12 @@ async function evaluateSignal(
     transitionAt,
     notification: notifier ? "pending" : "disabled",
   };
-  let statePersisted = await writeState(
-    options.store,
-    signal.id,
-    pendingState,
-    logger,
-  );
+  // A repeat that is still pending already holds exactly this state. Writing
+  // it again made every request during a schema outage a KV write — the
+  // account-wide allowance ADR-021 exists to protect.
+  let statePersisted = repeated
+    ? stored.persisted
+    : await writeState(options.store, signal.id, pendingState, logger);
 
   if (!repeated) {
     if (isRecovery) {

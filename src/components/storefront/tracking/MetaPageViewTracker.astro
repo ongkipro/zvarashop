@@ -39,15 +39,14 @@
     const pathname = window.location.pathname || '/';
     const contentName = document.title || pathname;
     const eventId = window.__META_PAGEVIEW_EVENT_ID__ || createEventId('pv');
-    // No commerce fields. The browser leg fires `fbq('track', 'PageView', {})`
-    // with an empty payload, so a CAPI leg claiming a value of 1 IDR and a
-    // content type described the same event differently from its own twin —
-    // and 1 IDR is not a number anything should ever optimise towards.
     postMeta({
       event_name: 'PageView',
       event_id: eventId,
       lp_name: pathname,
       content_name: contentName,
+      value: 1,
+      currency: 'IDR',
+      content_type: 'page',
       event_source_url: window.location.href,
     });
     pushGtmEcomEvent('page_view', {

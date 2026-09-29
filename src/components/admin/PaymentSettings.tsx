@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { COD_EFFECTIVE_RATE_LABEL } from "@/lib/payment-fee-policy";
 import {
   AlertCircle,
   CheckCircle2,
@@ -139,7 +140,7 @@ function FeeChoice({
     },
   ];
   return (
-    <fieldset className="space-y-3 rounded-xl border border-border bg-muted/30 p-4">
+    <fieldset className="space-y-2">
       <legend className="px-1 text-sm font-semibold text-card-foreground">{legend}</legend>
       <p className="text-xs leading-5 text-muted-foreground">{description}</p>
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2" role="radiogroup" aria-label={`Penanggung fee ${legend}`}>
@@ -153,7 +154,7 @@ function FeeChoice({
               aria-checked={selected}
               onClick={() => onChange(option.value)}
               disabled={disabled}
-              className={`flex min-h-16 items-start gap-3 rounded-lg border px-3 py-3 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
+              className={`flex items-start gap-3 rounded-lg border px-3 py-2.5 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
                 selected
                   ? "border-primary bg-primary/10 text-foreground"
                   : "border-border bg-background text-muted-foreground hover:bg-muted"
@@ -348,7 +349,7 @@ export default function PaymentSettings({ channels }: { channels: PaymentChannel
       <Card>
         <CardContent className="flex flex-col items-start gap-3 py-2">
           <InlineNotice notice={{ tone: "error", text: loadError }} />
-          <Button type="button" variant="outline" size="xl" onClick={() => void load()}>
+          <Button type="button" variant="outline" onClick={() => void load()}>
             <RefreshCw /> Coba lagi
           </Button>
         </CardContent>
@@ -365,7 +366,7 @@ export default function PaymentSettings({ channels }: { channels: PaymentChannel
         </Badge>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button type="button" variant="outline" size="xl" disabled={loading} aria-label="Buka aksi pembayaran">
+            <Button type="button" variant="outline" disabled={loading} aria-label="Buka aksi pembayaran">
               <EllipsisVertical /> Aksi
             </Button>
           </DropdownMenuTrigger>
@@ -381,56 +382,54 @@ export default function PaymentSettings({ channels }: { channels: PaymentChannel
 
       <InlineNotice notice={notice} />
 
+      {/* Two columns on a wide screen: what is live at checkout on the left,
+          how it is configured on the right. One column made the page a long
+          scroll with half the desktop empty. */}
+      <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
+      <div className="min-w-0 space-y-5">
       <Card>
         <CardHeader className="border-b">
           <CardTitle as="h3" className="font-semibold">Status metode pembayaran</CardTitle>
           <CardDescription>Metode aktif otomatis tersedia pada checkout pembeli.</CardDescription>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 gap-3 md:grid-cols-3">
-          <div className="flex min-h-36 flex-col justify-between gap-4 rounded-xl border border-border bg-muted/25 p-4">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <StatusBadge ready={codEnabled}>{loading ? "Memuat" : codEnabled ? "Aktif" : "Nonaktif"}</StatusBadge>
-                <h4 className="mt-3 font-semibold text-card-foreground">COD</h4>
-                <p className="mt-1 text-xs leading-5 text-muted-foreground">Tunai saat pesanan tiba melalui kurir.</p>
-              </div>
-              <Switch
-                checked={codEnabled}
-                onCheckedChange={(checked) => void saveMaster("cod", checked)}
-                disabled={mutationsDisabled}
-                aria-label="Aktifkan pembayaran COD"
-              />
+        {/* One row per method, not a card per method inside this card. */}
+        <CardContent className="divide-y px-0">
+          <div className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center">
+            <div className="min-w-0 flex-1">
+              <h4 className="font-semibold text-card-foreground">COD</h4>
+              <p className="text-xs text-muted-foreground">Tunai saat pesanan tiba melalui kurir · biaya {COD_EFFECTIVE_RATE_LABEL} termasuk PPN, ditanggung {codFeeBearer === "buyer" ? "pembeli" : "seller"}</p>
             </div>
-            <p className="border-t border-border pt-3 text-xs text-muted-foreground">Fee: <strong className="text-foreground">3% + PPN · {codFeeBearer === "buyer" ? "Pembeli" : "Seller"}</strong></p>
+            <StatusBadge ready={codEnabled}>{loading ? "Memuat" : codEnabled ? "Aktif" : "Nonaktif"}</StatusBadge>
+            <Switch
+              checked={codEnabled}
+              onCheckedChange={(checked) => void saveMaster("cod", checked)}
+              disabled={mutationsDisabled}
+              aria-label="Aktifkan pembayaran COD"
+            />
           </div>
-
-          <div className="flex min-h-36 flex-col justify-between gap-4 rounded-xl border border-border bg-muted/25 p-4">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <StatusBadge ready={apiReady && autolarisEnabled}>
-                  {loading ? "Memuat" : !apiReady ? "Belum siap" : autolarisEnabled ? "Aktif" : "Nonaktif"}
-                </StatusBadge>
-                <h4 className="mt-3 font-semibold text-card-foreground">AutoLaris</h4>
-                <p className="mt-1 text-xs leading-5 text-muted-foreground">QRIS dan Virtual Account.</p>
-              </div>
-              <Switch
-                checked={autolarisEnabled}
-                onCheckedChange={(checked) => void saveMaster("autolaris", checked)}
-                disabled={mutationsDisabled || !apiReady}
-                aria-label="Aktifkan AutoLaris"
-              />
+          <div className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center">
+            <div className="min-w-0 flex-1">
+              <h4 className="font-semibold text-card-foreground">AutoLaris</h4>
+              <p className="text-xs text-muted-foreground">QRIS dan Virtual Account · {activeChannelCount} dari {channels.length} channel aktif</p>
             </div>
-            <p className="border-t border-border pt-3 text-xs text-muted-foreground">Channel: <strong className="text-foreground">{activeChannelCount}/{channels.length} aktif</strong></p>
+            <StatusBadge ready={apiReady && autolarisEnabled}>
+              {loading ? "Memuat" : !apiReady ? "Belum siap" : autolarisEnabled ? "Aktif" : "Nonaktif"}
+            </StatusBadge>
+            <Switch
+              checked={autolarisEnabled}
+              onCheckedChange={(checked) => void saveMaster("autolaris", checked)}
+              disabled={mutationsDisabled || !apiReady}
+              aria-label="Aktifkan AutoLaris"
+            />
           </div>
-
-          <div className="flex min-h-36 flex-col justify-between gap-4 rounded-xl border border-border bg-muted/25 p-4">
-            <div>
-              <StatusBadge ready={manualActiveCount > 0}>{loading ? "Memuat" : manualActiveCount > 0 ? "Aktif" : "Belum tersedia"}</StatusBadge>
-              <h4 className="mt-3 font-semibold text-card-foreground">Transfer manual</h4>
-              <p className="mt-1 text-xs leading-5 text-muted-foreground">Rekening tujuan milik toko.</p>
+          <div className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center">
+            <div className="min-w-0 flex-1">
+              <h4 className="font-semibold text-card-foreground">Transfer manual</h4>
+              <p className="text-xs text-muted-foreground">Rekening tujuan milik toko · {manualActiveCount} rekening aktif</p>
             </div>
-            <Button type="button" variant="outline" className="w-full" onClick={() => setBanksOpen(true)} disabled={loading}>
-              <Landmark /> Kelola {manualActiveCount} rekening aktif
+            <StatusBadge ready={manualActiveCount > 0}>{loading ? "Memuat" : manualActiveCount > 0 ? "Aktif" : "Belum tersedia"}</StatusBadge>
+            <Button type="button" variant="outline" onClick={() => setBanksOpen(true)} disabled={loading}>
+              <Landmark /> Kelola rekening
             </Button>
           </div>
         </CardContent>
@@ -517,13 +516,15 @@ export default function PaymentSettings({ channels }: { channels: PaymentChannel
           </Table>
         </CardContent>
       </Card>
+      </div>
 
+      <div className="min-w-0 space-y-5">
       <Card>
         <CardHeader className="border-b">
           <CardTitle as="h3" className="font-semibold">Kebijakan biaya transaksi</CardTitle>
           <CardDescription>Tentukan apakah fee dibayar pembeli atau dipotong dari hasil seller.</CardDescription>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <CardContent className="grid grid-cols-1 gap-5">
           <FeeChoice
             legend="Pembayaran online"
             description="QRIS 0,7%; VA BCA Rp6.500; VA lain Rp3.000 per transaksi."
@@ -533,7 +534,7 @@ export default function PaymentSettings({ channels }: { channels: PaymentChannel
           />
           <FeeChoice
             legend="COD"
-            description="3% dari harga + ongkir, ditambah PPN 11% atas biaya layanan."
+            description={`${COD_EFFECTIVE_RATE_LABEL} dari harga + ongkir, sudah termasuk PPN (biaya 3% + PPN 11% atas biaya itu).`}
             value={codFeeBearer}
             onChange={setCodFeeBearer}
             disabled={mutationsDisabled}
@@ -541,7 +542,7 @@ export default function PaymentSettings({ channels }: { channels: PaymentChannel
         </CardContent>
         <div className="flex flex-wrap items-center justify-end gap-3 border-t border-border px-4 pt-4">
           <span className="text-xs text-muted-foreground">{feeDirty ? "Ada perubahan belum disimpan" : "Kebijakan sudah tersimpan"}</span>
-          <Button type="button" size="xl" onClick={() => void saveFeePolicy()} disabled={!feeDirty || mutationsDisabled}>
+          <Button type="button" onClick={() => void saveFeePolicy()} disabled={!feeDirty || mutationsDisabled}>
             <WalletCards /> {busy === "fee" ? "Menyimpan…" : "Simpan kebijakan"}
           </Button>
         </div>
@@ -550,8 +551,8 @@ export default function PaymentSettings({ channels }: { channels: PaymentChannel
       <Collapsible open={credentialsOpen} onOpenChange={setCredentialsOpen}>
         <Card>
           <CardHeader className="border-b">
-            <CardTitle as="h3" className="font-semibold">Konfigurasi Create Order AutoLaris</CardTitle>
-            <CardDescription>Validasi lokal untuk API key dan alur checkout melalui endpoint Create Order.</CardDescription>
+            <CardTitle as="h3" className="font-semibold">Konfigurasi checkout AutoLaris</CardTitle>
+            <CardDescription>Validasi lokal untuk API key dan pengajuan pembayaran QRIS atau Virtual Account.</CardDescription>
             <CardAction className="flex items-center gap-2">
               <StatusBadge ready={apiReady}>{apiReady ? "API key tersimpan" : "API key belum diatur"}</StatusBadge>
               <CollapsibleTrigger
@@ -572,22 +573,22 @@ export default function PaymentSettings({ channels }: { channels: PaymentChannel
                 </div>
                 <div className="rounded-xl border border-border bg-muted/25 p-4">
                   <p className="text-xs font-medium text-muted-foreground">Konfirmasi pembayaran</p>
-                  <p className="mt-2 text-sm font-medium text-foreground">Verifikasi manual oleh owner/admin</p>
+                  <p className="mt-2 text-sm font-medium text-foreground">Konfirmasi otomatis dengan fallback manual</p>
                   <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                    Status pembayaran dikonfirmasi manual. Operator mencocokkan transaksi di dashboard AutoLaris sebelum menandai lunas di CMS.
+                    Sistem memeriksa AutoLaris setiap jam dan menandai lunas hanya saat respons provider menyatakan pembayaran berhasil. Owner/admin tetap dapat melakukan rekonsiliasi manual.
                   </p>
                 </div>
               </div>
-              <InlineNotice notice={{ tone: "info", text: "Pemeriksaan lokal hanya memvalidasi konfigurasi Create Order; hasilnya bukan bukti kesehatan live provider atau settlement dana." }} />
+              <InlineNotice notice={{ tone: "info", text: "Pemeriksaan lokal hanya memvalidasi API key dan konfigurasi checkout; hasilnya bukan bukti kesehatan live provider atau settlement dana." }} />
               <div className="flex flex-wrap gap-2">
-                <Button type="button" variant="outline" size="xl" onClick={() => void runLocalCheck("test-autolaris")} disabled={mutationsDisabled || !apiReady}>
+                <Button type="button" variant="outline" onClick={() => void runLocalCheck("test-autolaris")} disabled={mutationsDisabled || !apiReady}>
                   <RefreshCw className={busy === "test-autolaris" ? "animate-spin" : ""} /> Periksa konfigurasi lokal
                 </Button>
-                <Button type="button" variant="outline" size="xl" onClick={() => window.location.assign("/admin/profile")}>
+                <Button type="button" variant="outline" onClick={() => window.location.assign("/admin/profile")}>
                   <Settings2 /> Kelola kredensial API
                 </Button>
-                <Button type="button" size="xl" onClick={() => window.location.assign("/admin/balance")}>
-                  <ShieldCheck /> Buka verifikasi manual
+                <Button type="button" onClick={() => window.location.assign("/admin/balance")}>
+                  <ShieldCheck /> Buka rekonsiliasi manual
                 </Button>
               </div>
             </CardContent>
@@ -621,6 +622,8 @@ export default function PaymentSettings({ channels }: { channels: PaymentChannel
           </CollapsibleContent>
         </Card>
       </Collapsible>
+      </div>
+      </div>
 
       <style>{`
         @media (max-width: 767px) {

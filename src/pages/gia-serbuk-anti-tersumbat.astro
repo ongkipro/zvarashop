@@ -1,4 +1,4 @@
 ---
 export const prerender = false;
-return Astro.redirect('/gia-anti-sumbat', 301);
+return Astro.redirect(`/gia-anti-sumbat${Astro.url.search}`, 301);
 ---

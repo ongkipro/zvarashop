@@ -9,7 +9,7 @@ import {
   resolveEmbedAllowedOrigins,
 } from "../../../lib/embed-security.ts";
 import { parseHeadlessAllowedOrigins } from "../../../lib/headless-api.ts";
-import { LOCALE_PATTERN, THEME_COLOR_PATTERN } from "../../../lib/tenant.ts";
+import { isAcceptedSiteProtocol, LOCALE_PATTERN, THEME_COLOR_PATTERN } from "../../../lib/tenant.ts";
 import { getEnvValue, getRuntimeEnv, maskSecretValue } from "../../../lib/env.ts";
 import {
   addStorefrontTemplate,
@@ -707,7 +707,7 @@ export const PUT: APIRoute = async ({ request, locals }) => {
       if (siteUrlRaw) {
         try {
           const parsed = new URL(siteUrlRaw);
-          if (parsed.protocol !== "https:") {
+          if (!isAcceptedSiteProtocol(parsed)) {
             return jsonError("Alamat toko harus memakai https.", 400);
           }
           siteUrl = parsed.origin;
@@ -732,12 +732,15 @@ export const PUT: APIRoute = async ({ request, locals }) => {
         return jsonError("Template storefront tidak dikenal.", 400);
       }
 
-      // Stored per install since migration 0036 and rendered ever since —
-      // `<meta name="theme-color">`, `<html lang>`, JSON-LD `inLanguage`, the
-      // admin title and sidebar — with no way for an operator to set them
-      // (S1). Rejected rather than silently corrected: `resolveTenantConfig`
-      // falls back for a malformed value, so saving `#fff` and being shown
-      // `#111111` would tell the operator nothing about why.
+      // A blank field clears the column back to NULL, which the resolver reads
+      // as "not configured here" and falls back for — the same meaning it has
+      // on a fresh install, so clearing is a real action rather than a way to
+      // store an empty name.
+      // Stored per install and rendered ever since — `<meta name="theme-color">`,
+      // `<html lang>`, JSON-LD `inLanguage`, the admin title — with no way for an
+      // operator to set them. Rejected rather than silently corrected:
+      // `resolveTenantConfig` falls back for a malformed value, so saving `#fff`
+      // and being shown `#111111` would tell the operator nothing about why.
       const themeColorValue = clean(body.theme_color, 7);
       if (themeColorValue && !THEME_COLOR_PATTERN.test(themeColorValue)) {
         return jsonError(
@@ -753,10 +756,6 @@ export const PUT: APIRoute = async ({ request, locals }) => {
         );
       }
 
-      // A blank field clears the column back to NULL, which the resolver reads
-      // as "not configured here" and falls back for — the same meaning it has
-      // on a fresh install, so clearing is a real action rather than a way to
-      // store an empty name.
       await db
         .prepare(
           `UPDATE stores

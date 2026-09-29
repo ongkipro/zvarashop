@@ -47,7 +47,7 @@ export const defaultCrmTemplates: Record<string, string> = {
   9:
     'Halo {{name}}, kami lagi ada promo khusus untuk {{product_name}}, dari harga {{compare_price}} jadi cuma {{product_price}} saja! Stok terbatas ya, pesan sekarang sebelum kehabisan.',
   redirect:
-    'Halo, saya sudah melakukan pemesanan {{product_name}} atas nama {{name}}. Nomor pesanan {{order_number}}, total {{total_price}}. Mohon segera diproses ya.',
+    'Halo, saya sudah melakukan pemesanan {{product_name}}, atas nama {{name}}. Mohon segera diproses ya.',
 };
 
 export const CRM_TEMPLATE_KEYS = [

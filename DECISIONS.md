@@ -1,6 +1,6 @@
-# Architecture Decision Record — ZvaraShop
+# Architecture Decision Record — AdsBookCMS
 
-> Verified against disk: 2026-09-01 @ `e6b9fbe` + standalone/ad-signals working tree
+> Verified against disk: 2026-09-25 @ `6e30950` + audit working tree
 
 Append-only. One decision per entry. A decision is recorded here only when it constrains future work; implementation detail belongs in `ARCHITECTURE.md`, remaining work in `UNIMPLEMENTED_SPECS.md`.
 
@@ -712,35 +712,174 @@ but as **unpublished** in the read path, which is the bug in the first place;
 making the representation carry the meaning would have left that trap in place
 for whoever typed a number next.
 
-## ADR-024 — ZvaraShop is a standalone repository
+---
 
-**Date:** 2026-09-01 · **Status:** Accepted. Supersedes ADR-020 for this repository.
+## ADR-024 — The product owns migration numbers; an install that authors one renumbers around it
 
-**Context.** ZvaraShop began as an AdsBookCMS installation, but it now owns a
-live store's configuration, merchant experience, schema history, assets, and
-release evidence. The replacement-style `sync-from-product.sh` deleted `src/`
-and `docs/`, copied a foreign tree, merged public assets, and could overwrite
-repository-owned release truth. It also made local migration ownership unsafe:
-another store already used migration number `0051` for a different schema
-change than AdsBookCMS, while runtime validation correctly treats filename
-history as exact. “Base product plus install” was no longer one coherent source
-of truth.
+**Status.** Accepted, 2026-09-05.
 
-**Decision.** `ongkipro/zvarashop` is the only source and release repository for
-ZvaraShop. All tracked paths—including `wrangler.jsonc`, migrations, merchant
-assets, docs, and CI—are owned here. AdsBookCMS and other stores may be studied
-as references, but changes are ported as ordinary reviewed commits with local
-tests and the next valid ZvaraShop migration. Blind sync/tree replacement is
-retired and its script fails closed. CI verifies and never deploys; production
-still requires explicit operator approval.
+**Context.** `zvarashop` and `permatamall` each authored migrations against
+their own live databases while the product moved on. Three different `0051`
+files now exist, and two of them are already applied in production D1:
 
-Existing `adsbook_*` compatibility identifiers are not renamed. Cookie names,
-API-key prefixes, database columns, event labels, and migration history are
-runtime contracts, not branding. The public/repository identity is ZvaraShop;
-the compatible internals remain stable until a separately justified migration.
+| | 0051 | 0052 | 0053 | 0054 |
+| --- | --- | --- | --- | --- |
+| product | `typed_landing_sections` | — | — | — |
+| zvarashop | `product_catalog_fields` | `meta_order_context` | `checkout_order_deduplication` | `notification_floor` |
+| permatamall | `product_brand` | `product_description` | `checkout_order_deduplication` | `meta_order_context` |
 
-**Consequences.** Product/install path ownership and fleet-update documents no
-longer govern this repo. Bugs fixed elsewhere do not arrive automatically; the
-cost is deliberate review, and the benefit is one code/schema/document truth
-with no foreign merchant or migration state crossing the boundary. The former
-`product` Git remote may remain fetch-only for comparison but has no authority.
+`assertKnownHistory` compares the applied ledger to the bundled chain **by
+index and name** (`src/lib/schema-version.ts`). So the next `git merge
+product/main` in either store ships a bundle whose slot 51 disagrees with the
+row already claimed there, and the store answers `SCHEMA_UPGRADE_HISTORY_UNKNOWN`
+— a fail-closed 503 on every database-backed request. Not a degraded store: a
+dark one.
+
+The schemas themselves had already converged. Verified against live D1 rather
+than assumed: `products` and `orders` are column-for-column identical in both
+stores (`brand`, `description`, `meta_request_context`, `checkout_fingerprint`,
+`checkout_dedupe_expires_at`), and only `zvarashop` carries
+`admin_credentials.notification_floor_id`. Two stores solved the same problems
+and wrote the same DDL under different file names. Nothing needs to be
+reconciled but the ledger.
+
+**Decision.** Migration numbers belong to the product. The canonical chain
+adopts the four install-authored migrations at the numbers `zvarashop` already
+holds, and moves the product's own `0051_typed_landing_sections.sql` to `0055`:
+
+```
+0051_product_catalog_fields.sql
+0052_meta_order_context.sql
+0053_checkout_order_deduplication.sql
+0054_notification_floor.sql
+0055_typed_landing_sections.sql
+```
+
+This renames an applied migration, which RELEASE.md §3 otherwise forbids. The
+prohibition exists to stop a schema change being edited under a database that
+already ran it; here the SQL is untouched and only its position moves, and the
+alternative — leaving three chains to collide — is the outcome the rule is
+meant to prevent.
+
+The numbering was chosen by counting who has to be repaired, not by seniority:
+
+| Store | Ledger before | Repair needed |
+| --- | --- | --- |
+| zvarashop | 55 rows, `0000`–`0054` | **none** — already an exact prefix |
+| carukesi, skincarebpom, taniniaga | 51 rows, `0000`–`0050` | **none** — prefix; applies `0051`–`0055` |
+| permatamall | 55 rows, order differs | ledger rewrite |
+| beranda-tani | 52 rows, holds `0051_typed_landing_sections` | ledger rewrite (no orders yet) |
+
+Adopting `permatamall`'s ordering instead would have moved the repair onto
+`zvarashop`; keeping the product's `0051` in place would have required
+repairing both live stores. This ordering leaves exactly one store with orders
+needing surgery.
+
+**Consequences.** `schemaVersion` becomes 56. Two ledgers must be rewritten
+before their next merge, each against a backup, in one batch, and never by
+blanking `d1_migrations` — a half-applied repair would leave the gate seeing an
+empty history and attempting the whole chain against a populated database.
+`permatamall`'s two rows for `brand` and `description` collapse into the single
+`product_catalog_fields` row that produced the same two columns.
+
+**Rehearsed, not theorised.** `beranda-tani` went first, chosen because it had
+no orders and no products. Deploying the merged bundle against its old ledger
+returned **503 on `/`** — the gate refusing an indeterminate schema, which is
+precisely the failure the two live stores were headed for. Deleting the single
+stale row let the chain re-derive itself: 56 rows, `0051`–`0055` applied in
+canonical order, `200` on the request after.
+
+The store was unavailable for **under 40 seconds**, deploy to recovery, and
+almost all of it was the human between the two steps — the `DELETE` changed one
+row and the site answered on the next request. So `permatamall`'s window is a
+scheduling problem, not a technical one: stage the repair SQL, deploy, run it.
+
+**Rejected.** *Comparing the ledger by content hash instead of name* — it would
+have made all three chains valid without touching a live database, and it is
+the more permissive rule this gate exists to refuse: a forked schema is exactly
+what index-and-name equality is there to catch. *Leaving each install its own
+numbering* — the collision is then permanent, and every future merge is a
+manual reconciliation. *Squashing the install migrations into one* — the four
+land in different releases and one of them (`notification_floor`) exists in
+only one store.
+
+## ADR-025 — Two amendments recorded after the 2026-09-25 audit
+
+**Date:** 2026-09-25 · **Status:** Accepted. Records decisions the code already
+carries; nothing here changes behaviour.
+
+**ADR-007, amended by `7d2462d` (2026-08-21).** A fresh install no longer shows
+a setup card. `getTenantHomeContent` composes a default home from the store's
+**own** identity, catalogue and public landing pages when nothing is published.
+What ADR-007 protects still holds: no *compiled* or *other-merchant* copy ever
+renders. The default copy names only this store and makes no product-specific
+claim; it is composed at request time from `stores` and the catalogue.
+
+**ADR-022, amended by `c7faf38`.** Callbacks remain evidence only. But manual
+reconciliation is no longer the *only* path to `paid`: the hourly job asks
+AutoLaris' Advice endpoint (`reconcileAutoLarisPaymentStatuses`) and marks a
+transaction paid only when the response carries `rc:"00"` **and** a settlement
+word on the allowlist in `autolaris-client.ts`. That is a pull the product
+initiates against the provider's own answer, not a pushed callback, so ADR-022's
+threat model (a forged callback marking an order paid) is unchanged.
+
+## ADR-026 — One-click install: the Deploy button, one required secret, a self-generated session key
+
+**Date:** 2026-09-25 · **Status:** Accepted, not yet observed against a real
+account. Migration `0058`.
+
+**Context.** The owner asked for an install that stands on its own like
+WordPress's: upload, open the address, answer a few questions, done. Everything
+after the Cloudflare resources existed was already there — runtime migrations,
+the `/install` wizard, identity in D1, provider keys from `/admin`
+(INSTALLATION §11). What remained was a terminal: create D1, KV and R2, paste
+their ids, set six required secrets (two of them a random string the operator
+had to invent), attach a domain before the first deploy would succeed.
+
+**Decision.**
+
+1. The README carries a **Deploy to Cloudflare** button. Cloudflare copies the
+   public repository into the operator's own GitHub account, provisions the
+   bindings `wrangler.jsonc` declares, writes their ids into that copy, and
+   builds and deploys it with Workers Builds (Cloudflare's documented flow).
+   The product repository still holds no credentials and runs no deploy: the
+   button deploys the operator's copy into the operator's account (ADR-012
+   stands).
+2. `wrangler.jsonc` becomes a **deployable template**: real default names
+   (`adsbookcms`, `adsbookcms-d1`, `adsbookcms-assets`), all-zero ids for the
+   button to replace, no `routes` (a domain is attached in the dashboard, which
+   Wrangler then leaves alone), and `workers_dev: true` so a new store has an
+   address to open `/install` at. That address answers `X-Robots-Tag: noindex`.
+3. **One required secret, `INSTALL_TOKEN`** — the guard on a public, unclaimed
+   `/install`. It is the only prompt (`.dev.vars.example`, deliberately empty
+   so no published value can become a shared key).
+4. **`AUTH_SECRET` becomes optional.** Without it the Worker generates 256
+   random bits once into `install_secrets` (`resolveAuthSecret`), the way
+   WordPress writes its own salts. An env secret of 32+ characters still wins,
+   so every existing install keeps its sessions.
+5. The deploy preflight refuses **ids**, not names: an all-zero or missing D1/KV
+   id is what a merge from the product looks like inside an install, and a
+   missing id would make Wrangler provision a fresh, empty database. Under
+   Workers Builds (`WORKERS_CI=1`) the stale-clone git checks stand down — the
+   build is the pushed commit by construction.
+6. After `/install`, the dashboard shows **Siapkan toko**: first product,
+   warehouse, Mengantar key (required), non-COD payment and own domain
+   (optional), each derived live from D1.
+
+**Consequences.** A key in D1 is readable by anything that can read D1; so is
+every order and credential it protects, so this widens nothing. Rotating it is
+setting `AUTH_SECRET` (every operator signs in once more). Installs created the
+old way are unaffected: their own `wrangler.jsonc` is theirs
+(`.gitattributes`), and they already set `AUTH_SECRET`.
+
+**Unverified.** Whether the button writes the provisioned ids into the copy
+before running the deploy command, and whether its setup page honours
+`.dev.vars.example` over the tracked `.env.example`, are Cloudflare behaviour
+not yet observed from this repository. Both failure modes are loud (a refused
+or failed first deploy), not silent.
+
+**Rejected.** *Omitting the ids and relying on Wrangler's automatic
+provisioning* — the button documentation asks for default ids, and in an
+install the same omission would silently point a live store at a new empty
+database. *Generating `INSTALL_TOKEN` too* — nothing but the operator can hold
+a secret that exists before the operator does.

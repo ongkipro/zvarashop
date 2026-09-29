@@ -1,3 +1,4 @@
+import { buildMetaAdvancedMatching } from "../lib/meta-identity.ts";
 import { META_EXTERNAL_ID_COOKIE } from "../lib/click-ids.ts";
 import { formatIdr } from "../lib/format-idr";
 import { normalizePhone } from "../lib/validation";
@@ -6,7 +7,7 @@ import { paymentBrandAsset } from "../lib/payment-brand";
 
 import { formatDeliveryLocation, groupLocationResults } from "../lib/location-search";
 import { pushGtmEcomEvent } from "../lib/gtm";
-import { isValidWa62 } from "../lib/validation";
+import { isValidWa62, missingCheckoutContact } from "../lib/validation";
 import { normalizeProvinceCode } from "../lib/province";
 import { navigateAfterCheckout } from "../lib/checkout-navigation";
 import {
@@ -270,10 +271,10 @@ function initHybridOrderFormInstance(formRoot: HTMLElement) {
   >();
 
   const phoneInput = formRoot.querySelector(
-    "#hybrid-phone",
+    '[data-field="hybrid-phone"]',
   ) as HTMLInputElement | null;
   const districtInput = formRoot.querySelector(
-    "#district-search",
+    '[data-field="district-search"]',
   ) as HTMLInputElement | null;
   const districtList = formRoot.querySelector(
     "#district-list",
@@ -324,7 +325,7 @@ function initHybridOrderFormInstance(formRoot: HTMLElement) {
   ) as HTMLButtonElement | null;
   const submitButtonLabel = submitButton?.querySelector(".submit-main-label");
   const customerNameInput = formRoot.querySelector(
-    "#customer-name",
+    '[data-field="customer-name"]',
   ) as HTMLInputElement | null;
   const addressInput = formRoot.querySelector<HTMLTextAreaElement>(
     'textarea[name="address"]',
@@ -368,12 +369,30 @@ function initHybridOrderFormInstance(formRoot: HTMLElement) {
       .find((row) => row.startsWith(`${name}=`))
       ?.split("=")[1] || "";
 
-  // There is deliberately no browser advanced-matching call here. fbevents
-  // accepts `fbq('init', pixelId, …)` once per page and silently ignores every
-  // later one, so re-initing when a name and phone appear mid-form hashed the
-  // buyer on every AddToCart and threw the result away. Identity that becomes
-  // known after the Pixel bootstrap belongs to the CAPI leg, which `trackMeta`
-  // below already sends it to under the same `event_id`.
+  const ensureMetaAdvancedMatching = async (
+    extraUserData?: Record<string, unknown>,
+  ) => {
+    const pixelId = (window as any).__META_PIXEL_ID__;
+    if (!(window as any).fbq || !pixelId) return;
+    const advancedMatching = await buildMetaAdvancedMatching({
+      ...extraUserData,
+      external_id:
+        getCookieValue(META_EXTERNAL_ID_COOKIE) || extraUserData?.external_id,
+    });
+    const signature = JSON.stringify(advancedMatching);
+    if ((window as any).__META_AM_SIGNATURE__ === signature) return;
+    (window as any).__META_AM_SIGNATURE__ = signature;
+    // Routed into the one init `MetaPixelBase` owns, never a second `fbq('init')`.
+    // fbevents honours advanced matching once per pixel id and discards later
+    // calls silently, so this used to hash a full matching object and throw it
+    // away. On a form page the pixel has already initialised by the time the
+    // buyer types anything, so this returns false and the browser leg keeps the
+    // `external_id` it was initialised with — the phone and name still reach
+    // Meta on the CAPI leg, which reads them server-side and is not subject to
+    // this constraint. Deleting the call instead would lose the one case that
+    // does land: a buyer who fills the form before the pixel has initialised.
+    (window as any).__PS_META_INIT__?.(advancedMatching);
+  };
 
   const trackMeta = async (
     eventName: "AddToCart" | "InitiateCheckout",
@@ -386,6 +405,7 @@ function initHybridOrderFormInstance(formRoot: HTMLElement) {
     );
     const meta = getSelectedVariantMeta();
     if ((window as any).fbq) {
+      await ensureMetaAdvancedMatching(extraUserData);
       (window as any).fbq(
         "track",
         eventName,
@@ -616,9 +636,16 @@ function initHybridOrderFormInstance(formRoot: HTMLElement) {
 
   const timerKey = `promo_end_${config.productSlug}_hybrid`;
   const now = Date.now();
-  const stored = Number(localStorage.getItem(timerKey) || 0);
+  // A storage that throws (blocked site data) must not take the order form
+  // down with a promo countdown; it just restarts per visit.
+  let stored = 0;
+  try {
+    stored = Number(localStorage.getItem(timerKey) || 0);
+  } catch {}
   const end = stored > now ? stored : now + 30 * 60 * 1000;
-  localStorage.setItem(timerKey, String(end));
+  try {
+    localStorage.setItem(timerKey, String(end));
+  } catch {}
 
   const getSelectedVariant = () =>
     form.querySelector<HTMLInputElement>('input[name="variant"]:checked');
@@ -660,24 +687,22 @@ function initHybridOrderFormInstance(formRoot: HTMLElement) {
     const hasPaymentChoices =
       Array.isArray(state.visiblePaymentOptions) &&
       state.visiblePaymentOptions.length > 0;
-    const hasName = Boolean(
-      customerNameInput && customerNameInput.value.trim().length >= 3,
-    );
-    const hasPhone = Boolean(phoneInput && phoneInput.value.trim().length >= 8);
-    const hasAddress = Boolean(
-      addressInput && addressInput.value.trim().length >= 3,
-    );
+    const missing = missingCheckoutContact({
+      name: customerNameInput?.value || "",
+      phone: phoneInput?.value || "",
+      address: addressInput?.value || "",
+    });
 
     if (state.submitting)
       return {
         disabled: true,
         label: submitButton.dataset.loadingLabel || "Memproses Pesanan...",
       };
-    if (!hasName)
+    if (missing === "name")
       return { disabled: true, label: "Lengkapi Nama Terlebih Dahulu" };
-    if (!hasPhone)
+    if (missing === "phone")
       return { disabled: true, label: "Lengkapi No. WA Terlebih Dahulu" };
-    if (!hasAddress)
+    if (missing === "address")
       return { disabled: true, label: "Lengkapi Alamat Terlebih Dahulu" };
     if (!state.locationId)
       return { disabled: true, label: "Lengkapi kecamatan dulu" };
@@ -1907,7 +1932,7 @@ function initHybridOrderFormInstance(formRoot: HTMLElement) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          submit_token: submitToken,
+          submit_token: `${submitToken}_${eventId}`,
           website: String(fd.get("contact_url_confirm") || ""),
           customer_name: customerName,
           seller_bank_account_id:
@@ -2065,7 +2090,17 @@ function initHybridOrderFormInstance(formRoot: HTMLElement) {
       postal_code: state.selectedPostalCode || state.location.postal_code,
       guard_token: guardToken,
     };
-    sessionStorage.setItem("thanks_state", JSON.stringify(thanksState));
+    // The order already exists in D1 by this point, so nothing here may throw:
+    // a storage write that fails must not cost the buyer their confirmation.
+    // Safari's private mode has historically thrown on any write, and a browser
+    // set to block site data does the same. Unguarded, that stranded a buyer on
+    // the submitting spinner with a real order behind them — and because the
+    // CAPI Purchase is only ever triggered from `/thanks`, neither leg fired.
+    try {
+      sessionStorage.setItem("thanks_state", JSON.stringify(thanksState));
+    } catch {
+      // The fragment locator below carries the order on its own.
+    }
 
     const destinationPath =
       paymentMethodFinal !== "cod" &&
@@ -2082,11 +2117,13 @@ function initHybridOrderFormInstance(formRoot: HTMLElement) {
     // The payment locator rides in the URL fragment, which browsers never send
     // to a server or a referrer, so the instructions survive a lost tab or a
     // hand-off to another device without exposing the token to analytics.
-    navigateAfterCheckout(
-      destinationPath === "/payment"
-        ? `/payment#o=${encodeURIComponent(String(thanksState.order_pk ?? ""))}&t=${encodeURIComponent(String(thanksState.status_token ?? ""))}`
-        : destinationPath,
-    );
+    // Both destinations carry the locator, not just `/payment`. The fragment is
+    // never sent to a server or a referrer, which is why it was chosen for the
+    // payment instructions; `/thanks` needs the same carrier for the same
+    // reason — it is the only other page that must survive a lost tab or a
+    // storage write that never landed.
+    const locator = `#o=${encodeURIComponent(String(thanksState.order_pk ?? ""))}&t=${encodeURIComponent(String(thanksState.status_token ?? ""))}`;
+    navigateAfterCheckout(`${destinationPath}${locator}`);
   });
 }
 

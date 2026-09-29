@@ -1,4 +1,5 @@
 import type { APIRoute } from 'astro';
+import { captureMetaOrderContext, serializeMetaOrderContext } from '../../../lib/meta-order-context';
 import { handleOptions, headlessError, headlessOk, validateHeadlessRequest } from '../../../lib/headless-api';
 import { orderSubmitSchema } from '../../../lib/order-schema';
 import { getRuntimeEnv } from '../../../lib/env';
@@ -7,9 +8,10 @@ import { loadStoreCodDisabledProvinceCodes } from '../../../lib/form-mode';
 import { isProvinceExcluded, normalizeProvinceCode } from '../../../lib/province';
 import { persistOrder, DuplicateSubmissionError, OrderInputError } from '../../../lib/order-persistence';
 import { resolveEligibleShippingRates } from '../../../lib/shipping-quote';
-import { readOrderClickIds, hasClickId, serializeClickIds } from '../../../lib/click-ids';
+import { readClickIdCookie, hasClickId, serializeClickIds } from '../../../lib/click-ids';
 import { isShippingQuoteFailure, resolveTrustedHeadlessShipping } from '../../../lib/headless-checkout';
-import { captureMetaOrderContext, serializeMetaOrderContext } from '../../../lib/meta-order-context';
+import { createAutoLarisPaymentForOrder, recordFailedPaymentAttempt, type AutoLarisPaymentRecord } from '../../../lib/autolaris-payment';
+import { getProviderConfig } from '../../../lib/provider-config';
 
 export const prerender = false;
 
@@ -67,12 +69,25 @@ export const POST: APIRoute = async ({ request, locals }) => {
       }, validation.corsHeaders));
     }
 
+    // QRIS/VA need a provider to issue the instruction. Without this an API
+    // order was stored with no payment row and no way for the buyer to pay.
+    const providerPayment = data.payment_method === 'qris' || data.payment_method === 'bank_transfer';
+    if (providerPayment && !(await getProviderConfig(database, locals)).autolaris.apiKey) {
+      return validation.finalize(headlessError('Pembayaran online belum tersedia. Silakan pilih COD.', 503, {
+        code: 'PAYMENT_METHOD_UNAVAILABLE',
+      }, validation.corsHeaders));
+    }
+
     const shipping = await resolveTrustedHeadlessShipping(body, data, (input) =>
       resolveEligibleShippingRates(database, locals, input),
     );
 
-    const clickIds = readOrderClickIds(request);
+    const clickIds = readClickIdCookie(request);
     const storedClickIds = hasClickId(clickIds) ? serializeClickIds(clickIds) : undefined;
+
+    // The headless caller's own request carries the buyer's Meta cookies when
+    // the storefront forwards them; capture here so an API-placed order is not
+    // a second-class conversion.
     const metaRequestContext = serializeMetaOrderContext(captureMetaOrderContext(request));
 
     const order = await persistOrder(database, {
@@ -98,6 +113,26 @@ export const POST: APIRoute = async ({ request, locals }) => {
       metaRequestContext,
     });
 
+    // Same contract as storefront checkout: a provider failure leaves the
+    // order pending with a failed transaction row the buyer can retry from.
+    let payment: AutoLarisPaymentRecord | undefined;
+    if (providerPayment) {
+      try {
+        payment = await createAutoLarisPaymentForOrder(database, locals, {
+          orderId: order.id,
+          channelCode: data.payment_channel!,
+        });
+      } catch (error) {
+        console.error('headless-checkout-autolaris-error', error);
+        await recordFailedPaymentAttempt(
+          database,
+          order,
+          data.payment_channel!,
+          error instanceof Error ? error.message : String(error),
+        );
+      }
+    }
+
     return validation.finalize(headlessOk(
       {
         order: {
@@ -112,10 +147,22 @@ export const POST: APIRoute = async ({ request, locals }) => {
           seller_bank_name: order.sellerBankName,
           seller_account_holder: order.sellerAccountHolder,
           seller_account_number: order.sellerAccountNumber,
-          deduplicated: !order.created,
         },
+        payment: payment
+          ? {
+              channel_code: payment.channelCode,
+              status: payment.status,
+              total_amount: payment.totalAmount,
+              virtual_account: payment.virtualAccount || null,
+              qr_payload: payment.qrPayload || null,
+              payment_code: payment.paymentCode || null,
+              payment_url: payment.providerPaymentUrl || '',
+              expires_at: payment.expiresAt || null,
+              error: payment.failedReason || null,
+            }
+          : null,
       },
-      order.created ? 201 : 200,
+      201,
       validation.corsHeaders
     ));
   } catch (error) {

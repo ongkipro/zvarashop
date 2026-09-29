@@ -2,6 +2,10 @@ import { getRuntimeEnv } from "./env.ts";
 import { formatIdr } from "./format-idr.ts";
 import { solutionEntries } from "../data/content.ts";
 import {
+  installRouteSlugs,
+  nativeLandingPages,
+} from "../data/native-landing-pages.ts";
+import {
   activeNativeLandingPages,
   isNativeLandingId,
   nativeLandingIdFor,
@@ -9,7 +13,23 @@ import {
 } from "./native-landing-pages.ts";
 
 type D1Statement = ReturnType<D1Database["prepare"]>;
-export type LandingSectionType = "html" | "form";
+export type LandingSectionType =
+  | "html"
+  | "form"
+  | "headline"
+  | "paragraph"
+  | "numbered_list"
+  | "bullet_list"
+  | "image";
+
+export type LandingContentConfig =
+  | {
+      text: string;
+      align?: "left" | "center" | "right";
+      size?: "small" | "medium" | "large";
+    }
+  | { items: string[] }
+  | { src: string; alt: string };
 
 export type LandingFormConfig = {
   mode?: "hybrid" | "middle" | "full";
@@ -25,6 +45,7 @@ export type LandingSection = {
   type: LandingSectionType;
   content_html: string | null;
   form_config: LandingFormConfig | null;
+  content_config: LandingContentConfig | null;
   created_at: string;
   updated_at: string;
 };
@@ -70,6 +91,7 @@ export type LandingSectionInput = {
   type: LandingSectionType;
   content_html?: string | null;
   form_config?: LandingFormConfig | null;
+  content_config?: LandingContentConfig | null;
 };
 
 export type CreateLandingPageInput = {
@@ -129,15 +151,15 @@ export function buildLandingPageDuplicateInput(
       sort_order: section.sort_order,
       type: section.type,
       content_html: section.content_html,
-      form_config: section.form_config
-        ? { ...section.form_config }
-        : null,
+      form_config: section.form_config ? { ...section.form_config } : null,
+      content_config: section.content_config ? structuredClone(section.content_config) : null,
     })),
   };
 }
 
 type LandingPageRow = Omit<LandingPage, "sections">;
-type LandingSectionRow = Omit<LandingSection, "form_config"> & {
+type LandingSectionRow = Omit<LandingSection, "content_config" | "form_config"> & {
+  content_config: string | null;
   form_config: string | null;
 };
 
@@ -152,7 +174,7 @@ const PAGE_COLUMNS = `
 
 const SECTION_COLUMNS = `
   id, landing_page_id, sort_order, type, content_html,
-  form_config, created_at, updated_at
+  form_config, content_config, created_at, updated_at
 `;
 
 function getDatabase(locals: App.Locals): D1Database {
@@ -181,10 +203,21 @@ function parseFormConfig(value: string | null): LandingFormConfig | null {
   }
 }
 
+function parseContentConfig(value: string | null): LandingContentConfig | null {
+  if (!value) return null;
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === "object" ? parsed as LandingContentConfig : null;
+  } catch {
+    return null;
+  }
+}
+
 function mapSection(row: LandingSectionRow): LandingSection {
   return {
     ...row,
     form_config: parseFormConfig(row.form_config),
+    content_config: parseContentConfig(row.content_config),
   };
 }
 
@@ -210,14 +243,152 @@ function serializeFormConfig(config: LandingFormConfig | null | undefined) {
   return config ? JSON.stringify(config) : null;
 }
 
+function serializeContentConfig(config: LandingContentConfig | null | undefined) {
+  return config ? JSON.stringify(config) : null;
+}
+
+/**
+ * Operator input that the CMS refuses, as opposed to something that went wrong.
+ *
+ * Everything here used to throw a bare `Error`, and both admin routes render a
+ * bare `Error` as HTTP 500 "Failed to create/update landing page: <message>".
+ * So an operator who left the title empty, reused a slug, or typed a `<` into a
+ * headline was told the server had broken. The typed section kinds multiply
+ * that surface, which is why it is worth a type: a refusal the caller can act
+ * on is a 400 (or a 409 for a slug someone else holds), never a 500.
+ */
+export class LandingPageValidationError extends Error {
+  readonly status: 400 | 409;
+  constructor(message: string, status: 400 | 409 = 400) {
+    super(message);
+    this.name = "LandingPageValidationError";
+    this.status = status;
+  }
+}
+
 function normalizeActive(value: boolean | number | undefined, fallback = 1) {
   if (value === undefined) return fallback;
   return value === true || value === 1 ? 1 : 0;
 }
 
+/**
+ * Bounds on everything an operator can store on a landing page.
+ *
+ * The public checkout schema (`order-schema.ts`) bounds every field it takes;
+ * this path bounded none of them. `title`, `meta_title` and `meta_description`
+ * were written straight through — untrimmed and unlimited — and two of them
+ * ship inside `<title>` and `<meta name="description">` on every render of that
+ * page. Astro escapes them, so this was never an injection; it was an
+ * unbounded body on a page ads point at.
+ *
+ * The numbers are the ones already used elsewhere rather than new opinions:
+ * 200 is `content_name`'s cap in `meta-event-contract.ts`, 500 is `address`'s
+ * in `order-schema.ts`.
+ */
+const LANDING_TITLE_MAX = 200;
+const LANDING_META_DESCRIPTION_MAX = 500;
+/** One legacy HTML section. Generous — it is a whole page's markup — but finite. */
+const LANDING_HTML_MAX = 100_000;
+/** Sections per page. Every one is a statement in a single D1 batch. */
+const LANDING_SECTIONS_MAX = 60;
+const LANDING_TEXT_MAX = 2_000;
+const LANDING_LIST_ITEMS_MAX = 50;
+const LANDING_FORM_MODES = ["hybrid", "middle", "full"] as const;
+
+function boundedText(
+  value: string | null | undefined,
+  max: number,
+  label: string,
+): string | null {
+  if (value === undefined || value === null) return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (trimmed.length > max) {
+    throw new LandingPageValidationError(`${label} maksimal ${max} karakter.`);
+  }
+  return trimmed;
+}
+
+function requiredTitle(value: string | undefined): string {
+  const trimmed = value?.trim() ?? "";
+  if (!trimmed) throw new LandingPageValidationError("Judul landing page wajib diisi.");
+  if (trimmed.length > LANDING_TITLE_MAX) {
+    throw new LandingPageValidationError(`Judul landing page maksimal ${LANDING_TITLE_MAX} karakter.`);
+  }
+  return trimmed;
+}
+
+function validateSections(sections: LandingSectionInput[] | undefined) {
+  if (!sections) return;
+  if (sections.length > LANDING_SECTIONS_MAX) {
+    throw new LandingPageValidationError(
+      `Maksimal ${LANDING_SECTIONS_MAX} section per landing page.`,
+    );
+  }
+  for (const section of sections) validateSection(section);
+}
+
+/**
+ * A landing page must point at a product this store actually carries.
+ *
+ * Without this the API accepted any string: the page saved, appeared in the
+ * admin list, and answered `404` to every visitor because `[slug].astro` could
+ * not resolve the product — an ad destination that silently was not one. The
+ * native-landing register has always refused an unknown product for the same
+ * reason (`docs/LANDING-PAGES.md`); this is the CMS path catching up.
+ */
+async function requireExistingProduct(database: D1Database, productId: string) {
+  const trimmed = productId.trim();
+  if (!trimmed) throw new LandingPageValidationError("Produk landing page wajib dipilih.");
+  let row: { id: number | string } | null = null;
+  try {
+    row = await database
+      .prepare("SELECT id FROM products WHERE CAST(id AS TEXT) = ? LIMIT 1")
+      .bind(trimmed)
+      .first<{ id: number | string }>();
+  } catch (error) {
+    // A read failure is not proof the product is missing. Refusing the save
+    // here would turn a transient D1 blip into "your product does not exist".
+    console.error("landing-product-check-failed", error);
+    return trimmed;
+  }
+  if (!row) {
+    throw new LandingPageValidationError("Produk yang dipilih tidak ditemukan.");
+  }
+  return trimmed;
+}
+
 function validateSection(section: LandingSectionInput) {
-  if (section.type !== "html" && section.type !== "form") {
-    throw new Error("Landing page section type must be 'html' or 'form'");
+  if (!["html", "form", "headline", "paragraph", "numbered_list", "bullet_list", "image"].includes(section.type)) {
+    throw new LandingPageValidationError("Jenis section landing page tidak dikenal.");
+  }
+  if (section.type === "html" && (section.content_html?.length ?? 0) > LANDING_HTML_MAX) {
+    throw new LandingPageValidationError(`HTML section maksimal ${LANDING_HTML_MAX} karakter.`);
+  }
+  // An unknown mode was not refused and did not fail loudly either: the form
+  // component falls through to its middle variant, so an operator who stored a
+  // typo silently got a different form than the one they chose.
+  if (section.type === "form") {
+    const mode = section.form_config?.mode;
+    if (mode !== undefined && !LANDING_FORM_MODES.includes(mode)) {
+      throw new LandingPageValidationError(
+        `Mode form harus salah satu dari ${LANDING_FORM_MODES.join(", ")}.`,
+      );
+    }
+  }
+  if (section.type === "headline" || section.type === "paragraph") {
+    if (!section.content_config || !("text" in section.content_config) || !section.content_config.text.trim() || /[<>]/.test(section.content_config.text)) throw new LandingPageValidationError("Teks section harus diisi tanpa tanda < atau >.");
+    if (section.content_config.text.length > LANDING_TEXT_MAX) throw new LandingPageValidationError(`Teks section maksimal ${LANDING_TEXT_MAX} karakter.`);
+    if (section.content_config.align && !["left", "center", "right"].includes(section.content_config.align)) throw new LandingPageValidationError("Perataan teks tidak valid.");
+    if (section.type === "headline" && section.content_config.size && !["small", "medium", "large"].includes(section.content_config.size)) throw new LandingPageValidationError("Ukuran headline tidak valid.");
+  }
+  if (section.type === "numbered_list" || section.type === "bullet_list") {
+    if (!section.content_config || !("items" in section.content_config) || !section.content_config.items.length || section.content_config.items.some((item) => !item.trim() || /[<>]/.test(item))) throw new LandingPageValidationError("Daftar harus berisi minimal satu item teks tanpa tanda < atau >.");
+    if (section.content_config.items.length > LANDING_LIST_ITEMS_MAX) throw new LandingPageValidationError(`Daftar maksimal ${LANDING_LIST_ITEMS_MAX} item.`);
+    if (section.content_config.items.some((item) => item.length > LANDING_TEXT_MAX)) throw new LandingPageValidationError(`Item daftar maksimal ${LANDING_TEXT_MAX} karakter.`);
+  }
+  if (section.type === "image") {
+    if (!section.content_config || !("src" in section.content_config) || !/^\/assets\/uploads\/[\w/-]+\.webp$/.test(section.content_config.src) || !("alt" in section.content_config)) throw new LandingPageValidationError("Section gambar harus memakai berkas WebP hasil unggahan.");
   }
 }
 
@@ -340,13 +511,20 @@ export async function createLandingPage(
   input: CreateLandingPageInput,
 ): Promise<LandingPage> {
   const slugValidation = validateLandingPageSlug(input.slug);
-  if (!slugValidation.valid) throw new Error(slugValidation.error);
-  if (!input.title?.trim()) throw new Error("Landing page title is required");
-  if (!input.product_id?.trim()) throw new Error("Landing page product_id is required");
+  if (!slugValidation.valid) throw new LandingPageValidationError(String(slugValidation.error));
+  const title = requiredTitle(input.title);
+  const metaTitle = boundedText(input.meta_title, LANDING_TITLE_MAX, "Meta title");
+  const metaDescription = boundedText(
+    input.meta_description,
+    LANDING_META_DESCRIPTION_MAX,
+    "Meta description",
+  );
+  validateSections(input.sections);
 
   const database = getDatabase(locals);
+  const productId = await requireExistingProduct(database, input.product_id ?? "");
   if (await findPageBySlug(database, input.slug)) {
-    throw new Error("Landing page slug is already in use");
+    throw new LandingPageValidationError("Slug ini sudah dipakai landing page lain.", 409);
   }
 
   const id = crypto.randomUUID();
@@ -362,25 +540,24 @@ export async function createLandingPage(
       .bind(
         id,
         input.slug,
-        input.title.trim(),
-        input.product_id.trim(),
+        title,
+        productId,
         normalizeActive(input.is_active),
-        input.meta_title ?? null,
-        input.meta_description ?? null,
+        metaTitle,
+        metaDescription,
         now,
         now,
       ),
   ];
 
   for (const [index, section] of (input.sections ?? []).entries()) {
-    validateSection(section);
     statements.push(
       database
         .prepare(
           `INSERT INTO landing_sections (
              id, landing_page_id, sort_order, type, content_html,
-             form_config, created_at, updated_at
-           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+             form_config, content_config, created_at, updated_at
+           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .bind(
           section.id ?? crypto.randomUUID(),
@@ -389,6 +566,7 @@ export async function createLandingPage(
           section.type,
           section.content_html ?? null,
           serializeFormConfig(section.form_config),
+          serializeContentConfig(section.content_config),
           now,
           now,
         ),
@@ -413,22 +591,35 @@ export async function updateLandingPage(
 
   const slug = input.slug ?? existing.slug;
   const slugValidation = validateLandingPageSlug(slug);
-  if (!slugValidation.valid) throw new Error(slugValidation.error);
+  if (!slugValidation.valid) throw new LandingPageValidationError(String(slugValidation.error));
 
   if (slug !== existing.slug) {
     const duplicate = await findPageBySlug(database, slug);
     if (duplicate && duplicate.id !== id) {
-      throw new Error("Landing page slug is already in use");
+      throw new LandingPageValidationError("Slug ini sudah dipakai landing page lain.", 409);
     }
   }
 
-  const title = input.title === undefined ? existing.title : input.title.trim();
+  const title =
+    input.title === undefined ? existing.title : requiredTitle(input.title);
+  // Only a *submitted* product is re-checked. An edit that leaves the field
+  // alone must not start failing because the product was deleted after the
+  // page was built — that is a state to report, not a reason to lock the
+  // operator out of fixing their own page.
   const productId =
     input.product_id === undefined
       ? existing.product_id
-      : input.product_id.trim();
-  if (!title) throw new Error("Landing page title is required");
-  if (!productId) throw new Error("Landing page product_id is required");
+      : await requireExistingProduct(database, input.product_id);
+  if (!productId) throw new LandingPageValidationError("Produk landing page wajib dipilih.");
+  const metaTitle =
+    input.meta_title === undefined
+      ? existing.meta_title
+      : boundedText(input.meta_title, LANDING_TITLE_MAX, "Meta title");
+  const metaDescription =
+    input.meta_description === undefined
+      ? existing.meta_description
+      : boundedText(input.meta_description, LANDING_META_DESCRIPTION_MAX, "Meta description");
+  validateSections(input.sections);
 
   const now = new Date().toISOString();
   const statements: D1Statement[] = [
@@ -436,7 +627,8 @@ export async function updateLandingPage(
       .prepare(
         `UPDATE landing_pages
          SET slug = ?, title = ?, product_id = ?, is_active = ?,
-             meta_title = ?, meta_description = ?, updated_at = ?
+             meta_title = ?, meta_description = ?, updated_at = ?,
+             is_product_page = CASE WHEN ? THEN 0 ELSE is_product_page END
          WHERE id = ?`,
       )
       .bind(
@@ -444,11 +636,13 @@ export async function updateLandingPage(
         title,
         productId,
         normalizeActive(input.is_active, existing.is_active),
-        input.meta_title === undefined ? existing.meta_title : input.meta_title,
-        input.meta_description === undefined
-          ? existing.meta_description
-          : input.meta_description,
+        metaTitle,
+        metaDescription,
         now,
+        // A claim is a decision about one product's page. Moving the page to
+        // another product must not carry it along: that silently took over the
+        // new product's URL, or hit the one-claim-per-product index as a 500.
+        String(productId) !== String(existing.product_id) ? 1 : 0,
         id,
       ),
   ];
@@ -461,14 +655,13 @@ export async function updateLandingPage(
     );
 
     for (const [index, section] of input.sections.entries()) {
-      validateSection(section);
       statements.push(
         database
           .prepare(
             `INSERT INTO landing_sections (
                id, landing_page_id, sort_order, type, content_html,
-               form_config, created_at, updated_at
-             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+               form_config, content_config, created_at, updated_at
+             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           )
           .bind(
             section.id ?? crypto.randomUUID(),
@@ -477,6 +670,7 @@ export async function updateLandingPage(
             section.type,
             section.content_html ?? null,
             serializeFormConfig(section.form_config),
+            serializeContentConfig(section.content_config),
             now,
             now,
           ),
@@ -571,6 +765,40 @@ export function parseShortcodes(
   );
 }
 
+/**
+ * First path segments a static route already answers. Astro serves a static
+ * route before `[slug]`, so a landing page saved under one of these was listed,
+ * advertised in the sitemap and linked from home while its URL served
+ * something else. `landing-pages.test.ts` fails when `src/pages/` gains a
+ * top-level route this list does not name.
+ */
+export const RESERVED_LANDING_SLUGS: ReadonlySet<string> = new Set([
+  "404", "admin", "api", "assets", "contoh-landing", "disclaimer", "embed",
+  "feed", "form-full", "form-hybrid", "form-middle", "full-form", "geoipform",
+  "hello", "hybrid-form", "install", "kebijakan-cookie", "kebijakan-privasi",
+  "kontak", "landing", "landing-page", "media", "middle-form", "payment",
+  "pengiriman", "produk", "robots", "sitemap", "solusi-terbaru",
+  "syarat-ketentuan", "tentang", "testimoni", "thanks",
+]);
+
+/**
+ * A slug a CMS landing page may not take because a route file already answers
+ * on it: the product's own pages, every registered native landing page (active
+ * or not — the file exists either way), and the install's other route files.
+ * Without the last two a CMS page saved on `/<native-slug>` stays unreachable.
+ */
+export function isReservedLandingSlug(
+  slug: string,
+  natives: readonly NativeLandingPage[] = nativeLandingPages,
+  installRoutes: readonly string[] = installRouteSlugs,
+): boolean {
+  return (
+    RESERVED_LANDING_SLUGS.has(slug) ||
+    natives.some((entry) => entry.slug === slug) ||
+    installRoutes.includes(slug)
+  );
+}
+
 export function validateLandingPageSlug(
   slug: string,
 ): { valid: boolean; error?: string } {
@@ -582,7 +810,30 @@ export function validateLandingPageSlug(
         "Slug must contain only lowercase letters, numbers, and single hyphens",
     };
   }
+  if (isReservedLandingSlug(slug)) {
+    return { valid: false, error: `Slug /${slug} sudah dipakai halaman bawaan toko.` };
+  }
   return { valid: true };
+}
+
+/**
+ * Raw HTML sections render unescaped on the store's own origin, which is also
+ * the admin's origin — a `<script>` there runs with the session of whoever
+ * opens the page. So only owner/admin may introduce or change one; an
+ * advertiser may still edit the typed sections around HTML someone trusted
+ * already wrote. Compared by content, not position, so reordering is free.
+ */
+export function changesHtmlSections(
+  next: readonly LandingSectionInput[] | undefined,
+  existing: readonly { type: string; content_html?: string | null }[] = [],
+): boolean {
+  if (next === undefined) return false;
+  const trusted = new Set(
+    existing.filter((section) => section.type === "html").map((section) => section.content_html ?? ""),
+  );
+  return next.some(
+    (section) => section.type === "html" && !trusted.has(section.content_html ?? ""),
+  );
 }
 
 /**
@@ -736,7 +987,15 @@ export async function reconcileNativeLandingPages(
              product_id = excluded.product_id,
              meta_title = excluded.meta_title,
              meta_description = excluded.meta_description,
-             updated_at = excluded.updated_at`,
+             updated_at = excluded.updated_at
+           -- Only a real change writes. updated_at is the sitemap's lastmod,
+           -- and a re-sync that bumped it every time told crawlers every
+           -- native page had changed whenever the list was opened.
+           WHERE landing_pages.slug IS NOT excluded.slug
+              OR landing_pages.title IS NOT excluded.title
+              OR landing_pages.product_id IS NOT excluded.product_id
+              OR landing_pages.meta_title IS NOT excluded.meta_title
+              OR landing_pages.meta_description IS NOT excluded.meta_description`,
         )
         .bind(
           nativeLandingIdFor(entry.slug),
@@ -817,6 +1076,8 @@ export type PublicLandingPage = {
   excerpt: string;
   /** Where the page actually answers, honouring a product-page takeover. */
   href: string;
+  /** True when `href` is the product URL, not the page's own slug. */
+  isProductPage: boolean;
 };
 
 /**
@@ -838,8 +1099,9 @@ export async function listPublicLandingPages(
       `SELECT lp.slug, lp.title, lp.meta_description, lp.is_product_page,
               p.slug AS product_slug
          FROM landing_pages lp
-         LEFT JOIN products p ON CAST(p.id AS TEXT) = lp.product_id
-        WHERE lp.is_active = 1
+         JOIN products p ON CAST(p.id AS TEXT) = lp.product_id
+        -- A page whose product is off answers 404, so it is not advertised.
+        WHERE lp.is_active = 1 AND p.is_active = 1
         ORDER BY lp.updated_at DESC, lp.created_at DESC`,
     )
     .all<{
@@ -858,5 +1120,6 @@ export async function listPublicLandingPages(
       row.is_product_page && row.product_slug
         ? `/produk/${row.product_slug}`
         : `/${row.slug}`,
+    isProductPage: Boolean(row.is_product_page && row.product_slug),
   }));
 }

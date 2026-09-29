@@ -14,9 +14,10 @@ export type CatalogProduct = {
   slug: string;
   productName: string;
   category?: string;
+  /** The product's own brand. Falls back to the store name when absent. */
+  brand?: string;
   headline?: string;
   description?: string;
-  brand?: string;
   seoDescription?: string;
   heroImage: string;
   variants: CatalogProductVariant[];
@@ -41,7 +42,7 @@ export function escapeXml(value: string): string {
  * id; the admin screen showed the operator that same `10001`; and the Pixel
  * sent the raw row id, `1`. Three values for one product.
  *
- * ZvaraShop uses one catalog item per product. The immutable D1 Product ID is
+ * AdsBookCMS uses one catalog item per product. The immutable D1 Product ID is
  * generated as a five-digit number, so product_id, content_id and feed <g:id>
  * are the same value. Variants remain checkout choices and do not create
  * separate catalog identities.
@@ -54,15 +55,6 @@ export function escapeXml(value: string): string {
  * - **Unambiguous in transit.** Decimal, no leading zero, minimum five digits.
  *   Legacy short IDs fail closed instead of being padded into a value that is
  *   no longer the real Product ID.
- *
- * A GTIN and an MPN are assigned by a manufacturer, and this schema has no
- * column for either — no product here can ever carry one. Google reads a
- * branded item with neither as *missing* data and warns or disapproves it, so
- * the Google feed states `identifier_exists: no`, which is the declaration that
- * case exists for. What it must never do again is answer the same question by
- * publishing the merchant-editable variant `sku` as `g:mpn`: that claimed a
- * manufacturer part number the product does not have, and the value changed
- * whenever an operator edited it.
  */
 
 /** Canonical ads identity: the immutable numeric D1 Product ID. */
@@ -106,43 +98,129 @@ export function defaultCatalogContentId(product: {
 }): string | undefined {
   const first = product.variants?.[0];
   if (!first) return undefined;
+  // Same answer for the same reason when the row predates the five-digit
+  // scheme: send no catalog id rather than a guessed one. Throwing here took
+  // the whole product page down with a 500 instead, which is a worse trade —
+  // the page still sells, it simply cannot be retargeted.
   return catalogProductIdOrNull(product.productId) ?? undefined;
 }
 
 /**
- * Platform field limits, and why they are enforced here rather than at the
- * admin boundary.
+ * The two feeds, which are one feed.
+ *
+ * Google and Meta differ in exactly three places — the channel title, whether
+ * `fb_product_category` is emitted, and whether GTIN-substitute identity is —
+ * and everything else was copied. That copy was not free: the fix that stops a
+ * legacy row taking a whole catalog down had to be written twice, in step, or
+ * one platform would still have been serving a 500 stub. A flavor makes the
+ * three differences the only thing either caller states.
+ */
+type CatalogFeedFlavor = {
+  /** Google caps title at 150 and description at 5000; Meta at 200 and 9999.
+   *  Over the cap the item is disapproved, not truncated. */
+  titleMax: number;
+  descriptionMax: number;
+  /** Appended to the store name in `<channel><title>`. */
+  channelSuffix: string;
+  /** Category elements, in the order this platform expects them. */
+  categoryXml: (taxonomy: ReturnType<typeof getAdTaxonomy>) => string;
+  /** Product-identity elements. Google wants them; Meta infers. */
+  identityXml: (variant: CatalogProductVariant) => string;
+};
+
+function buildCatalogXml(
+  products: CatalogProduct[],
+  siteOrigin: string,
+  title: string | undefined,
+  description: string | undefined,
+  flavor: CatalogFeedFlavor,
+): string {
+  const origin = siteOrigin.replace(/\/$/, "");
+  const siteTitle = title || "AdsBookCMS Merchant Store";
+  const siteDescription = description || "Solusi Produk Berkualitas";
+
+  let itemsXml = "";
+
+  for (const product of products) {
+    if (!product.variants || product.variants.length === 0) continue;
+
+    const taxonomy = getAdTaxonomy(product.category, product.productName, product.description || product.headline);
+    const productLink = `${origin}/produk/${product.slug}`;
+    const imageLink = product.heroImage.startsWith("http") ? product.heroImage : `${origin}${product.heroImage}`;
+
+    const variant = product.variants[0];
+    // One row that predates the five-digit scheme must not take the catalog
+    // down. The strict identity rule still governs what gets published — an
+    // unpublishable row is left out — but the feed is an aggregate, and
+    // throwing here returned the 500 stub for every other product too, which
+    // Merchant Center and Meta Commerce read as the whole catalog failing.
+    const itemId = catalogProductIdOrNull(product.productId);
+    if (!itemId) continue;
+    const titleText = product.productName;
+    const hasSale = typeof variant.comparePrice === "number" && variant.comparePrice > variant.price;
+    const basePriceFormatted = `${hasSale ? variant.comparePrice : variant.price} IDR`;
+    const salePriceXml = hasSale
+      ? `\n      <g:sale_price>${escapeXml(`${variant.price} IDR`)}</g:sale_price>`
+      : "";
+    const itemDescription = product.seoDescription || product.headline || product.description || siteDescription;
+
+    itemsXml += `
+    <item>
+      <g:id>${escapeXml(itemId)}</g:id>
+      <g:title>${escapeXml(clampFeedText(titleText, flavor.titleMax))}</g:title>
+      <g:description>${escapeXml(clampFeedText(itemDescription, flavor.descriptionMax))}</g:description>
+      <g:link>${escapeXml(productLink)}</g:link>
+      <g:image_link>${escapeXml(imageLink)}</g:image_link>
+      <g:availability>in_stock</g:availability>
+      <g:price>${escapeXml(basePriceFormatted)}</g:price>${salePriceXml}
+${flavor.categoryXml(taxonomy)}
+      <g:product_type>${escapeXml(taxonomy.productType)}</g:product_type>
+      <g:brand>${escapeXml(product.brand?.trim() || siteTitle)}</g:brand>
+      <g:condition>new</g:condition>${flavor.identityXml(variant)}
+    </item>`;
+  }
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">
+  <channel>
+    <title>${escapeXml(siteTitle)} - ${flavor.channelSuffix}</title>
+    <link>${escapeXml(origin)}</link>
+    <description>${escapeXml(siteDescription)}</description>${itemsXml}
+  </channel>
+</rss>`;
+}
+
+// Omitted when no taxonomy rule was confident. Both platforms treat the
+// category as optional; a wrong one can cause feed disapproval.
+const googleCategoryXml = (taxonomy: ReturnType<typeof getAdTaxonomy>) =>
+  taxonomy.googleCategoryId
+    ? `\n      <g:google_product_category>${taxonomy.googleCategoryId}</g:google_product_category>`
+    : "";
+
+/**
+ * Platform field limits, and why they are enforced here.
  *
  * Google Merchant Center caps `title` at 150 characters and `description` at
  * 5000; Meta's catalog caps them at 200 and 9999. Exceeding a cap does not
- * truncate the field — it **disapproves the item**, silently, for one product
- * at a time.
+ * truncate the field — it **disapproves the item**, silently, one product at a
+ * time, and nothing in this system would show it.
  *
  * `product-mutation.ts` accepts a title of up to 160 characters, so a title of
- * 151-160 saved cleanly and then vanished from the Google feed's approved set.
- * Raising the admin cap's ceiling is the wrong fix: the merchant's own record
- * is not Google's to constrain, and shortening it would lose data the
- * storefront legitimately shows. The feed is where a platform's limit applies,
- * so the feed is where it is met.
- *
- * Truncation is deliberate and is strictly better than the alternative: a
- * shortened title is listed, an over-length one is not listed at all.
+ * 151-160 saved cleanly, rendered correctly on the storefront, and vanished
+ * from Google's approved set. The clamp is here rather than at the admin
+ * boundary on purpose: the merchant's own record is not Google's to constrain,
+ * and shortening it there would lose data the storefront legitimately shows. A
+ * platform's limit belongs where that platform reads, and a shortened title is
+ * listed where an over-length one is not listed at all.
  */
-const GOOGLE_TITLE_MAX = 150;
-const GOOGLE_DESCRIPTION_MAX = 5000;
-const META_TITLE_MAX = 200;
-const META_DESCRIPTION_MAX = 9999;
-
-/** Trims on a word boundary where one is near enough to matter. */
 export function clampFeedText(value: string, max: number): string {
   const text = value.trim();
   if (text.length <= max) return text;
   const cut = text.slice(0, max);
   const lastSpace = cut.lastIndexOf(" ");
   // `lastIndexOf` answers -1 when there is no space at all, and -1 clears any
-  // negative threshold — which silently dropped the final character of every
-  // unbroken value. The boundary trim only applies when a real space is close
-  // enough that cutting there costs little.
+  // negative threshold — which would silently drop the final character of every
+  // unbroken value.
   const useBoundary = lastSpace > 0 && lastSpace > max - 20;
   return (useBoundary ? cut.slice(0, lastSpace) : cut).trimEnd();
 }
@@ -153,60 +231,25 @@ export function generateGoogleCatalogXml(
   title?: string,
   description?: string,
 ): string {
-  const origin = siteOrigin.replace(/\/$/, "");
-  const siteTitle = title || "ZvaraShop";
-  const siteDescription = description || "Solusi Produk Berkualitas";
-
-  let itemsXml = "";
-
-  for (const product of products) {
-    if (!product.variants || product.variants.length === 0) continue;
-
-    const taxonomy = getAdTaxonomy(product.category, product.productName, product.description || product.headline);
-    const productLink = `${origin}/produk/${product.slug}`;
-    const imageLink = product.heroImage.startsWith("http") ? product.heroImage : `${origin}${product.heroImage}`;
-
-    const variant = product.variants[0];
-    const itemId = catalogProductIdOrNull(product.productId);
-    if (!itemId) continue;
-    // Omitted when no taxonomy rule was confident. Both platforms treat the
-    // category as optional; a wrong one can cause feed disapproval.
-    const googleCategoryXml = taxonomy.googleCategoryId
-      ? `\n      <g:google_product_category>${taxonomy.googleCategoryId}</g:google_product_category>`
-      : "";
-    const titleText = product.productName;
-    const hasSale = typeof variant.comparePrice === "number" && variant.comparePrice > variant.price;
-    const basePriceFormatted = `${hasSale ? variant.comparePrice : variant.price} IDR`;
-    const salePriceXml = hasSale
-      ? `\n      <g:sale_price>${escapeXml(`${variant.price} IDR`)}</g:sale_price>`
-      : "";
-    const itemDescription = product.seoDescription || product.headline || product.description || siteDescription;
-
-    itemsXml += `
-    <item>
-      <g:id>${escapeXml(itemId)}</g:id>
-      <g:title>${escapeXml(clampFeedText(titleText, GOOGLE_TITLE_MAX))}</g:title>
-      <g:description>${escapeXml(clampFeedText(itemDescription, GOOGLE_DESCRIPTION_MAX))}</g:description>
-      <g:link>${escapeXml(productLink)}</g:link>
-      <g:image_link>${escapeXml(imageLink)}</g:image_link>
-      <g:availability>in_stock</g:availability>
-      <g:price>${escapeXml(basePriceFormatted)}</g:price>${salePriceXml}
-${googleCategoryXml}
-      <g:product_type>${escapeXml(taxonomy.productType)}</g:product_type>
-      <g:brand>${escapeXml(product.brand?.trim() || siteTitle)}</g:brand>
-      <g:condition>new</g:condition>
-      <g:identifier_exists>no</g:identifier_exists>
-    </item>`;
-  }
-
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">
-  <channel>
-    <title>${escapeXml(siteTitle)} - Google Merchant Catalog</title>
-    <link>${escapeXml(origin)}</link>
-    <description>${escapeXml(siteDescription)}</description>${itemsXml}
-  </channel>
-</rss>`;
+  return buildCatalogXml(products, siteOrigin, title, description, {
+    channelSuffix: "Google Merchant Catalog",
+    titleMax: 150,
+    descriptionMax: 5000,
+    categoryXml: googleCategoryXml,
+    // `identifier_exists: no` alone, and no `g:mpn`.
+    //
+    // The two together contradict each other: `identifier_exists: no` declares
+    // the product carries no manufacturer identifier, while `g:mpn` supplies
+    // one. Google reads that pairing as inconsistent, and the `g:mpn` was never
+    // truthful anyway — an MPN is assigned by a manufacturer, and `sku` here is
+    // nullable, merchant-editable and changes whenever an operator edits it.
+    //
+    // The previous comment argued the MPN kept Merchant Center from rejecting
+    // an item for a missing global identifier. That is exactly the job
+    // `identifier_exists: no` already does; the MPN was redundant as well as
+    // contradictory, and this schema has no column for a real one.
+    identityXml: () => `\n      <g:identifier_exists>no</g:identifier_exists>`,
+  });
 }
 
 export function generateMetaCatalogXml(
@@ -215,58 +258,16 @@ export function generateMetaCatalogXml(
   title?: string,
   description?: string,
 ): string {
-  const origin = siteOrigin.replace(/\/$/, "");
-  const siteTitle = title || "ZvaraShop";
-  const siteDescription = description || "Solusi Produk Berkualitas";
-
-  let itemsXml = "";
-
-  for (const product of products) {
-    if (!product.variants || product.variants.length === 0) continue;
-
-    const taxonomy = getAdTaxonomy(product.category, product.productName, product.description || product.headline);
-    const productLink = `${origin}/produk/${product.slug}`;
-    const imageLink = product.heroImage.startsWith("http") ? product.heroImage : `${origin}${product.heroImage}`;
-
-    const variant = product.variants[0];
-    const itemId = catalogProductIdOrNull(product.productId);
-    if (!itemId) continue;
-    const googleCategoryXml = taxonomy.googleCategoryId
-      ? `\n      <g:google_product_category>${taxonomy.googleCategoryId}</g:google_product_category>`
-      : "";
-    const metaCategoryXml = taxonomy.metaCategoryName
-      ? `\n      <g:fb_product_category>${escapeXml(taxonomy.metaCategoryName)}</g:fb_product_category>`
-      : "";
-    const titleText = product.productName;
-    const hasSale = typeof variant.comparePrice === "number" && variant.comparePrice > variant.price;
-    const basePriceFormatted = `${hasSale ? variant.comparePrice : variant.price} IDR`;
-    const salePriceXml = hasSale
-      ? `\n      <g:sale_price>${escapeXml(`${variant.price} IDR`)}</g:sale_price>`
-      : "";
-    const itemDescription = product.seoDescription || product.headline || product.description || siteDescription;
-
-    itemsXml += `
-    <item>
-      <g:id>${escapeXml(itemId)}</g:id>
-      <g:title>${escapeXml(clampFeedText(titleText, META_TITLE_MAX))}</g:title>
-      <g:description>${escapeXml(clampFeedText(itemDescription, META_DESCRIPTION_MAX))}</g:description>
-      <g:link>${escapeXml(productLink)}</g:link>
-      <g:image_link>${escapeXml(imageLink)}</g:image_link>
-      <g:availability>in_stock</g:availability>
-      <g:price>${escapeXml(basePriceFormatted)}</g:price>${salePriceXml}
-${metaCategoryXml}${googleCategoryXml}
-      <g:product_type>${escapeXml(taxonomy.productType)}</g:product_type>
-      <g:brand>${escapeXml(product.brand?.trim() || siteTitle)}</g:brand>
-      <g:condition>new</g:condition>
-    </item>`;
-  }
-
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">
-  <channel>
-    <title>${escapeXml(siteTitle)} - Meta Commerce Catalog</title>
-    <link>${escapeXml(origin)}</link>
-    <description>${escapeXml(siteDescription)}</description>${itemsXml}
-  </channel>
-</rss>`;
+  return buildCatalogXml(products, siteOrigin, title, description, {
+    channelSuffix: "Meta Commerce Catalog",
+    titleMax: 200,
+    descriptionMax: 9999,
+    // Meta reads its own taxonomy first and falls back to Google's, so both go
+    // out, in that order.
+    categoryXml: (taxonomy) =>
+      (taxonomy.metaCategoryName
+        ? `\n      <g:fb_product_category>${escapeXml(taxonomy.metaCategoryName)}</g:fb_product_category>`
+        : "") + googleCategoryXml(taxonomy),
+    identityXml: () => "",
+  });
 }

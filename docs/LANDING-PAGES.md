@@ -1,6 +1,6 @@
 # Building a landing page
 
-> Verified against disk: 2026-08-27 @ `3bb51a3` + payment-recovery working tree
+> Verified against disk: 2026-09-28 @ `0d6ca3f` + native-reconcile-cron working tree
 
 There are two kinds of landing page in this CMS and they are not
 interchangeable. Pick the right one before writing anything.
@@ -26,11 +26,19 @@ Astro resolves a static route before a dynamic one, so a native page at
 single-segment path: it resolves a CMS landing page, then a product redirect,
 then falls through to 404.
 
-**The collision this creates is real and silent.** If a native route and a CMS
-landing page claim the same slug, the native file wins and the operator's page
-becomes unreachable with no warning anywhere. Before adding a native route,
-check `/admin/landing-pages` for that slug. This is the price of dropping the
-prefix, and it is worth stating rather than discovering.
+**The collision this creates is real, and now refused rather than silent.**
+If a static route and a CMS landing page claim the same slug, the static file
+wins and the CMS page becomes unreachable. So the CMS refuses every slug
+`isReservedLandingSlug` (`src/lib/landing-pages.ts`) names: the product's own
+top-level routes (`RESERVED_LANDING_SLUGS`), every entry in the native register,
+and `installRouteSlugs` — an install's other route files, such as a legacy slug
+that 301s to a renamed page. All three live where their owner edits:
+the product list in the product, the other two in
+`src/data/native-landing-pages.ts`, which an install already owns.
+`landing-pages.test.ts` fails when a top-level page is covered by none of them.
+Registering a native page reserves its slug with no second edit; before adding
+one, check `/admin/landing-pages` for an existing CMS page with that slug,
+which the new file would shadow.
 
 ### The one exception: a landing page that *is* the product page
 
@@ -181,10 +189,25 @@ Check at 390 CSS px:
 
 ## CMS landing page
 
-Nothing to build. `/admin/landing-pages` composes ordered `html` and `form`
-sections, previews them in a 480 px canvas, and serves them through the
-catch-all. `?preview=1` renders an inactive page for an authenticated admin and
-sends `Cache-Control: no-store`.
+`/admin/landing-pages` composes ordered `headline`, `paragraph`,
+`numbered_list`, `bullet_list`, `image`, legacy `html`, and `form` sections.
+The bounded text/list/image section cards preview inside the 480 px mobile
+canvas; its numbered section navigator focuses a selected card in long pages,
+while up/down buttons retain keyboard and touch-safe ordering. The header's
+**Live Preview** opens the authenticated draft preview after a page has a slug.
+Images are browser-converted to WebP before the existing authenticated R2 upload
+path. Source images and encoded WebP files are each limited to 2 MiB. A browser
+that cannot encode WebP from a canvas gets a clear error instead of a 415.
+
+Legacy `html` sections render unescaped on the store's origin, which is also the
+admin's. Only `owner` and `admin` may add or change one (`403` otherwise); an
+`advertiser` can still edit the typed sections of a page that carries HTML an
+owner already wrote (`changesHtmlSections`). Moving a page that has taken over
+its product's page to a different product releases the takeover instead of
+carrying it to the new product.
+
+`?preview=1` renders an inactive page for an authenticated admin and sends
+`Cache-Control: no-store`.
 
 Reach for a native route only when the builder genuinely cannot express the
 layout. A page an operator can edit without a deploy is worth more than a page
@@ -195,7 +218,9 @@ that is slightly prettier.
 ## Registering a native page in the CMS
 
 Add an entry to `src/data/native-landing-pages.ts` and deploy. The CMS records
-it on the next landing-page list load — no sync step, no admin action.
+it on the next landing-page list load, or within the hour from the scheduled
+re-sync — no sync step, no admin action. The re-sync writes only a row that
+changed, because `updated_at` is the sitemap's `lastmod`.
 
 ```ts
 export const nativeLandingPages: NativeLandingPage[] = [

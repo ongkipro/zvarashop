@@ -1,9 +1,9 @@
 import type { CourierRateResult } from "../../lib/mengantar-client";
-import { hasClickId, readOrderClickIds, serializeClickIds } from "../../lib/click-ids";
 import {
   captureMetaOrderContext,
   serializeMetaOrderContext,
 } from "../../lib/meta-order-context";
+import { hasClickId, readClickIdCookie, serializeClickIds } from "../../lib/click-ids";
 import type { ResolvedShippingRates } from "../../lib/shipping-quote";
 import type { APIRoute } from "astro";
 import { selectQuotedRate } from "../../lib/courier-rules";
@@ -13,6 +13,7 @@ import {
   loadStoreCodDisabledProvinceCodes,
 } from "../../lib/form-mode";
 import { getRuntimeEnv } from "../../lib/env";
+import { buyerEmail } from "../../lib/autolaris-payment";
 import {
   checkRateLimit,
   getClientIp,
@@ -29,7 +30,7 @@ import {
   ShippingQuoteError,
 } from "../../lib/shipping-quote";
 import {
-  createAutoLarisDigitalOrderForPayment,
+  createAutoLarisPaymentForOrder,
   recordFailedPaymentAttempt,
   type AutoLarisPaymentRecord,
 } from "../../lib/autolaris-payment";
@@ -81,12 +82,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
       400,
     );
   if (String(body.website || "").trim()) {
-    // Answered exactly like a generic invalid payload. Naming the control that
-    // caught it — as `HONEYPOT_TRIGGERED` did — tells a bot which field to
-    // leave empty on its next attempt, which is the one thing a honeypot must
-    // never do. The hit is still countable, server-side, where the attacker
-    // cannot read it.
-    console.warn("checkout-honeypot-triggered", { path: "submit-order" });
+    // Answered exactly like a generic invalid payload. Naming the control
+    // that caught it tells a bot which field to leave empty next time, which
+    // is the one thing a honeypot must never do. The hit stays countable
+    // server-side, where the attacker cannot read it.
+    console.warn('checkout-honeypot-triggered', { path: 'submit-order' });
     return json(
       {
         success: false,
@@ -140,7 +140,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
       422,
     );
   }
-  if (data.payment_method !== "cod") {
+  // Manual transfer goes to the seller's own account and needs no provider.
+  if (data.payment_method !== "cod" && data.payment_method !== "manual_transfer") {
     try {
       const provider = (await getProviderConfig(database, locals)).autolaris;
       if (!provider.apiKey) {
@@ -268,8 +269,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
   try {
     // Attribution captured at the ad landing by the middleware; kept with the
     // order so a COD sale confirmed later can be uploaded to Google Ads.
-    const clickIds = readOrderClickIds(request);
+    const clickIds = readClickIdCookie(request);
     const storedClickIds = hasClickId(clickIds) ? serializeClickIds(clickIds) : undefined;
+    // The browser's own Meta identity, taken at the moment of the sale. A COD
+    // Purchase is confirmed hours or days later from a cron with no request of
+    // its own, so `_fbp`, `_fbc`, the user agent and the client IP have to be
+    // carried on the order or the server-side event goes out without them.
     const metaRequestContext = serializeMetaOrderContext(
       captureMetaOrderContext(request),
     );
@@ -278,10 +283,16 @@ export const POST: APIRoute = async ({ request, locals }) => {
       submitToken: data.submit_token,
       customerName: data.customer_name.trim(),
       customerPhone,
+      // One minting shape, from `buyerEmail` — the function that exists for
+      // exactly this and is what the payment path already calls. Hand-rolling
+      // the same string here against `request.url` instead of the configured
+      // site URL produced a second host for one concept, and the guard that
+      // keeps these fabricated addresses out of Meta's `em` could only know
+      // about one of them.
       customerEmail:
         data.customer_email ||
         (data.payment_method !== "cod"
-          ? `${customerPhone}@${new URL(request.url).hostname}`
+          ? buyerEmail(null, customerPhone, locals.tenant.siteUrl)
           : undefined),
       address: data.address,
       province: data.province,
@@ -314,7 +325,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       // its failed transaction row, which `/api/order-status` can regenerate
       // on the buyer's request and the operator can see in the order detail.
       try {
-        payment = await createAutoLarisDigitalOrderForPayment(database, locals, {
+        payment = await createAutoLarisPaymentForOrder(database, locals, {
           orderId: order.id,
           channelCode: data.payment_channel!,
         });
@@ -331,20 +342,17 @@ export const POST: APIRoute = async ({ request, locals }) => {
         );
       }
     }
-    if (order.created) {
-      scheduleReceiverPerformanceRefresh(
-        database,
-        order.orderNumber,
-        customerPhone,
-        locals,
-      );
-    }
+    scheduleReceiverPerformanceRefresh(
+      database,
+      order.orderNumber,
+      customerPhone,
+      locals,
+    );
     const paymentStatus =
       data.payment_method === "cod" ? "unpaid" : payment?.status || "pending";
     const paymentUrl = payment?.providerPaymentUrl || "";
     return json({
       success: true,
-      deduplicated: !order.created,
       order: {
         id: order.id,
         order_id: order.orderNumber,

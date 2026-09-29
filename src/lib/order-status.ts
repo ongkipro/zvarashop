@@ -1,5 +1,4 @@
 import { effectivePaymentStatus } from "./autolaris-payment.ts";
-import { parseMetaPurchaseContentIds } from "./meta-purchase-order.ts";
 
 export type PublicPaymentStatus = {
   channel_code: string;
@@ -37,8 +36,6 @@ export type PublicOrderStatus = {
    * so a later catalogue edit cannot restate a past order's value.
    */
   product_value: number;
-  content_ids: string[];
-  product_name: string;
   payment: PublicPaymentStatus | null;
 };
 
@@ -46,8 +43,6 @@ type PublicOrderStatusRow = {
   order_number?: string;
   total_amount?: number;
   product_value?: number | null;
-  product_ids?: string | null;
-  product_name?: string | null;
   payment_method?: string;
   payment_status?: string;
   shipping_status?: string;
@@ -85,22 +80,6 @@ export async function loadPublicOrderStatus(
           FROM order_items oi
           WHERE oi.order_id = o.id
         ) AS product_value,
-        (
-          SELECT GROUP_CONCAT(DISTINCT p.id)
-          FROM order_items oi
-          INNER JOIN product_variants pv ON pv.id = oi.variant_id
-          INNER JOIN products p ON p.id = pv.product_id
-          WHERE oi.order_id = o.id
-        ) AS product_ids,
-        (
-          SELECT p.title
-          FROM order_items oi
-          INNER JOIN product_variants pv ON pv.id = oi.variant_id
-          INNER JOIN products p ON p.id = pv.product_id
-          WHERE oi.order_id = o.id
-          ORDER BY oi.id
-          LIMIT 1
-        ) AS product_name,
         o.payment_method,
         o.payment_status,
         o.shipping_status,
@@ -147,8 +126,6 @@ export async function loadPublicOrderStatus(
     status: orderRow.shipping_status || "pending",
     total_amount: Number(orderRow.total_amount ?? 0),
     product_value: Number(orderRow.product_value ?? 0),
-    content_ids: parseMetaPurchaseContentIds(orderRow.product_ids),
-    product_name: orderRow.product_name || "",
     payment:
       orderRow.channel_code ||
       orderRow.payment_method === "manual_transfer" ||

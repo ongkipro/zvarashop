@@ -1,7 +1,4 @@
-import type {
-  ExecutionContext,
-  ExportedHandler,
-} from "@cloudflare/workers-types";
+import type { ExecutionContext, ExportedHandler } from "@cloudflare/workers-types";
 import { handle } from "@astrojs/cloudflare/handler";
 import { purgeExpiredAbandonedOrders } from "./lib/order-persistence.ts";
 import { getEnvValue } from "./lib/env.ts";
@@ -12,22 +9,23 @@ import {
 import { collectOperationalHealth } from "./lib/operational-health.ts";
 import { ensureSchemaUpgraded } from "./lib/schema-version.ts";
 import { purgeExpiredRateLimits } from "./lib/rate-limit.ts";
+import { reconcileNativeLandingPages } from "./lib/landing-pages.ts";
 import { purgeExpiredNotifications } from "./lib/notifications.ts";
 import {
   expirePendingPaymentTransactions,
   purgeExpiredAutoLarisCallbacks,
   reconcileAutoLarisPaymentStatuses,
 } from "./lib/autolaris-payment.ts";
+import { enqueuePurchaseForPaidOrder } from "./lib/paid-order-purchase.ts";
+import { envTenantConfig } from "./lib/tenant.ts";
 import { drainCapiOutbox, purgeExpiredCapiOutboxEvents } from "./lib/capi-outbox.ts";
 import { getStoreAdsConfig } from "./lib/store-ads.ts";
 import {
   drainGoogleAdsConversionOutbox,
-  purgeExpiredGoogleAdsOutboxEvents,
+  purgeExpiredGoogleAdsConversions,
   readGoogleAdsOfflineConfig,
   reconcileGoogleAdsConversions,
 } from "./lib/google-ads-offline.ts";
-import { enqueuePurchaseForPaidOrder } from "./lib/paid-order-purchase.ts";
-import { envTenantConfig } from "./lib/tenant.ts";
 type AstroRequest = Parameters<typeof handle>[0];
 
 async function runScheduledMaintenance(
@@ -36,12 +34,9 @@ async function runScheduledMaintenance(
   context: ExecutionContext,
 ) {
   await ensureSchemaUpgraded(env.OMS_DB);
-  const purgedAbandonedOrders = await purgeExpiredAbandonedOrders(
-    env.OMS_DB,
-    new Date(scheduledTime),
-  );
-  // Housekeeping never takes the outbox drains or the health evaluation down
-  // with it: a transient D1 error here is logged and the hour goes on.
+  // No step takes the ones after it down: payment reconciliation, both outbox
+  // drains and the health evaluation each run even when an earlier step hit a
+  // transient D1 or provider error. The failure is logged and reads as -1.
   const housekeeping = async (label: string, run: () => Promise<number>) => {
     try {
       return await run();
@@ -50,6 +45,10 @@ async function runScheduledMaintenance(
       return -1;
     }
   };
+  const purgedAbandonedOrders = await housekeeping(
+    "scheduled-abandoned-order-purge-failed",
+    () => purgeExpiredAbandonedOrders(env.OMS_DB, new Date(scheduledTime)),
+  );
   const purgedRateLimitWindows = await housekeeping(
     "scheduled-rate-limit-purge-failed",
     () => purgeExpiredRateLimits(env.OMS_DB, new Date(scheduledTime)),
@@ -66,6 +65,27 @@ async function runScheduledMaintenance(
     "scheduled-notification-purge-failed",
     () => purgeExpiredNotifications(env.OMS_DB, new Date(scheduledTime)),
   );
+  const purgedCapiOutboxEvents = await housekeeping(
+    "scheduled-capi-outbox-purge-failed",
+    () => purgeExpiredCapiOutboxEvents(env.OMS_DB, new Date(scheduledTime)),
+  );
+  const purgedGoogleAdsConversions = await housekeeping(
+    "scheduled-google-ads-purge-failed",
+    () => purgeExpiredGoogleAdsConversions(env.OMS_DB, new Date(scheduledTime)),
+  );
+  // The native register reached the table only when an operator opened the
+  // landing-page list, so a page deployed since stayed out of the sitemap and
+  // could not take a product page until then. The re-sync writes only what
+  // changed, so running it hourly costs nothing when nothing did.
+  await housekeeping("scheduled-native-landing-reconcile-failed", async () => {
+    await reconcileNativeLandingPages(env.OMS_DB);
+    return 0;
+  });
+  // Payment truth for QRIS/VA. The retired webhook never answered; the
+  // provider's Advice endpoint does, and this is the only clock that asks it.
+  // A transaction is marked paid solely when the provider's own response says
+  // so — an operator can still reconcile by hand from /admin/payments, and
+  // every transition either way is audited.
   const scheduledLocals = {
     runtimeEnv: env,
     tenant: envTenantConfig,
@@ -77,6 +97,7 @@ async function runScheduledMaintenance(
     unproven: 0,
     failed: 0,
     paidOrderIds: [] as number[],
+    unrecognisedPaidStatuses: [] as string[],
   };
   try {
     autoLarisReconciliation = await reconcileAutoLarisPaymentStatuses(
@@ -91,17 +112,11 @@ async function runScheduledMaintenance(
     try {
       await enqueuePurchaseForPaidOrder(env.OMS_DB, scheduledLocals, orderId);
     } catch (error) {
+      // Payment truth is authoritative. Conversion delivery is independently
+      // retried by its outbox and must never roll a paid order back.
       console.error("scheduled-paid-order-purchase-failed", { orderId, error });
     }
   }
-  const purgedCapiOutboxEvents = await housekeeping(
-    "scheduled-capi-outbox-purge-failed",
-    () => purgeExpiredCapiOutboxEvents(env.OMS_DB, new Date(scheduledTime)),
-  );
-  const purgedGoogleAdsOutboxEvents = await housekeeping(
-    "scheduled-google-ads-outbox-purge-failed",
-    () => purgeExpiredGoogleAdsOutboxEvents(env.OMS_DB, new Date(scheduledTime)),
-  );
   // The outbox had no clock of its own: `drainCapiOutbox` was reachable only
   // from `/api/meta-event` and `/api/v1/tracking/events`, so a delivery that
   // failed was retried when the next visitor arrived rather than when its
@@ -109,21 +124,22 @@ async function runScheduledMaintenance(
   // along within the hour — not true for a store between campaigns, and the
   // health check below was already counting the overdue rows without anything
   // acting on them.
-  const ads = await getStoreAdsConfig({ runtimeEnv: env } as unknown as App.Locals);
-  const drainedCapiEvents =
-    ads.metaPixelId && ads.metaCapiToken
-      ? await drainCapiOutbox(env.OMS_DB, ads.metaPixelId, ads.metaCapiToken)
+  const drainedCapiEvents = await housekeeping("scheduled-capi-drain-failed", async () => {
+    const ads = await getStoreAdsConfig({ runtimeEnv: env } as unknown as App.Locals);
+    return ads.metaPixelId && ads.metaCapiToken
+      ? drainCapiOutbox(env.OMS_DB, ads.metaPixelId, ads.metaCapiToken)
       : 0;
+  });
   const googleAdsOffline = readGoogleAdsOfflineConfig(env);
   const queuedGoogleAdsConversions = googleAdsOffline
-    ? await reconcileGoogleAdsConversions(
-        env.OMS_DB,
-        googleAdsOffline,
-        new Date(scheduledTime),
+    ? await housekeeping("scheduled-google-ads-reconcile-failed", () =>
+        reconcileGoogleAdsConversions(env.OMS_DB, googleAdsOffline, new Date(scheduledTime)),
       )
     : 0;
   const drainedGoogleAdsConversions = googleAdsOffline
-    ? await drainGoogleAdsConversionOutbox(env.OMS_DB, googleAdsOffline)
+    ? await housekeeping("scheduled-google-ads-drain-failed", () =>
+        drainGoogleAdsConversionOutbox(env.OMS_DB, googleAdsOffline),
+      )
     : 0;
 
   const health = await collectOperationalHealth(env.OMS_DB);
@@ -134,6 +150,8 @@ async function runScheduledMaintenance(
       webhookUrl: getEnvValue("OPS_ALERT_WEBHOOK_URL", {
         OPS_ALERT_WEBHOOK_URL: env.OPS_ALERT_WEBHOOK_URL,
       }),
+      // No request here, so the install names itself from its own config.
+      source: env.PUBLIC_SITE_URL,
     },
   );
 
@@ -145,9 +163,18 @@ async function runScheduledMaintenance(
     expiredPaymentInstructions,
     purgedProviderCallbacks,
     purgedNotifications,
-    autoLarisReconciliation,
     purgedCapiOutboxEvents,
-    purgedGoogleAdsOutboxEvents,
+    purgedGoogleAdsConversions,
+    autoLarisReconciliation: {
+      checked: autoLarisReconciliation.checked,
+      paid: autoLarisReconciliation.paidOrderIds.length,
+      pending: autoLarisReconciliation.pending,
+      unproven: autoLarisReconciliation.unproven,
+      failed: autoLarisReconciliation.failed,
+      // The provider's success code with a settlement word the allowlist does
+      // not know. Non-empty here is the observation SCR1 needs, not an error.
+      unrecognisedPaidStatuses: autoLarisReconciliation.unrecognisedPaidStatuses,
+    },
     drainedCapiEvents,
     queuedGoogleAdsConversions,
     drainedGoogleAdsConversions,

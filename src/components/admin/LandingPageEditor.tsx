@@ -12,6 +12,9 @@ import {
   Settings,
   Smartphone,
   Globe,
+  Image,
+  List,
+  Type,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
@@ -22,6 +25,7 @@ import { Textarea } from "../ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Badge } from "../ui/badge";
 import { formatIdr } from "../../lib/format-idr";
+import { MAX_ENCODED_BYTES, convertImageToWebP } from "../../lib/client-image";
 
 type Variant = {
   id: number;
@@ -48,11 +52,21 @@ type FormConfig = {
   button_text?: string;
 };
 
+type ContentConfig = {
+  text?: string;
+  align?: "left" | "center" | "right";
+  size?: "small" | "medium" | "large";
+  items?: string[];
+  src?: string;
+  alt?: string;
+};
+
 type Section = {
   id: string;
-  type: "html" | "form";
+  type: "html" | "form" | "headline" | "paragraph" | "numbered_list" | "bullet_list" | "image";
   content_html?: string;
   form_config?: FormConfig;
+  content_config: ContentConfig;
 };
 
 type Props = {
@@ -190,6 +204,16 @@ export function sanitizePreviewHtml(value: string) {
 const previewOrigin =
   typeof window === "undefined" ? "" : window.location.origin;
 
+/**
+ * Tailscale serves local dev over HTTP, where Web Crypto's randomUUID is not
+ * exposed. These IDs exist only inside unsaved React state; D1 assigns durable
+ * IDs on save, so a time/random fallback is sufficient here.
+ */
+function createSectionId() {
+  return globalThis.crypto?.randomUUID?.() ??
+    `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+}
+
 export default function LandingPageEditor({ landingPageId }: Props) {
   const [loading, setLoading] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
@@ -204,6 +228,7 @@ export default function LandingPageEditor({ landingPageId }: Props) {
 
   // Section editing states inside 480px canvas
   const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
+  const [uploadingSectionId, setUploadingSectionId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchProducts();
@@ -212,7 +237,8 @@ export default function LandingPageEditor({ landingPageId }: Props) {
 
   async function fetchProducts() {
     try {
-      const res = await fetch("/api/admin/products");
+      // Same ceiling as the catalogue (see ProductCatalog): the newest 200.
+      const res = await fetch("/api/admin/products?limit=200");
       if (!res.ok) throw new Error("Failed to fetch products");
       const { data } = await res.json();
       setProducts(data || []);
@@ -237,11 +263,12 @@ export default function LandingPageEditor({ landingPageId }: Props) {
 
       if (Array.isArray(data.sections)) {
         setSections(
-          data.sections.map((s: { type: "html" | "form"; content_html?: string; form_config?: FormConfig }) => ({
-            id: crypto.randomUUID(),
+          data.sections.map((s: Section) => ({
+            id: createSectionId(),
             type: s.type,
             content_html: s.content_html || "",
             form_config: s.form_config || {},
+            content_config: s.content_config ?? {},
           }))
         );
       }
@@ -267,19 +294,64 @@ export default function LandingPageEditor({ landingPageId }: Props) {
   };
 
   const addHtmlSection = () => {
-    const newId = crypto.randomUUID();
-    setSections([...sections, { id: newId, type: "html", content_html: "" }]);
-    setEditingSectionId(newId);
+    const id = createSectionId();
+    setSections((current) => [...current, { id, type: "html", content_html: "", content_config: {} }]);
+    setEditingSectionId(id);
+    toast.success("HTML section ditambahkan ke canvas.");
   };
 
   const addFormSection = () => {
-    const newId = crypto.randomUUID();
-    setSections([
-      ...sections,
-      { id: newId, type: "form", form_config: { mode: "hybrid" } },
-    ]);
-    setEditingSectionId(newId);
+    const id = createSectionId();
+    setSections((current) => [...current, { id, type: "form", form_config: { mode: "hybrid" }, content_config: {} }]);
+    setEditingSectionId(id);
+    toast.success("Form COD ditambahkan ke canvas.");
   };
+
+  const addSection = (type: Section["type"]) => {
+    const id = createSectionId();
+    const content_config: ContentConfig =
+      type === "headline" ? { text: "", align: "left", size: "medium" } :
+      type === "paragraph" ? { text: "", align: "left" } :
+      type === "numbered_list" || type === "bullet_list" ? { items: [""] } :
+      type === "image" ? { src: "", alt: "" } : {};
+    setSections((current) => [...current, { id, type, content_config }]);
+    setEditingSectionId(id);
+    toast.success(`${type === "headline" ? "Headline" : type === "paragraph" ? "Paragraf" : type === "numbered_list" ? "Daftar angka" : type === "bullet_list" ? "Bullet" : "Gambar"} ditambahkan ke canvas.`);
+  };
+
+  async function uploadImage(sectionId: string, file: File) {
+    if (file.size > MAX_ENCODED_BYTES) return toast.error("Ukuran file maksimal 2 MB.");
+    setUploadingSectionId(sectionId);
+    try {
+      const image = await convertImageToWebP(file);
+      const formData = new FormData();
+      formData.set("file", image);
+      const response = await fetch("/api/admin/upload-r2", { method: "POST", body: formData });
+      const payload = await response.json();
+      if (!response.ok || !payload.success) throw new Error(payload.error || "Gagal mengunggah gambar.");
+      setSections((current) =>
+        current.map((section) =>
+          section.id === sectionId
+            ? { ...section, content_config: { ...section.content_config, src: payload.data.url } }
+            : section,
+        ),
+      );
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Gagal mengolah gambar.");
+    } finally {
+      setUploadingSectionId(null);
+    }
+  }
+
+  function focusSection(id: string) {
+    setEditingSectionId(id);
+    requestAnimationFrame(() => {
+      document.getElementById(`landing-section-${id}`)?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    });
+  }
 
   const moveSection = (index: number, direction: "up" | "down") => {
     if (direction === "up" && index > 0) {
@@ -321,10 +393,20 @@ export default function LandingPageEditor({ landingPageId }: Props) {
         is_active: isActive ? 1 : 0,
         meta_title: metaTitle.trim(),
         meta_description: metaDescription.trim(),
-        sections: sections.map(({ type, content_html, form_config }) => ({
+        sections: sections.map(({ type, content_html, form_config, content_config }) => ({
           type,
           content_html,
           form_config,
+          // A list is authored as free text, one item per line, so the
+          // operator's closing Enter leaves a trailing empty item and the
+          // server refuses the whole save. Filtering while they type would
+          // make Enter impossible to press, so it is done once, here.
+          content_config: content_config.items
+            ? {
+                ...content_config,
+                items: content_config.items.map((item) => item.trim()).filter(Boolean),
+              }
+            : content_config,
         })),
       };
 
@@ -357,22 +439,22 @@ export default function LandingPageEditor({ landingPageId }: Props) {
   const selectedProduct = products.find((p) => String(p.id) === productId);
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-24 text-slate-900">
+    <div className="space-y-6 pb-24 text-slate-900">
       {/* Fixed Top Action Header */}
       <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-xs">
+          <div className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center font-semibold text-sm shrink-0 shadow-xs">
             480
           </div>
           <div>
-            <h2 className="text-lg font-bold tracking-tight text-slate-900 flex items-center gap-2">
+            <h2 className="text-base font-semibold tracking-tight text-slate-900 flex items-center gap-2">
               {title || (landingPageId ? "Edit Landing Page" : "Buat Landing Page Baru")}
               {isActive ? (
-                <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] px-2 py-0.5">
+                <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs px-2 py-0.5">
                   Published
                 </Badge>
               ) : (
-                <Badge variant="secondary" className="text-[10px] px-2 py-0.5">Draft</Badge>
+                <Badge variant="secondary" className="text-xs px-2 py-0.5">Draft</Badge>
               )}
             </h2>
             <p className="text-xs text-slate-500 font-mono mt-0.5">
@@ -386,22 +468,18 @@ export default function LandingPageEditor({ landingPageId }: Props) {
             <Button
               type="button"
               variant="outline"
-              size="sm"
-              className="h-9 text-xs bg-white border-slate-300"
               onClick={() => window.open(`/${slug}?preview=1`, "_blank")}
             >
-              <Eye className="w-4 h-4 mr-1.5 text-slate-600" /> Live Preview
+              <Eye aria-hidden="true" /> Preview
             </Button>
           )}
 
           <Button
             onClick={handleSave}
             disabled={loading}
-            size="sm"
-            className="h-9 text-xs bg-slate-900 hover:bg-slate-800 text-white font-medium px-4"
           >
-            <CheckCircle2 className="w-4 h-4 mr-1.5" />
-            {loading ? "Menyimpan..." : "Simpan Landing Page"}
+            <CheckCircle2 aria-hidden="true" />
+            {loading ? "Menyimpan…" : "Simpan landing page"}
           </Button>
         </div>
       </div>
@@ -423,20 +501,21 @@ export default function LandingPageEditor({ landingPageId }: Props) {
             <CardContent className="space-y-4 pt-4">
               {/* Judul Halaman */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-700">
+                <label htmlFor="landing-title" className="text-xs font-semibold text-slate-700">
                   Judul Landing Page <span className="text-red-500">*</span>
                 </label>
                 <Input
+                  id="landing-title"
                   placeholder="Contoh: Promo Spesial Asahan Portable"
                   value={title}
                   onChange={(e) => handleTitleChange(e.target.value)}
-                  className="text-xs h-9 bg-white"
+                  
                 />
               </div>
 
               {/* URL Slug */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-700">
+                <label htmlFor="landing-slug" className="text-xs font-semibold text-slate-700">
                   URL Slug <span className="text-red-500">*</span>
                 </label>
                 <div className="flex rounded-md shadow-xs">
@@ -444,7 +523,8 @@ export default function LandingPageEditor({ landingPageId }: Props) {
                     /
                   </span>
                   <Input
-                    className="rounded-l-none font-mono text-xs h-9 bg-white"
+                    id="landing-slug"
+                    className="rounded-l-none font-mono"
                     placeholder="promo-asahan-portable"
                     value={slug}
                     onChange={(e) => setSlug(generateSlug(e.target.value))}
@@ -459,15 +539,17 @@ export default function LandingPageEditor({ landingPageId }: Props) {
                   Produk Katalog (D1) <span className="text-red-500">*</span>
                 </label>
                 <Select
+                  items={Object.fromEntries(products.map((product) => [String(product.id), product.title]))}
                   value={productId}
                   onValueChange={(value) => {
                     if (value) setProductId(value);
                   }}
                 >
-                  <SelectTrigger className={`w-full h-11 text-xs bg-white rounded-xl ${!productId ? "border-amber-300 bg-amber-50/30" : "border-slate-300"}`}>
-                    <SelectValue placeholder="-- Pilih Produk Katalog (D1) --" />
+                  <SelectTrigger className="w-full" aria-invalid={!productId || undefined}>
+                    <SelectValue placeholder="Pilih produk" />
                   </SelectTrigger>
-                  <SelectContent className="max-h-96 w-[var(--anchor-width)] min-w-[340px] sm:min-w-[480px] p-1.5 shadow-2xl rounded-2xl border border-slate-200 bg-white">
+                  {/* Five rows, then scroll: the catalogue can hold hundreds. */}
+                  <SelectContent alignItemWithTrigger={false} className="max-h-[17.5rem] w-(--anchor-width) min-w-80">
                     {products.map((p) => {
                       const prices = p.variants?.map((v) => v.price) || [];
                       const minPrice = prices.length ? Math.min(...prices) : 0;
@@ -483,38 +565,33 @@ export default function LandingPageEditor({ landingPageId }: Props) {
                         <SelectItem
                           key={p.id}
                           value={String(p.id)}
-                          className="text-xs py-2.5 px-3 border-b border-slate-100/90 last:border-b-0 cursor-pointer focus:bg-slate-100/90 rounded-xl transition-colors my-0.5"
+                          className="py-2"
                         >
-                          <div className="flex items-start justify-between w-full gap-3 min-w-0 py-0.5">
-                            <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                          <div className="flex w-full min-w-0 items-center justify-between gap-3">
+                            <div className="flex min-w-0 flex-1 items-center gap-2.5">
                               {p.image_url ? (
                                 <img
                                   src={p.image_url}
                                   alt=""
-                                  className="w-9 h-9 rounded-lg border border-slate-200 object-cover shrink-0 mt-0.5 shadow-2xs"
+                                  className="size-9 shrink-0 rounded-md border object-cover"
                                 />
                               ) : (
-                                <div className="w-9 h-9 rounded-lg border border-slate-200 bg-slate-100 flex items-center justify-center shrink-0 mt-0.5">
+                                <div className="grid size-9 shrink-0 place-items-center rounded-md border bg-slate-100">
                                   <Package className="w-4 h-4 text-slate-400" />
                                 </div>
                               )}
                               <div className="min-w-0 flex-1 text-left">
-                                <div
-                                  className="font-semibold text-slate-900 leading-snug line-clamp-2 whitespace-normal break-words"
-                                  title={p.title}
-                                >
+                                <div className="truncate font-medium text-slate-900" title={p.title}>
                                   {p.title}
                                 </div>
-                                <div className="text-[11px] text-slate-500 mt-0.5 font-normal flex items-center gap-1.5">
-                                  {p.category && <span className="capitalize">{p.category}</span>}
-                                  {p.category && <span>•</span>}
-                                  <span>{p.variants?.length || 0} Varian</span>
+                                {/* The price rides the second line so a range never squeezes the title. */}
+                                <div className="truncate text-xs text-slate-500">
+                                  <span className="font-medium text-slate-700 tabular-nums">{priceLabel}</span>
+                                  {p.category && <span className="capitalize"> · {p.category}</span>}
+                                  <span> · {p.variants?.length || 0} varian</span>
                                 </div>
                               </div>
                             </div>
-                            <span className="shrink-0 font-mono font-extrabold text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2.5 py-1 rounded-lg shadow-2xs self-start mt-0.5">
-                              {priceLabel}
-                            </span>
                           </div>
                         </SelectItem>
                       );
@@ -523,28 +600,24 @@ export default function LandingPageEditor({ landingPageId }: Props) {
                 </Select>
 
                 {selectedProduct && (
-                  <div className="p-3 bg-slate-50/90 rounded-xl border border-slate-200/90 text-xs flex items-center gap-3 mt-2 shadow-2xs">
+                  <div className="mt-2 flex items-center gap-3 text-xs">
                     {selectedProduct.image_url ? (
                       <img
                         src={selectedProduct.image_url}
                         alt={selectedProduct.title}
-                        className="w-10 h-10 rounded-lg border border-slate-200 object-cover shrink-0 shadow-2xs"
+                        className="size-9 shrink-0 rounded-md border object-cover"
                       />
                     ) : (
-                      <div className="w-10 h-10 rounded-lg border border-slate-200 bg-slate-200/80 flex items-center justify-center shrink-0">
+                      <div className="grid size-9 shrink-0 place-items-center rounded-md border bg-slate-100">
                         <Package className="w-5 h-5 text-slate-400" />
                       </div>
                     )}
                     <div className="min-w-0 flex-1">
-                      <div className="font-semibold text-slate-900 line-clamp-1" title={selectedProduct.title}>
+                      <div className="truncate font-medium text-slate-900" title={selectedProduct.title}>
                         {selectedProduct.title}
                       </div>
-                      <div className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-2">
-                        <span className="font-mono text-[10px] bg-slate-200/70 text-slate-700 px-1.5 py-0.5 rounded font-bold">
-                          /{selectedProduct.slug}
-                        </span>
-                        <span>•</span>
-                        <span>{selectedProduct.variants?.length || 0} Varian Aktif</span>
+                      <div className="truncate text-slate-500">
+                        <span className="font-mono">/{selectedProduct.slug}</span> · {selectedProduct.variants?.length || 0} varian aktif
                       </div>
                     </div>
                   </div>
@@ -554,10 +627,15 @@ export default function LandingPageEditor({ landingPageId }: Props) {
               {/* Status Switch */}
               <div className="pt-2 border-t flex items-center justify-between">
                 <div>
-                  <span className="text-xs font-semibold text-slate-700 block">Status Terbit</span>
-                  <span className="text-[11px] text-slate-500">Aktifkan untuk akses publik</span>
+                  <span id="landing-publish-label" className="text-xs font-semibold text-slate-700 block">Status Terbit</span>
+                  <span id="landing-publish-hint" className="text-xs text-slate-500">Aktifkan untuk akses publik</span>
                 </div>
-                <Switch checked={isActive} onCheckedChange={setIsActive} />
+                <Switch
+                  checked={isActive}
+                  onCheckedChange={setIsActive}
+                  aria-labelledby="landing-publish-label"
+                  aria-describedby="landing-publish-hint"
+                />
               </div>
             </CardContent>
           </Card>
@@ -571,21 +649,23 @@ export default function LandingPageEditor({ landingPageId }: Props) {
             </CardHeader>
             <CardContent className="space-y-3 pt-3">
               <div className="space-y-1">
-                <label className="text-[11px] font-medium text-slate-600">Meta Title</label>
+                <label htmlFor="landing-meta-title" className="text-xs font-medium text-slate-600">Meta Title</label>
                 <Input
+                  id="landing-meta-title"
                   placeholder="Judul SEO Google..."
                   value={metaTitle}
                   onChange={(e) => setMetaTitle(e.target.value)}
-                  className="text-xs h-8 bg-white"
+                  
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[11px] font-medium text-slate-600">Meta Description</label>
+                <label htmlFor="landing-meta-description" className="text-xs font-medium text-slate-600">Meta Description</label>
                 <Textarea
+                  id="landing-meta-description"
                   placeholder="Deskripsi singkat untuk pencarian Google & WhatsApp preview..."
                   value={metaDescription}
                   onChange={(e) => setMetaDescription(e.target.value)}
-                  className="text-xs min-h-[60px] bg-white"
+                  className="min-h-[60px]"
                 />
               </div>
             </CardContent>
@@ -598,19 +678,28 @@ export default function LandingPageEditor({ landingPageId }: Props) {
             <div className="flex items-center justify-between text-xs text-slate-500">
               <span className="flex items-center gap-1.5 font-medium text-slate-700">
                 <Smartphone className="w-4 h-4 text-blue-600" />
-                WYSIWYG Mobile Canvas (<strong>480px</strong>)
+                Mobile preview (<strong>480px</strong>)
               </span>
-              <span className="text-[11px] text-slate-400">100% Canvas Parity</span>
+              <span className="text-xs text-slate-500">{sections.length} section{sections.length === 1 ? "" : "s"}</span>
             </div>
 
+            {sections.length > 0 && (
+              <nav aria-label="Navigasi section" className="flex max-w-[480px] mx-auto gap-1 overflow-x-auto pb-1">
+                {sections.map((section, index) => (
+                  <Button key={section.id} type="button" variant={editingSectionId === section.id ? "secondary" : "outline"} size="sm" onClick={() => focusSection(section.id)} className="shrink-0 px-2">
+                    {index + 1}
+                  </Button>
+                ))}
+              </nav>
+            )}
             {/* Stable Centered Mobile Device Mockup Frame */}
-            <div className="w-full max-w-[480px] mx-auto bg-white border border-slate-300 rounded-2xl shadow-sm overflow-hidden min-h-[680px] flex flex-col">
+            <div className="w-full max-w-[480px] mx-auto bg-white border border-slate-300 rounded-xl shadow-sm overflow-hidden min-h-[680px] flex flex-col">
               {/* Device Header Bar */}
-              <div className="bg-slate-900 px-4 py-2 text-white flex items-center justify-between text-[11px] font-mono">
+              <div className="bg-slate-900 px-4 py-2 text-white flex items-center justify-between text-xs font-mono">
                 <span className="truncate max-w-[300px] text-slate-300">
                   {previewOrigin}/{slug || "preview"}
                 </span>
-                <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-slate-800 text-slate-200 border-slate-700">
+                <Badge variant="outline" className="text-xs px-1.5 py-0 bg-slate-800 text-slate-200 border-slate-700">
                   480px Storefront
                 </Badge>
               </div>
@@ -622,24 +711,27 @@ export default function LandingPageEditor({ landingPageId }: Props) {
 
                   return (
                     <div
+                      id={`landing-section-${section.id}`}
                       key={section.id}
-                      className={`rounded-xl border bg-white shadow-sm transition-all overflow-hidden ${
-                        isEditing ? "border-blue-400 ring-4 ring-blue-50" : "border-slate-200 hover:border-slate-300"
+                      onClick={() => setEditingSectionId(section.id)}
+                      className={`rounded-xl border bg-white shadow-sm transition-all overflow-hidden cursor-pointer ${
+                        isEditing ? "border-blue-400 ring-4 ring-blue-50" : "border-slate-200 hover:border-slate-400"
                       }`}
                     >
                       {/* Section Header */}
                       <div className="bg-slate-50 px-3 py-2 border-b border-slate-100 flex items-center justify-between text-xs">
                         <div className="flex items-center gap-1.5 font-semibold text-slate-800">
-                          <span className="w-4 h-4 rounded-full bg-slate-200 text-slate-700 text-[10px] flex items-center justify-center font-bold">
+                          <span className="w-4 h-4 rounded-full bg-slate-200 text-slate-700 text-xs flex items-center justify-center font-semibold">
                             {index + 1}
                           </span>
                           {section.type === "html" ? (
-                            <span className="flex items-center gap-1 text-blue-700">
-                              <Code className="w-3.5 h-3.5" /> HTML Content
-                            </span>
+                            <span className="flex items-center gap-1 text-blue-700"><Code className="w-3.5 h-3.5" /> HTML Content</span>
+                          ) : section.type === "form" ? (
+                            <span className="flex items-center gap-1 text-emerald-700"><Sparkles className="w-3.5 h-3.5" /> Native Form COD</span>
                           ) : (
-                            <span className="flex items-center gap-1 text-emerald-700">
-                              <Sparkles className="w-3.5 h-3.5" /> Native Form COD
+                            <span className="flex items-center gap-1 text-slate-700">
+                              {section.type === "image" ? <Image className="w-3.5 h-3.5" /> : section.type.includes("list") ? <List className="w-3.5 h-3.5" /> : <Type className="w-3.5 h-3.5" />}
+                              {section.type === "headline" ? "Headline" : section.type === "paragraph" ? "Paragraf" : section.type === "numbered_list" ? "Daftar angka" : section.type === "bullet_list" ? "Bullet" : "Gambar"}
                             </span>
                           )}
                         </div>
@@ -707,7 +799,7 @@ export default function LandingPageEditor({ landingPageId }: Props) {
                                         updateSection(section.id, { content_html: (section.content_html || "") + item.code });
                                       }
                                     }}
-                                    className="text-[10px] px-2 py-1 bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 rounded-md font-mono border border-slate-200 shadow-sm transition-colors cursor-pointer"
+                                    className="text-xs px-2 py-1 bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 rounded-md font-mono border border-slate-200 shadow-sm transition-colors cursor-pointer"
                                   >
                                     {item.code}
                                   </button>
@@ -717,6 +809,7 @@ export default function LandingPageEditor({ landingPageId }: Props) {
 
                             {isEditing ? (
                               <Textarea
+                                data-code-editor
                                 id={`html-${section.id}`}
                                 placeholder="<div class='py-4 text-center'><h2>{{product_name}}</h2></div>"
                                 className="font-mono text-[13px] min-h-[160px] bg-slate-900 text-slate-100 p-3 rounded-md border-slate-800 focus:ring-blue-500/20"
@@ -737,13 +830,91 @@ export default function LandingPageEditor({ landingPageId }: Props) {
                             )}
                           </div>
                         )}
+                        {section.type !== "html" && section.type !== "form" && (
+                          <div className="space-y-3 text-xs">
+                            {isEditing ? (
+                              <>
+                                {(section.type === "headline" || section.type === "paragraph") && (
+                                  <div className="space-y-2">
+                                    <div className="grid grid-cols-2 gap-2">
+                                      <div className="space-y-1">
+                                        <label className="text-xs font-semibold text-slate-600">Perataan</label>
+                                        <Select value={section.content_config.align ?? "left"} onValueChange={(align) => align && updateSection(section.id, { content_config: { ...section.content_config, align } })}>
+                                          <SelectTrigger aria-label="Perataan teks" ><SelectValue /></SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="left">Rata kiri</SelectItem>
+                                            <SelectItem value="center">Tengah</SelectItem>
+                                            <SelectItem value="right">Rata kanan</SelectItem>
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                      {section.type === "headline" ? (
+                                        <div className="space-y-1">
+                                          <label className="text-xs font-semibold text-slate-600">Ukuran</label>
+                                          <Select value={section.content_config.size ?? "medium"} onValueChange={(size) => size && updateSection(section.id, { content_config: { ...section.content_config, size } })}>
+                                            <SelectTrigger aria-label="Ukuran headline" ><SelectValue /></SelectTrigger>
+                                            <SelectContent>
+                                              <SelectItem value="small">Kecil</SelectItem>
+                                              <SelectItem value="medium">Sedang</SelectItem>
+                                              <SelectItem value="large">Besar</SelectItem>
+                                            </SelectContent>
+                                          </Select>
+                                        </div>
+                                      ) : <p className="flex items-end text-slate-500">Body text</p>}
+                                    </div>
+                                    <Textarea
+                                      aria-label={section.type === "headline" ? "Headline" : "Paragraf"}
+                                      value={section.content_config.text ?? ""}
+                                      onChange={(event) => updateSection(section.id, { content_config: { ...section.content_config, text: event.target.value } })}
+                                      placeholder={section.type === "headline" ? "Headline utama..." : "Tulis paragraf..."}
+                                      className="min-h-20"
+                                    />
+                                  </div>
+                                )}
+                                {(section.type === "numbered_list" || section.type === "bullet_list") && (
+                                  <Textarea
+                                    aria-label="Item daftar, satu baris per item"
+                                    value={(section.content_config.items ?? []).join("\n")}
+                                    onChange={(event) => updateSection(section.id, { content_config: { items: event.target.value.split("\n") } })}
+                                    placeholder="Satu manfaat per baris"
+                                    className="min-h-24"
+                                  />
+                                )}
+                                {section.type === "image" && (
+                                  <div className="space-y-2">
+                                    <Input aria-label="Upload gambar" type="file" accept="image/jpeg,image/png,image/webp" disabled={uploadingSectionId === section.id} onChange={(event) => {
+                                      const file = event.target.files?.[0];
+                                      if (file) void uploadImage(section.id, file);
+                                      event.target.value = "";
+                                    }} />
+                                    {uploadingSectionId === section.id && <p className="text-slate-500" role="status">Mengolah dan mengunggah gambar…</p>}
+                                    {section.content_config.src && <img src={section.content_config.src} alt="" className="max-w-full h-auto rounded-lg border" />}
+                                    <Input aria-label="Deskripsi gambar" disabled={uploadingSectionId === section.id} value={section.content_config.alt ?? ""} onChange={(event) => updateSection(section.id, { content_config: { ...section.content_config, alt: event.target.value } })} placeholder="Deskripsi gambar" />
+                                  </div>
+                                )}
+                              </>
+                            ) : (
+                              <>
+                                {section.type === "headline" && <h2 className="text-xl font-semibold">{section.content_config.text || "Headline belum diisi"}</h2>}
+                                {section.type === "paragraph" && <p className="leading-relaxed">{section.content_config.text || "Paragraf belum diisi"}</p>}
+                                {(section.type === "numbered_list" || section.type === "bullet_list") && (
+                                  section.type === "numbered_list"
+                                    ? <ol className="list-decimal pl-5 space-y-1">{(section.content_config.items ?? []).map((item, itemIndex) => <li key={itemIndex}>{item}</li>)}</ol>
+                                    : <ul className="list-disc pl-5 space-y-1">{(section.content_config.items ?? []).map((item, itemIndex) => <li key={itemIndex}>{item}</li>)}</ul>
+                                )}
+                                {section.type === "image" && section.content_config.src && <img src={section.content_config.src} alt={section.content_config.alt ?? ""} className="max-w-full h-auto rounded-lg" />}
+                              </>
+                            )}
+                          </div>
+                        )}
+
 
                         {section.type === "form" && (
                           <div className="space-y-3">
                             {isEditing ? (
                               <div className="space-y-2 text-xs">
                                 <div>
-                                  <label className="text-[11px] font-semibold text-slate-600">Layout Mode</label>
+                                  <label className="text-xs font-semibold text-slate-600">Layout Mode</label>
                                   <Select
                                     value={section.form_config?.mode || "hybrid"}
                                     onValueChange={(value) => {
@@ -753,7 +924,7 @@ export default function LandingPageEditor({ landingPageId }: Props) {
                                       });
                                     }}
                                   >
-                                    <SelectTrigger className="h-8 text-xs bg-white">
+                                    <SelectTrigger >
                                       <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -765,7 +936,7 @@ export default function LandingPageEditor({ landingPageId }: Props) {
                                 </div>
 
                                 <div>
-                                  <label className="text-[11px] font-semibold text-slate-600">Varian Default</label>
+                                  <label className="text-xs font-semibold text-slate-600">Varian Default</label>
                                   <Select
                                     value={section.form_config?.selected_variant_id || "none"}
                                     onValueChange={(value) =>
@@ -778,7 +949,7 @@ export default function LandingPageEditor({ landingPageId }: Props) {
                                       })
                                     }
                                   >
-                                    <SelectTrigger className="h-8 text-xs bg-white">
+                                    <SelectTrigger >
                                       <SelectValue placeholder="Semua varian" />
                                     </SelectTrigger>
                                     <SelectContent className="max-h-64 p-1 shadow-lg rounded-xl border border-slate-200">
@@ -793,7 +964,7 @@ export default function LandingPageEditor({ landingPageId }: Props) {
                                         >
                                           <div className="flex items-start justify-between w-full gap-3 min-w-0">
                                             <span className="font-medium text-slate-900 line-clamp-2 whitespace-normal break-words leading-snug">{v.title}</span>
-                                            <span className="shrink-0 font-mono font-bold text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 rounded-md self-start">
+                                            <span className="shrink-0 font-mono font-semibold text-xs text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 rounded-md self-start">
                                               {formatIdr(v.price)}
                                             </span>
                                           </div>
@@ -809,7 +980,7 @@ export default function LandingPageEditor({ landingPageId }: Props) {
                                   <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />
                                   <div>
                                     <span className="font-semibold">Native Form Checkout COD</span>
-                                    <div className="text-[10px] text-emerald-700">
+                                    <div className="text-xs text-emerald-700">
                                       Mode: {section.form_config?.mode || "hybrid"} • Anchor: #checkout-form
                                     </div>
                                   </div>
@@ -827,31 +998,21 @@ export default function LandingPageEditor({ landingPageId }: Props) {
                   <div className="text-center py-20 border border-dashed rounded-xl bg-white space-y-2">
                     <Package className="w-8 h-8 text-slate-300 mx-auto" />
                     <p className="text-xs text-slate-500 font-medium">Canvas Halaman Masih Kosong</p>
-                    <p className="text-[11px] text-slate-400">Klik tombol di bawah untuk menambah section</p>
+                    <p className="text-xs text-slate-400">Klik tombol di bawah untuk menambah section</p>
                   </div>
                 )}
               </div>
 
               {/* Add Section Buttons */}
-              <div className="p-3 bg-white border-t border-slate-200 flex items-center justify-center gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={addHtmlSection}
-                  className="h-8 text-xs bg-white border-slate-300 hover:bg-blue-50 hover:text-blue-700"
-                >
-                  <Plus className="w-3.5 h-3.5 mr-1 text-blue-600" /> + HTML Section
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={addFormSection}
-                  className="h-8 text-xs bg-white border-slate-300 hover:bg-emerald-50 hover:text-emerald-700"
-                >
-                  <Plus className="w-3.5 h-3.5 mr-1 text-emerald-600" /> + Form COD
-                </Button>
+              <div className="p-3 bg-white border-t border-slate-200 flex flex-wrap items-center justify-center gap-2">
+                <p className="w-full text-center text-xs font-medium text-slate-600">Tambah section ke canvas</p>
+                <Button type="button" variant="outline" size="sm" disabled={loading} onClick={() => addSection("headline")} ><Type className="w-3.5 h-3.5 mr-1" />Headline</Button>
+                <Button type="button" variant="outline" size="sm" disabled={loading} onClick={() => addSection("paragraph")} ><Type className="w-3.5 h-3.5 mr-1" />Paragraf</Button>
+                <Button type="button" variant="outline" size="sm" disabled={loading} onClick={() => addSection("numbered_list")} ><List className="w-3.5 h-3.5 mr-1" />Daftar angka</Button>
+                <Button type="button" variant="outline" size="sm" disabled={loading} onClick={() => addSection("bullet_list")} ><List className="w-3.5 h-3.5 mr-1" />Bullet</Button>
+                <Button type="button" variant="outline" size="sm" disabled={loading} onClick={() => addSection("image")} ><Image className="w-3.5 h-3.5 mr-1" />Gambar</Button>
+                <Button type="button" variant="outline" size="sm" disabled={loading} onClick={addHtmlSection} ><Code className="w-3.5 h-3.5 mr-1" />HTML</Button>
+                <Button type="button" variant="outline" size="sm" disabled={loading} onClick={addFormSection} ><Plus className="w-3.5 h-3.5 mr-1" />Form COD</Button>
               </div>
             </div>
           </div>

@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { canConvertToWebP, convertImageToWebP } from "../../lib/client-image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 
 const pretty = (value: unknown) => JSON.stringify(value ?? {}, null, 2);
 
@@ -184,34 +185,39 @@ export function ContentWorkbench() {
     <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
       <Card>
         <CardHeader className="border-b border-slate-100">
-          <CardTitle as="h3" className="text-base font-black">Draft Storefront</CardTitle>
+          <CardTitle as="h3" className="text-base font-semibold">Draft Storefront</CardTitle>
           <p className="text-xs leading-5 text-slate-500">
             D1 adalah source of truth. Generate membuat draft; publish adalah aksi terpisah.
           </p>
         </CardHeader>
         <CardContent className="space-y-4 p-5">
-          <label className="grid-cols-1 grid gap-2 text-xs font-bold text-slate-700">
+          <label className="grid-cols-1 grid gap-2 text-xs font-semibold text-slate-700">
             Target konten
-            <select
+            <Select
+              items={Object.fromEntries((index?.targets || []).map((target) => [target.key, target.label]))}
               value={selectedKey}
-              onChange={(event) => void selectTarget(event.target.value)}
+              onValueChange={(value) => value && void selectTarget(String(value))}
               disabled={loading || saving}
-              className="admin-input-flat h-11 bg-white text-sm"
             >
-              {(index?.targets || []).map((target) => (
-                <option key={target.key} value={target.key}>
-                  {target.label}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger aria-label="Target konten" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(index?.targets || []).map((target) => (
+                  <SelectItem key={target.key} value={target.key}>
+                    {target.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </label>
-          <div className="flex flex-wrap gap-2 text-[11px] font-bold text-slate-500">
+          <div className="flex flex-wrap gap-2 text-xs font-semibold text-slate-500">
             <span>Versi {record?.version || 0}</span>
             <span>·</span>
             <span>{record?.generated_by || "belum ada draft"}</span>
             {record?.published_at && <span>· Published {record.published_at}</span>}
           </div>
-          <label className="grid-cols-1 grid gap-2 text-xs font-bold text-slate-700">
+          <label className="grid-cols-1 grid gap-2 text-xs font-semibold text-slate-700">
             Draft JSON
             <textarea
               value={editor}
@@ -237,7 +243,7 @@ export function ContentWorkbench() {
       <div className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle as="h3" className="text-sm font-black">Batas Operasional</CardTitle>
+            <CardTitle as="h3" className="text-sm font-semibold">Batas Operasional</CardTitle>
           </CardHeader>
           <CardContent className="text-xs leading-6 text-slate-600">
             AI hanya mengubah copy dan media reference. Harga, stok, SKU, variant ID, domain,
@@ -246,7 +252,7 @@ export function ContentWorkbench() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle as="h3" className="text-sm font-black">Media Tenant</CardTitle>
+            <CardTitle as="h3" className="text-sm font-semibold">Media Tenant</CardTitle>
             <p className="text-xs leading-5 text-slate-500">
               Upload gambar ke R2 tenant, lalu gunakan URL hasilnya pada field image di draft JSON.
             </p>
@@ -256,9 +262,10 @@ export function ContentWorkbench() {
               <input
                 name="file"
                 type="file"
+                aria-label="Pilih gambar untuk diunggah"
                 accept="image/jpeg,image/png,image/webp,image/gif,image/avif"
                 required
-                className="block w-full text-xs text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-xs file:font-bold"
+                className="block w-full text-xs text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-xs file:font-semibold"
               />
               <Button type="submit" variant="outline" disabled={uploading} className="w-full">
                 {uploading ? "Mengunggah..." : "Upload ke R2"}
@@ -282,13 +289,13 @@ export function ContentWorkbench() {
         {index?.canManageInstructions && (
           <Card>
             <CardHeader>
-              <CardTitle as="h3" className="text-sm font-black">Instruksi Tenant</CardTitle>
+              <CardTitle as="h3" className="text-sm font-semibold">Instruksi Tenant</CardTitle>
               <p className="text-xs leading-5 text-slate-500">
                 Guardrail dasar berasal dari repository. Isian ini hanya menambah aturan tenant dan tidak pernah ditampilkan kembali.
               </p>
             </CardHeader>
             <CardContent className="space-y-3">
-              <p className="text-xs font-bold text-slate-600">
+              <p className="text-xs font-semibold text-slate-600">
                 Status: {index.instructionsConfigured ? "sudah dikonfigurasi" : "menggunakan guardrail repository"}
               </p>
               <textarea
@@ -298,6 +305,7 @@ export function ContentWorkbench() {
                 maxLength={8000}
                 rows={8}
                 placeholder="Tambahkan tone, istilah, dan batas klaim khusus tenant..."
+                aria-label="Instruksi konten tambahan"
                 className="admin-input-flat resize-y bg-white text-sm"
               />
               <Button

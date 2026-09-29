@@ -11,11 +11,11 @@
  */
 import { catalogProductId } from "./catalog-feed.ts";
 import { deliverCapiEvent, drainCapiOutbox, enqueueCapiEvent } from "./capi-outbox.ts";
-import { parseClickIds } from "./click-ids.ts";
 import { getStoreAdsConfig } from "./store-ads.ts";
 import { toE164Digits } from "./meta-capi.ts";
-import { isSyntheticBuyerEmail } from "./meta-identity.ts";
 import { parseMetaOrderContext } from "./meta-order-context.ts";
+import { parseClickIds } from "./click-ids.ts";
+import { matchableCustomerEmail } from "./autolaris-payment.ts";
 
 type PaidOrderRow = {
   order_number: string;
@@ -85,6 +85,10 @@ export async function enqueuePurchaseForPaidOrder(
   }
 
   const siteUrl = locals.tenant?.siteUrl || "https://example.com";
+  // This Purchase is sent from a cron or an admin confirmation, long after the
+  // buyer's browser is gone. Without the identity captured at checkout the
+  // event reaches Meta with a phone and a name and nothing else, and event
+  // match quality is what decides whether the conversion is attributed at all.
   const requestContext = parseMetaOrderContext(order.meta_request_context);
   const legacyClickIds = parseClickIds(order.ad_click_ids);
   const queued = await enqueueCapiEvent(database, {
@@ -94,14 +98,16 @@ export async function enqueuePurchaseForPaidOrder(
     userData: {
       phone: order.customer_phone,
       name: order.customer_name,
-      email: isSyntheticBuyerEmail(order.customer_email || undefined, order.customer_phone)
-        ? undefined
-        : order.customer_email || undefined,
+      // See `/api/meta-event`: a minted provider address is not a match key.
+      email: matchableCustomerEmail(order.customer_email, siteUrl),
       city: order.city,
       province: order.province,
       postalCode: order.postal_code || undefined,
+      // Meta treats a missing country as a missing match key, not as a default.
       country: "id",
       externalId: requestContext.externalId || toE164Digits(order.customer_phone),
+      // The order's own copy wins; `ad_click_ids` is the pre-0052 fallback for
+      // orders placed before the context column existed.
       fbp: requestContext.fbp || legacyClickIds._fbp,
       fbc: requestContext.fbc || legacyClickIds._fbc,
       clientIp: requestContext.clientIp,
@@ -119,6 +125,7 @@ export async function enqueuePurchaseForPaidOrder(
 
   const delivered = await deliverCapiEvent(
     database,
+    "Purchase",
     order.order_number,
     ads.metaPixelId,
     ads.metaCapiToken,

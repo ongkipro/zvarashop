@@ -326,3 +326,75 @@ test("recordAbandonedOrder rejects a non-mobile Indonesian phone", async () => {
       error.message === "Nomor WhatsApp tidak valid.",
   );
 });
+
+/**
+ * The reason the fingerprint columns exist. A buyer who double-taps submit, or
+ * whose connection retries the POST, sends two identical checkouts seconds
+ * apart with two different submit tokens — and before this, that was two orders,
+ * two invoices, and two Purchase events off one sale. Both live stores hit it
+ * and fixed it independently; the product carried the columns without the guard
+ * until now, so this is the check that fails if the guard is ever lost.
+ */
+test("an identical checkout inside the window reuses the order instead of creating a second", async () => {
+  let inserted = false;
+  const canonical = {
+    id: 42,
+    order_number: "INV-10042",
+    public_status_token: "status-42",
+    total_amount: 61998,
+    unit_price: 50000,
+    cod_service_fee: 1800,
+    cod_service_fee_vat: 198,
+    cod_fee_bearer: "buyer",
+    seller_bank_account_id: null,
+    seller_bank_code: null,
+    seller_bank_name: null,
+    seller_account_holder: null,
+    seller_account_number: null,
+  };
+  const mockDb = {
+    prepare(sql: string) {
+      const stmt = {
+        bind() {
+          return stmt;
+        },
+        async run() {
+          return { success: true, meta: { changes: 1 } };
+        },
+        async first() {
+          if (sql.includes("FROM product_variants")) return { id: 101, price: 50000, stock: 10 };
+          if (sql.includes("FROM stores")) return { id: 1, cod_fee_bearer: "buyer" };
+          if (sql.includes("UPDATE order_number_counters")) return { last_value: 10041 };
+          // findCanonicalOrder: a live order already carries this fingerprint.
+          if (sql.includes("FROM orders o")) return canonical;
+          return null;
+        },
+      };
+      return stmt;
+    },
+    async batch(statements: unknown[]) {
+      inserted = true;
+      return statements.map(() => ({ results: [], meta: { changes: 0 } }));
+    },
+  } as unknown as D1Database;
+
+  const submission = {
+    customerName: "Paduka Ongki",
+    customerPhone: "08123456789",
+    address: "Jl. Merdeka No. 1",
+    province: "Jawa Barat",
+    city: "Bandung",
+    district: "Coblong",
+    variantKey: "101",
+    quantity: 1,
+    shippingCost: 10000,
+    paymentMethod: "cod" as const,
+  };
+
+  const result = await persistOrder(mockDb, { ...submission, submitToken: "sb_second_tap" });
+
+  assert.equal(result.created, false, "a duplicate must not report itself as a new order");
+  assert.equal(result.id, 42, "the buyer must be sent back to the order that already exists");
+  assert.equal(result.orderNumber, "INV-10042");
+  assert.equal(inserted, false, "no second row may be written for the same checkout");
+});

@@ -17,11 +17,11 @@ const authenticatedErrors = {
 export const headlessOpenApiDocument = {
   openapi: "3.1.0",
   info: {
-    title: "ZvaraShop Headless API",
+    title: "AdsBookCMS Headless API",
     version: "1.0.0",
     description: "Authenticated storefront catalog, shipping quote, checkout, order status, and tracking API.",
   },
-  servers: [{ url: "/api/v1", description: "Current ZvaraShop deployment" }],
+  servers: [{ url: "/api/v1", description: "Current AdsBookCMS install" }],
   security: [{ appKeyAuth: [] }, { bearerAuth: [] }],
   tags: [
     { name: "Storefront" },
@@ -165,10 +165,9 @@ export const headlessOpenApiDocument = {
           content: { "application/json": { schema: { $ref: "#/components/schemas/CheckoutRequest" } } },
         },
         responses: {
-          "200": { description: "Canonical order returned for an exact checkout replay", content: { "application/json": { schema: { $ref: "#/components/schemas/CheckoutEnvelope" } } } },
           "201": { description: "Order created", content: { "application/json": { schema: { $ref: "#/components/schemas/CheckoutEnvelope" } } } },
           "400": errorResponse("Request JSON is invalid"),
-          "409": errorResponse("Submission token conflicted without a canonical order"),
+          "409": errorResponse("Submission token was already used"),
           "422": errorResponse("Checkout input or shipping selection is invalid"),
           "500": errorResponse("Checkout failed"),
           ...authenticatedErrors,
@@ -513,7 +512,7 @@ export const headlessOpenApiDocument = {
       },
       CheckoutOrder: {
         type: "object",
-        required: ["id", "order_number", "public_status_token", "total_amount", "unit_price", "cod_service_fee", "cod_service_fee_vat", "cod_fee_bearer", "deduplicated"],
+        required: ["id", "order_number", "public_status_token", "total_amount", "unit_price", "cod_service_fee", "cod_service_fee_vat", "cod_fee_bearer"],
         properties: {
           id: { type: ["integer", "string"] },
           order_number: { type: "string" },
@@ -526,7 +525,6 @@ export const headlessOpenApiDocument = {
           seller_bank_name: { type: ["string", "null"] },
           seller_account_holder: { type: ["string", "null"] },
           seller_account_number: { type: ["string", "null"] },
-          deduplicated: { type: "boolean" },
         },
       },
       CheckoutEnvelope: {
@@ -536,6 +534,26 @@ export const headlessOpenApiDocument = {
           success: { const: true },
           timestamp: { type: "string", format: "date-time" },
           order: { $ref: "#/components/schemas/CheckoutOrder" },
+          payment: {
+            description: "AutoLaris instruction for qris/bank_transfer; null for cod/manual_transfer or when the provider call failed.",
+            oneOf: [
+              { type: "null" },
+              {
+                type: "object",
+                properties: {
+                  channel_code: { type: "string" },
+                  status: { type: "string" },
+                  total_amount: { type: "number" },
+                  virtual_account: { type: ["string", "null"] },
+                  qr_payload: { type: ["string", "null"] },
+                  payment_code: { type: ["string", "null"] },
+                  payment_url: { type: "string" },
+                  expires_at: { type: ["string", "null"] },
+                  error: { type: ["string", "null"] },
+                },
+              },
+            ],
+          },
         },
       },
       OrderStatusRequest: {
