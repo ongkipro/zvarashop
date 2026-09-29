@@ -127,10 +127,10 @@
 
     // Root-relative or absolute. Replace the placeholder wordmark in
     // public/images/ with the store's own brand assets.
-    "PUBLIC_SITE_LOGO": "/images/adsbook-mark.webp",
+    "PUBLIC_SITE_LOGO": "/images/zvara-logo.webp",
 
     // Must match #rrggbb or the code falls back to its own default.
-    "PUBLIC_SITE_THEME_COLOR": "#111111",
+    "PUBLIC_SITE_THEME_COLOR": "#ffffff",
 
     // Drives <html lang> and the Open Graph locale.
     "PUBLIC_SITE_LOCALE": "id-ID",

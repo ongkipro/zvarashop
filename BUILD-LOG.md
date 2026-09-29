@@ -426,6 +426,21 @@ Treat this file as history, not as a specification. Current system state is owne
 
 ## Chronological Progress Log
 
+### 2026-09-29 — Own mark, dead code out
+
+- **Brand.** Favicons, the admin tab icon and a "Zvara Shop" logo (black tile,
+  white Z, matching the black-and-white storefront) replace the product's
+  neutral emblem; `PUBLIC_SITE_LOGO` points at it and the theme colour follows
+  the page's white top bar. The store's D1 logo and description were empty and
+  are set to the same.
+- **Retired page.** `/pembersih-saluran-tersumbat` was deactivated in the
+  register when `/gia-anti-sumbat` replaced it for the same product, yet still
+  served its old 600-line page; it is now a 301 there, query string kept. Its
+  images stay.
+- **Dead code.** Two landing stylesheets nothing imported
+  (`pembersih-saluran-tersumbat.css`, `tas-selempang-wanita-modern.css`), and
+  five local worktrees whose branches `install/zvarashop` already contained.
+
 ### 2026-09-29 — Back on the product line (AdsBookCMS `cf665db`)
 
 ZvaraShop had run its own fork since `93c110d`, 273 product commits behind.

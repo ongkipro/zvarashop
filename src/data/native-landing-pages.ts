@@ -37,13 +37,6 @@ export type NativeLandingPage = {
 
 export const nativeLandingPages: NativeLandingPage[] = [
   {
-    slug: 'pembersih-saluran-tersumbat',
-    title: 'GlowHome Pembersih Saluran Tersumbat 500ml',
-    productSlug: 'pemersih-saluran-tersumbat-100ml',
-    description: 'Landing page konversi untuk campaign pembersih saluran GlowHome.',
-    isActive: false,
-  },
-  {
     slug: 'tas-selempang-wanita-modern',
     title: 'Tas Selempang Wanita Modern (Chic Korean Style)',
     productSlug: 'tas-selempang-wanita-modern',
@@ -120,4 +113,7 @@ export const installRouteSlugs: string[] = [
   'kapsul-dt',
   'gia-serbuk-anti-tersumbat',
   'lem-anti-bocor-jaysuing',
+  // The first GIA page, retired for /gia-anti-sumbat (same product); kept as a
+  // 301 so an ad or link still pointing at it lands on the live page.
+  'pembersih-saluran-tersumbat',
 ];
