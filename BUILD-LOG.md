@@ -6473,3 +6473,33 @@ the link and the rule.
 rule, timing bounds, and the tracker/page contract). 793 tests. The countdown
 and the navigation itself were not exercised in a browser: headless Chrome on
 this machine could not open any page, local or remote.
+
+## 2026-09-30 — Landings may not skip the form's province rule
+
+`GeoIpResolvedForm` is where the hybrid rule lives: an excluded or unresolved
+province gets the full form, every other the middle form. Twelve native landings
+on taniniaga rendered `FormHybridContent` — the full form — directly, so every
+visitor got the full form whatever their province. `form-mode.test.ts` now
+fails on any page under `src/pages/` that renders `FormHybridContent` or
+`FormMiddleContent` itself; `hybrid-form.astro`, the legacy full-form route, is
+the one exception.
+
+**Evidence.** Passes on the product; fails naming the file when one of those
+taniniaga landings is dropped in. 794 tests.
+
+## 2026-09-30 — A landing served as a product page kept the full form for everyone
+
+`/produk/<slug>` hands off to the landing that serves as the product page with
+`Astro.rewrite(new Request(...))`. A request built that way has no
+`request.cf`, so the landing's `GeoIpResolvedForm` saw no province and, by the
+hybrid rule's own fallback, showed every buyer the full form. On taniniaga the
+same landing resolved `middle` at its own URL and `full` at `/produk/…`; on
+zvarashop all nine landings are product pages. The rewrite now forwards the
+visitor's Cloudflare location as `x-cf-*` headers (`geoHeadersFromCf`), which
+`resolveGeoLocation` already reads as its fallback. COD eligibility is still
+decided again on submit, so a forged header changes the form shown, never
+whether COD is accepted.
+
+**Evidence.** Two tests: a rebuilt request with the forwarded headers resolves
+the original province (and resolves none without them); the product page's
+rewrite spreads them. 796 tests.
