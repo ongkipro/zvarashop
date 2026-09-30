@@ -14,6 +14,6 @@ export const CMS_VERSION: CmsVersionInfo = {
   // 0056-0059; bump releaseTag with the next release (RELEASE.md §4).
   releaseTag: "2026.08-stock-unlimited",
   coreEngine: "Astro 7 SSR + Cloudflare Workers",
-  schemaVersion: 63,
+  schemaVersion: 64,
   lastUpdated: "2026-09-30",
 };

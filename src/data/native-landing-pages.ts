@@ -106,6 +106,13 @@ export const nativeLandingPages: NativeLandingPage[] = [
     description: 'Landing page direct-response konversi tinggi untuk Sabun Korea Glowing Pemutih Badan & Wajah 140g BPOM.',
     isActive: true,
   },
+  {
+    slug: 'minyak-kemiri',
+    title: 'Minyak Kemiri Bakar Murni Penumbuh Rambut & Brewok 100ml',
+    productSlug: 'minyak-kemiri',
+    description: 'Landing page direct-response konversi tinggi untuk Minyak Kemiri Bakar Murni Penumbuh Rambut & Brewok 100ml.',
+    isActive: true,
+  },
 ];
 
 /**
