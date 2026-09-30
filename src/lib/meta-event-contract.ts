@@ -83,10 +83,23 @@ export function validateMetaEventPayload(
   } catch {
     return { ok: false, error: 'Meta event_source_url tidak valid.' };
   }
-  const sourceMatchesApi = eventSourceUrl.origin === currentUrl.origin;
+  const isLocalDev =
+    (eventSourceUrl.hostname === 'localhost' || eventSourceUrl.hostname === '127.0.0.1') &&
+    (currentUrl.hostname === 'localhost' || currentUrl.hostname === '127.0.0.1' || currentUrl.protocol === 'http:');
+  const sourceMatchesApi =
+    eventSourceUrl.origin === currentUrl.origin ||
+    eventSourceUrl.hostname === currentUrl.hostname ||
+    isLocalDev;
+  let allowedStorefrontHostname: string | undefined;
+  if (typeof allowedSourceOrigin === 'string') {
+    try {
+      allowedStorefrontHostname = new URL(allowedSourceOrigin, currentUrl).hostname;
+    } catch {}
+  }
   const sourceMatchesAllowedStorefront =
     typeof allowedSourceOrigin === 'string' &&
-    eventSourceUrl.origin === allowedSourceOrigin;
+    (eventSourceUrl.origin === allowedSourceOrigin ||
+      (allowedStorefrontHostname !== undefined && eventSourceUrl.hostname === allowedStorefrontHostname));
   if (!sourceMatchesApi && !sourceMatchesAllowedStorefront) {
     return { ok: false, error: 'Meta event_source_url harus berasal dari storefront yang diizinkan.' };
   }

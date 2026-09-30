@@ -105,7 +105,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
 
     const rawPayload = await request.json().catch(() => null);
-    const validated = validateMetaEventPayload(rawPayload, request.url);
+    const validated = validateMetaEventPayload(rawPayload, request.url, locals.tenant?.siteUrl);
     if (validated.ok === false) return json({ success: false, error: validated.error }, 400);
     const payload = validated.value;
 

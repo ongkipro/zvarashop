@@ -73,6 +73,8 @@ test('the login timing work floor is a real PBKDF2 verification', async () => {
   await verifyPasswordHash('not-the-seeded-password', DEFAULT_ADMIN_PASSWORD_HASH);
   const floorCost = performance.now() - floorStart;
 
+  // Warm up before microbenchmark timing to avoid one-off JIT compilation skew
+  await secureEqual('warmup', 'warmup');
   const compareStart = performance.now();
   await secureEqual('not-the-seeded-password', 'admin');
   const compareCost = performance.now() - compareStart;

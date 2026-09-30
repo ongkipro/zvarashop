@@ -99,6 +99,13 @@ export const nativeLandingPages: NativeLandingPage[] = [
     description: 'Landing page direct-response konversi tinggi untuk GIA Serbuk Anti Tersumbat 110g peluruh lemak dan rambut.',
     isActive: true,
   },
+  {
+    slug: 'sabun-korea',
+    title: 'Sabun Korea Glowing Pemutih Badan & Wajah 140g (BPOM Original)',
+    productSlug: 'sabun-korea',
+    description: 'Landing page direct-response konversi tinggi untuk Sabun Korea Glowing Pemutih Badan & Wajah 140g BPOM.',
+    isActive: true,
+  },
 ];
 
 /**

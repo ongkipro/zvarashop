@@ -152,3 +152,20 @@ test('poisoning inputs are rejected before transport', () => {
     assert.equal(validateMetaEventPayload(payload, requestUrl).ok, false);
   }
 });
+
+test('local development origins and same hostname are accepted', () => {
+  const localPayload = {
+    ...wirePayload,
+    event_source_url: 'http://localhost:8787/sabun-korea',
+  };
+  const devApiUrl = 'http://127.0.0.1:8787/api/meta-event';
+  const accepted = validateMetaEventPayload(localPayload, devApiUrl, 'https://zvara.shop');
+  assert.equal(accepted.ok, true);
+
+  const sameHostPayload = {
+    ...wirePayload,
+    event_source_url: 'https://zvara.shop/sabun-korea',
+  };
+  const sameHostApi = 'http://zvara.shop/api/meta-event';
+  assert.equal(validateMetaEventPayload(sameHostPayload, sameHostApi).ok, true);
+});
