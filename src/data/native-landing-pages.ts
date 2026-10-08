@@ -123,13 +123,6 @@ export const nativeLandingPages: NativeLandingPage[] = [
     description: 'Landing page direct-response konversi tinggi untuk 4G Lucky Spray Herbal Pria Dewasa & Intimate Hygiene.',
     isActive: true,
   },
-  {
-    slug: 'nutrilove-cuka-apel',
-    title: 'NutriLove Cuka Apel With The Mother (Raw & Unfiltered)',
-    productSlug: 'cuka-sari-apel-100-original',
-    description: 'Landing page direct-response konversi tinggi untuk terapi kolesterol dan tengkuk kaku NutriLove Cuka Apel With The Mother.',
-    isActive: true,
-  },
 ];
 
 /**
