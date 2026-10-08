@@ -5,6 +5,7 @@ export interface CatalogProductRow {
   title: string;
   slug: string;
   category?: string | null;
+  brand?: string | null;
   image_url?: string | null;
   is_active?: number | null;
   created_at?: string | null;
@@ -113,6 +114,7 @@ export function mergeStorefrontCatalog(
     const slug = product.slug.trim();
     const image = product.image_url!.trim();
     const categoryLabel = product.category?.trim() || "Produk";
+    const brand = product.brand?.trim();
     const presentation = presentationsByProductId.get(productId);
     const details = {
       subheadline: `Pilih varian ${productName} berdasarkan opsi dan harga yang tersedia.`,
@@ -137,7 +139,13 @@ export function mergeStorefrontCatalog(
         ...(comparePrice ? { comparePrice } : {}),
       };
     });
-    const firstVariant = variants[0];
+    // The product's own price is its "from" price, the cheapest variant — the
+    // figure the product page already shows. It used to be whichever variant
+    // D1 returned first, so a product whose larger size was entered first
+    // listed that size's price on every card while its page said less.
+    const fromVariant = variants.reduce((low, variant) =>
+      variant.price < low.price ? variant : low,
+    );
 
     catalog.push({
         catalogId: product.id,
@@ -151,15 +159,18 @@ export function mergeStorefrontCatalog(
         seoDescription:
           presentation?.seoDescription ||
           `Lihat pilihan varian, harga, dan ketersediaan ${productName}. Detail mengikuti informasi katalog toko.`,
-        price: firstVariant.price,
-        ...(firstVariant.comparePrice
-          ? { comparePrice: firstVariant.comparePrice }
+        price: fromVariant.price,
+        ...(fromVariant.comparePrice
+          ? { comparePrice: fromVariant.comparePrice }
           : {}),
         image,
         heroImage: image,
         images: [image],
         tag: presentation?.tag || categoryLabel,
         category: categoryLabel,
+        // `products.brand` (0051) is the manufacturer's name. Dropping it here
+        // is how the feeds kept reporting the store as every product's brand.
+        ...(brand ? { brand } : {}),
         relatedCategories:
           presentation?.relatedCategories?.length
             ? presentation.relatedCategories
