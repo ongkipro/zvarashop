@@ -1,6 +1,6 @@
 # BUILD LOG: ZvaraShop
 
-> Verified against disk: 2026-09-04 @ `81e2031` + open-gap audit working tree
+> Verified against disk: 2026-10-09 @ `81d5dd5` + mobile-submit-tap working tree
 
 Author & Curator: **[ongki.pro](https://ongki.pro)**
 
@@ -6620,3 +6620,64 @@ an unsupported format.
 On Reven Leather the notice read "4 orang memesan dalam 24 jam terakhir" while
 one of the four was an abandoned lead. Abandoned rows are now excluded; the test
 pins the status list. 806 passing.
+
+### 2026-10-09 — GTM ecommerce payload: unit price, quantity, one owner
+
+The dataLayer item carried `quantity: 1` and no `price` on every event, so a
+multi-unit `purchase` described one unit against the whole order's `value`, and
+GA4 or Google Ads dynamic remarketing had no item price to read. `page_view`
+also carried an `ecommerce` object with the path as `item_id` and a placeholder
+`value: 1`. The same push function existed in five copies.
+
+- `buildGtmEcomEvent` in `src/lib/gtm.ts` owns the shape; items carry a unit
+  `price` and the order `quantity` (`price` defaults to `value / quantity`).
+- `GtmBase.astro` keeps the one inline copy; `gtm.test.ts` runs it in a VM and
+  fails if it drifts. The three trackers' private copies are gone.
+- `page_view` is a plain event. `purchase` passes the order quantity.
+- The `<noscript>` iframe moved from `<head>` to right after `<body>`.
+- Proven on `npm run dev:local`: page_view, view_item, add_to_cart,
+  begin_checkout and purchase in the browser, and no second purchase on a
+  thanks reload. 811 passing.
+
+### 2026-10-09 — An order's variant id always wins over a SKU
+
+`persistOrder` resolved the submitted key with `CAST(pv.id AS TEXT) = ? OR
+pv.sku = ?` and `LIMIT 1`. On taniniaga a later product was given the SKUs `1`
+and `2` — the ids of Saratoga's variants — so every Saratoga order from
+2026-09-30 on was stored as that product, at its price (130,000 / 215,000
+instead of 135,000 / 268,000). The browser, the abandoned lead and the Meta
+AddToCart all carried Saratoga; only the persisted order did not.
+
+- `findOrderVariant` matches the id first and reads the SKU only when no
+  variant has that id at all, so an inactive product's id cannot fall through
+  to another product's SKU either.
+- Tests run the real SQL on `node:sqlite` with taniniaga's rows; restoring the
+  old WHERE fails them. 814 passing.
+- Orders already saved under the wrong variant are not rewritten here; that is
+  install data.
+
+### 2026-10-09 — Mobile: the order button always answers a tap
+
+Buyers reported the order button "sometimes" not responding on phones. Two
+causes, both reproduced at 390 px with touch emulation:
+
+- The submit button was natively `disabled` until the form was complete, and
+  its state was recomputed only on `input`/`blur`. Autofill that sets a value
+  and fires only `change` left a complete-looking form behind a dead button,
+  and a tap on a disabled button does not even move focus. The button is now
+  natively disabled only while an order is in flight; an incomplete form is
+  `aria-disabled` with the same grey `data-state`, so the tap reaches the
+  submit handler, which names and focuses the missing field. A form-level
+  `change` listener resyncs the label.
+- An autofilled `08…` number skipped the `input` handler that rewrites it to
+  `62…`, and submit validated the raw field first, so a correct number was
+  refused. Submit now normalises the phone before validating.
+
+Both apply to `form-middle.ts` and `form-hybrid.ts`; a source test pins them.
+With the button tappable, the submit handler is the only gate, so the full
+form's last unguarded state got its check: no submit before the payment
+choices load (it would otherwise have left on the default `cod`).
+Breadcrumb and footer links grow from 15–17 px to a 24 px target (WCAG 2.5.8)
+with the surrounding spacing reduced to match, so the layout does not move.
+Hit-testing at 390 px found no control covered by an overlay. 815 passing.
+

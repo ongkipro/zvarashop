@@ -248,7 +248,7 @@ is either transitive (imported by another lib) or dead, and only reading tells w
 | `format-idr` | 1 | — | ✓ | `/payment` `/produk` |
 | `geo` | 3 | — | ✓ | `/produk/[slug]` `/api/submit-middle-order` |
 | `google-ads-offline` | 15 | `google_ads_conversion_outbox` `order_items` `orders` | ✓ | — |
-| `gtm` | 3 | — | ✓ | — |
+| `gtm` | 4 | — | ✓ | — |
 | `headless-api` | 16 | `developer_api_key_usage` `developer_api_keys` `headless_api_audit_events` `stores` | ✓ | `/api/v1/checkout` `/api/v1/geo/districts` `/api/v1/geo/shipping-rates` `/api/v1/openapi.json` `/api/v1/orders/status` `/api/v1/products` `/api/v1/products/[slug]` `/api/v1/storefront` `/api/v1/tracking/events` `/api/admin/settings` |
 | `headless-checkout` | 4 | — | ✓ | `/api/v1/checkout` |
 | `headless-client` | 14 | — | ✓ | — |
@@ -277,7 +277,7 @@ is either transitive (imported by another lib) or dead, and only reading tells w
 | `operational-health` | 15 | `orders` `payment_transactions` | ✓ | `/api/admin/health` |
 | `order-instruction-hint` | 2 | — | ✓ | — |
 | `order-lifecycle` | 12 | `order_items` `orders` `payment_reconciliation_audits` `payment_transactions` | ✓ | `/api/admin/orders` `/api/admin/orders/[id]` `/api/admin/shipping` |
-| `order-persistence` | 13 | `order_items` `order_number_counters` `orders` `payment_transactions` `product_variants` `products` `seller_bank_accounts` `stores` | ✓ | `/api/record-abandoned-order` `/api/submit-middle-order` `/api/submit-order` `/api/v1/checkout` `/api/admin/orders/retention` |
+| `order-persistence` | 14 | `order_items` `order_number_counters` `orders` `payment_transactions` `product_variants` `products` `seller_bank_accounts` `stores` | ✓ | `/api/record-abandoned-order` `/api/submit-middle-order` `/api/submit-order` `/api/v1/checkout` `/api/admin/orders/retention` |
 | `order-schema` | 3 | — | ✓ | `/api/submit-middle-order` `/api/submit-order` `/api/v1/checkout` `/api/admin/orders/[id]` |
 | `order-status` | 4 | `order_items` `orders` `payment_transactions` | ✓ | `/api/order-status` `/api/v1/orders/status` |
 | `paid-order-purchase` | 2 | `order_items` `orders` `product_variants` `products` | ✓ | `/api/admin/payment-reconciliation` |
