@@ -123,6 +123,14 @@ export const nativeLandingPages: NativeLandingPage[] = [
     description: 'Landing page direct-response konversi tinggi untuk 4G Lucky Spray Herbal Pria Dewasa & Intimate Hygiene.',
     isActive: true,
   },
+  {
+    slug: 'fertani-essen-ikan-120x',
+    title: 'Fertani Essen Ikan 120X (Formula Konsentrat Kapsul Pemikat Ikan Kolam)',
+    productSlug: 'fertani-essen-ikan-120x',
+    description: 'Landing page direct-response konversi tinggi untuk Fertani Essen Ikan 120X kapsul pemikat ikan kolam lele, mas, nila, patin.',
+    image: '/images/landing/essen-ikan-120x/hero-product.webp',
+    isActive: true,
+  },
 ];
 
 /**
@@ -140,4 +148,5 @@ export const installRouteSlugs: string[] = [
   // The first GIA page, retired for /gia-anti-sumbat (same product); kept as a
   // 301 so an ad or link still pointing at it lands on the live page.
   'pembersih-saluran-tersumbat',
+  'essen-ikan-120x',
 ];

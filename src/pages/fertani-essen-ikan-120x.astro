@@ -1,0 +1,635 @@
+---
+/*
+ * Native Astro landing page — Fertani Essen Ikan 120X.
+ * High-Converting Direct-Response Indonesian Commerce Funnel.
+ * Freshwater fishing bait attractant (lele, nila, mas, patin, bawal).
+ * Zero emojis, zero emoticons, zero AI slop, WCAG AA contrast compliant.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import MetaLandingTracker from '../components/storefront/tracking/MetaLandingTracker.astro';
+import GeoIpResolvedForm from '../components/storefront/forms/GeoIpResolvedForm.astro';
+import SocialProofToast from '../components/storefront/shared/SocialProofToast.astro';
+import { recentOrderCount } from '../lib/social-proof';
+import { getRuntimeEnv } from '../lib/env';
+import { getStorefrontProduct, getStorefrontProducts } from '../lib/catalog';
+import { nativeLandingCanonicalPath } from '../lib/landing-pages';
+import { defaultCatalogContentId } from '../lib/catalog-feed';
+import { resolveFormModeContext } from '../lib/form-mode';
+import '../styles/form-hybrid.css';
+import '../styles/landing-pages/landing.css';
+import '../styles/landing-pages/essen-ikan.css';
+
+export const prerender = false;
+
+const SLUG = 'fertani-essen-ikan-120x';
+const PRODUCT_SLUG = 'fertani-essen-ikan-120x';
+
+const formContext = await resolveFormModeContext(Astro.request);
+
+// Product resolution with strict DB fallback
+let product = await getStorefrontProduct(Astro.locals, PRODUCT_SLUG);
+if (!product) {
+  product = await getStorefrontProduct(Astro.locals, '76738');
+}
+if (!product) {
+  const allProducts = await getStorefrontProducts(Astro.locals);
+  product = allProducts.find((p) => p.slug.includes('essen') || p.slug.includes('fertani')) ?? allProducts[0] ?? null;
+}
+if (!product) return Astro.rewrite('/404');
+
+const canonical = `${Astro.locals.tenant.siteUrl}${await nativeLandingCanonicalPath(Astro.locals, SLUG)}`;
+const seoTitle = `${product.productName} — Rahasia Umpan Gacor Anti Boncos`;
+const seoDescription =
+  product.description ||
+  'Fertani Essen Ikan 120X formula konsentrat kapsul pemikat nafsu makan ikan kolam lele, mas, nila, patin, bawal. Bikin strike bertubi-tubi tanpa bau amis di tangan. Bisa COD se-Indonesia.';
+
+const cheapest = [...product.variants].sort((a, b) => a.price - b.price)[0] ?? null;
+const price = cheapest?.price ?? product.price ?? 71500;
+const bundleVariant = product.variants.find((v) => v.sku === 'FEI-02' || v.label.includes('2') || v.id === '20090') ?? product.variants[1] ?? null;
+const bundlePrice = bundleVariant?.price ?? 139000;
+const bundleCompare = bundleVariant?.comparePrice ?? 170000;
+const productImage = product.image || '/images/landing/essen-ikan-120x/hero-product.webp';
+const socialProofOrders = await recentOrderCount(getRuntimeEnv(Astro.locals)?.OMS_DB as D1Database | undefined);
+---
+
+<BaseLayout
+  title={seoTitle}
+  description={seoDescription}
+  image={productImage}
+  preloadImages="/images/landing/essen-ikan-120x/strike-babon.webp"
+  canonical={canonical}
+  hideHeader={true}
+  hideFooter={true}
+>
+  <main class="mx-auto min-h-screen w-full max-w-[480px] bg-white pb-12 font-sans text-slate-900 shadow-2xl selection:bg-[#1E40AF] selection:text-white antialiased">
+    <MetaLandingTracker
+      slug={SLUG}
+      contentId={defaultCatalogContentId(product)}
+      contentName={product.contentName}
+      price={price}
+    />
+
+    <!-- ═══ 1. URGENCY ANNOUNCEMENT BAR (TOP) ═══ -->
+    <header class="flex items-center justify-between border-b border-blue-950 bg-[#0A192F] px-3 py-2 text-white shadow-xs">
+      <div class="flex items-center gap-1.5 text-[10.5px] min-[380px]:text-[11.5px] font-extrabold tracking-wide min-w-0">
+        <span class="flex h-2 w-2 relative shrink-0">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+        </span>
+        <span class="text-amber-300 font-black uppercase shrink-0">PROMO:</span>
+        <span class="text-slate-100 font-bold whitespace-nowrap">BELI 2 HEMAT RP31.000</span>
+      </div>
+      <span class="whitespace-nowrap text-[9.5px] min-[380px]:text-[10.5px] font-black tracking-wider text-amber-300 bg-blue-950/90 px-2 py-0.5 rounded-full border border-blue-700/60 shadow-xs shrink-0 ml-1.5">
+        BISA COD
+      </span>
+    </header>
+
+    <!-- ═══ 2. HERO SECTION (HEADLINE, SOMATIC HOOK & BRUTAL OVERCLAIM BANNER) ═══ -->
+    <section id="landing-hero" class="bg-white text-center pb-8">
+      <div class="px-4 sm:px-5 pt-5 sm:pt-6">
+        <!-- Social Proof Text Badge -->
+        <div class="mb-3 inline-flex items-center justify-center gap-1.5 text-[11.5px] sm:text-[12px] font-bold text-slate-800 bg-blue-50/90 px-3.5 py-1 rounded-full border border-blue-200/80 shadow-2xs">
+          <span class="text-blue-800 font-extrabold uppercase tracking-wide">Rating 4.9 / 5.0</span>
+          <span class="text-slate-400">•</span>
+          <span class="text-slate-600 font-medium">3.820+ Pemancing Puas</span>
+        </div>
+
+        <!-- Main Impact Headline -->
+        <h1 class="mx-auto max-w-[440px] text-[clamp(21px,6.8vw,26px)] font-black leading-[1.25] tracking-tight text-slate-950">
+          Bosan Boncos Berjam-Jam di Kolam? Teteskan 1 Kapsul, <span class="box-decoration-clone rounded-[0.18em] bg-blue-100 text-blue-900 px-1.5 py-0.5">Joran Melengkung</span> &amp; Pelampung Nyelam Tanpa Henti!
+        </h1>
+
+        <!-- Subtitle -->
+        <p class="mx-auto mt-2.5 max-w-[420px] text-[13.5px] sm:text-[14.5px] leading-relaxed text-slate-600">
+          Formula konsentrat 120X pemikat nafsu makan ikan air tawar. Bikin lele, nila, mas, patin, dan bawal babon langsung berebut nyamber umpan tanpa ampun!
+        </p>
+
+
+      </div>
+
+      <!-- FULL-WIDTH HERO STRIKE BABON BANNER (RATIO 4:3) -->
+      <div class="mt-5 relative w-full overflow-hidden bg-slate-950 aspect-[4/3] shadow-md border-y border-blue-950">
+        <img
+          src="/images/landing/essen-ikan-120x/strike-babon.webp"
+          alt="Bukti Nyata Strike Lele Babon Menggunakan Fertani Essen Ikan 120X"
+          class="h-full w-full object-cover object-center"
+          fetchpriority="high"
+          loading="eager"
+          decoding="async"
+          width="1200"
+          height="896"
+        />
+        <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-slate-950/95 via-slate-950/80 to-transparent px-3 pt-8 pb-2.5 text-center">
+          <p class="text-[11.5px] sm:text-[12.5px] font-extrabold text-amber-300 leading-tight">
+            Ikan Babon Keluar Sarang • Strike Bertubi-tubi Anti Boncos
+          </p>
+        </div>
+      </div>
+
+
+      <!-- 4 Key Pain Points Pemancing -->
+      <div class="mt-5 sm:mt-6 px-4 sm:px-5 text-left space-y-2.5">
+        <div class="p-3 rounded-xl bg-slate-50 border border-slate-200/80 shadow-2xs">
+          <div class="flex items-center justify-between gap-2">
+            <h3 class="text-[13.5px] sm:text-[14px] font-bold text-slate-950">Boncos Berjam-jam Tiket Melayang</h3>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-red-700 bg-red-100 px-2 py-0.5 rounded">Rugi Waktu</span>
+          </div>
+          <p class="text-[12px] sm:text-[12.5px] text-slate-600 mt-1 leading-relaxed">
+            Duduk seharian dari pagi sampai sore, tiket kolam ratusan ribu ludes tapi korang tetap kosong melompong.
+          </p>
+        </div>
+        <div class="p-3 rounded-xl bg-slate-50 border border-slate-200/80 shadow-2xs">
+          <div class="flex items-center justify-between gap-2">
+            <h3 class="text-[13.5px] sm:text-[14px] font-bold text-slate-950">Kalah Saing dengan Lapak Sebelah</h3>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-red-700 bg-red-100 px-2 py-0.5 rounded">Gengsi Pemancing</span>
+          </div>
+          <p class="text-[12px] sm:text-[12.5px] text-slate-600 mt-1 leading-relaxed">
+            Lapak sebelah gentak joran narik ikan berkali-kali, sementara pelampung kita cuma diam mengapung bikin emosi.
+          </p>
+        </div>
+        <div class="p-3 rounded-xl bg-slate-50 border border-slate-200/80 shadow-2xs">
+          <div class="flex items-center justify-between gap-2">
+            <h3 class="text-[13.5px] sm:text-[14px] font-bold text-slate-950">Essen Cair Biasa Bau Menempel di Tangan</h3>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-red-700 bg-red-100 px-2 py-0.5 rounded">Ribet &amp; Kotor</span>
+          </div>
+          <p class="text-[12px] sm:text-[12.5px] text-slate-600 mt-1 leading-relaxed">
+            Essen botolan cair takarannya sering salah, rawan tumpah di tas pancing, dan bau amisnya susah hilang berhari-hari.
+          </p>
+        </div>
+        <div class="p-3 rounded-xl bg-slate-50 border border-slate-200/80 shadow-2xs">
+          <div class="flex items-center justify-between gap-2">
+            <h3 class="text-[13.5px] sm:text-[14px] font-bold text-slate-950">Ikan Kolam Kenyang &amp; Mogok Makan</h3>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-red-700 bg-red-100 px-2 py-0.5 rounded">Trauma Kail</span>
+          </div>
+          <p class="text-[12px] sm:text-[12.5px] text-slate-600 mt-1 leading-relaxed">
+            Ikan kolam sering kali sudah kenyang atau trauma kail, menolak umpan biasa jika tidak dipicu aroma stimulan tajam.
+          </p>
+        </div>
+      </div>
+
+      <!-- Narrative Pivot Callout -->
+      <div class="mt-5 px-4 sm:px-5 text-left">
+        <div class="border-l-2 border-blue-600 pl-3.5 bg-blue-50/70 py-2.5 rounded-r-lg">
+          <p class="text-[13px] sm:text-[13.5px] font-semibold text-blue-950 leading-relaxed italic">
+            “Mancing juara bukan soal joran mahal, tapi umpan yang memicu nafsu makan ikan. Cukup 1 kapsul Fertani Essen 120X: aroma amis asam amino fermentasi murni menyebar luas di air, memikat babon keluar sarang dan langsung menyambar umpan.”
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 3. SECTION: REALITA BONCOS VS SOLUSI FERTANI ═══ -->
+    <section class="border-t border-slate-100 bg-slate-50/70 pt-8 pb-10 text-center">
+      <div class="px-5">
+        <h2 class="text-[clamp(21px,6.5vw,25px)] font-black text-slate-950 tracking-tight leading-[1.22]">
+          Bosan Duduk Seharian Tanpa Sambaran?
+        </h2>
+        <p class="text-[13px] sm:text-[13.5px] text-slate-600 leading-relaxed mt-2 max-w-[420px] mx-auto text-center">
+          Umpan biasa aromanya cepat hilang kebawa air. Lihat perbedaan nyata pemancing biasa vs pemakai Fertani Essen 120X:
+        </p>
+      </div>
+
+      <!-- IMAGE: PEMANCING FRUSTRASI / BONCOS -->
+      <div class="mt-6 relative w-full overflow-hidden bg-slate-950 shadow-md border-y border-slate-200/80">
+        <img
+          src="/images/landing/essen-ikan-120x/hero-problem.webp"
+          alt="Pemancing frustrasi menunggu pelampung tidak bergerak karena boncos"
+          class="w-full h-auto aspect-[4/3] object-cover block"
+          loading="lazy"
+          decoding="async"
+          width="1200"
+          height="896"
+        />
+        <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-slate-950/95 via-slate-950/75 to-transparent px-3 pt-6 pb-2 text-center">
+          <p class="text-[11.5px] sm:text-[12px] font-bold text-red-300">
+            Jangan Sampai Pulang Bawa Korang Kosong &amp; Tangan Bau Amis
+          </p>
+        </div>
+      </div>
+
+      <!-- Comparison Grid: Umpan Biasa vs Fertani Essen 120X -->
+      <div class="mt-5 px-3.5 sm:px-4 grid grid-cols-2 gap-2 text-left">
+        <div class="p-2.5 rounded-xl bg-red-50/70 border border-red-200/60 shadow-2xs">
+          <p class="font-black text-red-900 uppercase tracking-wider text-[10.5px] sm:text-[11px] pb-1.5 border-b border-red-200/50 mb-2">Umpan Biasa / Essen Murahan</p>
+          <ul class="space-y-1.5 text-slate-800 font-semibold text-[11.5px] sm:text-[12px]">
+            <li class="leading-snug text-red-950 font-bold">• Aroma cepat hilang di air</li>
+            <li class="leading-snug text-red-950 font-bold">• Sering zonk / boncos</li>
+            <li class="leading-snug text-red-950 font-bold">• Bau amis nempel di tangan</li>
+            <li class="leading-snug text-red-950 font-bold">• Dosis takaran tidak pasti</li>
+          </ul>
+        </div>
+        <div class="p-2.5 rounded-xl bg-blue-50/80 border border-blue-200/70 shadow-2xs">
+          <p class="font-black text-blue-900 uppercase tracking-wider text-[10.5px] sm:text-[11px] pb-1.5 border-b border-blue-200/50 mb-2">Fertani Essen Ikan 120X</p>
+          <ul class="space-y-1.5 text-slate-800 font-semibold text-[11.5px] sm:text-[12px]">
+            <li class="leading-snug text-blue-950 font-bold">• Konsentrat 120X tahan lama</li>
+            <li class="leading-snug text-blue-950 font-bold">• Strike bertubi-tubi</li>
+            <li class="leading-snug text-blue-950 font-bold">• Kapsul higienis bebas bau</li>
+            <li class="leading-snug text-blue-950 font-bold">• Dosis 1 kapsul presisi pas</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 4. SECTION: TEKNOLOGI UNDERWATER DISPERSION ═══ -->
+    <section class="border-t border-slate-200 bg-white pt-8 pb-10 text-center">
+      <div class="px-5">
+
+        <h2 class="text-[clamp(21px,6.5vw,25px)] font-black text-slate-950 tracking-tight leading-[1.22]">
+          Bagaimana Aroma 120X Memikat Ikan Babon?
+        </h2>
+        <p class="text-[13px] sm:text-[13.5px] text-slate-600 leading-relaxed mt-2 max-w-[420px] mx-auto text-center">
+          Begitu umpan masuk ke dalam air kolam, formula konsentrat kapsul langsung larut menyebarkan partikel aroma amis gurih dan asam amino pemikat:
+        </p>
+      </div>
+
+      <!-- IMAGE: UNDERWATER FRENZY -->
+      <div class="mt-6 relative w-full overflow-hidden bg-slate-950 shadow-md border-y border-slate-200">
+        <img
+          src="/images/landing/essen-ikan-120x/underwater-frenzy.webp"
+          alt="Kawanan ikan air tawar agresif menyambar umpan beraroma Fertani Essen Ikan di dalam air"
+          class="w-full h-auto aspect-[16/9] object-cover block"
+          loading="lazy"
+          decoding="async"
+          width="1376"
+          height="768"
+        />
+        <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-slate-950/95 via-slate-950/75 to-transparent px-3 pt-6 pb-2 text-center">
+          <p class="text-[11.5px] sm:text-[12px] font-bold text-amber-300">
+            Aroma Amis Gurih Memikat Babon Keluar Sarang &amp; Berebut Umpan
+          </p>
+        </div>
+      </div>
+
+      <!-- 3 Pilar Keunggulan Mekanisme -->
+      <div class="mt-6 px-4 sm:px-5 text-left space-y-3">
+        <div class="flex items-start gap-3 p-3.5 rounded-xl bg-blue-50/50 border border-blue-100">
+          <div class="h-8 w-8 rounded-lg bg-blue-700 text-white font-black text-[13px] flex items-center justify-center shrink-0">
+            1
+          </div>
+          <div>
+            <h4 class="text-[14px] font-bold text-slate-950">Aroma Amis Gurih Tahan Lama di Titik Lempar</h4>
+            <p class="text-[12px] sm:text-[12.5px] text-slate-600 mt-0.5 leading-relaxed">
+              Minyak konsentrat khusus mengikat partikel aroma agar tidak hanyut tersapu arus dasar kolam, menjaga ikan tetap berkumpul di titik pancing Anda.
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-start gap-3 p-3.5 rounded-xl bg-blue-50/50 border border-blue-100">
+          <div class="h-8 w-8 rounded-lg bg-blue-700 text-white font-black text-[13px] flex items-center justify-center shrink-0">
+            2
+          </div>
+          <div>
+            <h4 class="text-[14px] font-bold text-slate-950">Memicu Nafsu Makan Ikan yang Mogok Makan</h4>
+            <p class="text-[12px] sm:text-[12.5px] text-slate-600 mt-0.5 leading-relaxed">
+              Kandungan atraktan asam amino menyerupai mangsa alami kolam, membangkitkan nafsu makan ikan yang kenyang atau pasif akibat cuaca dingin.
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-start gap-3 p-3.5 rounded-xl bg-blue-50/50 border border-blue-100">
+          <div class="h-8 w-8 rounded-lg bg-blue-700 text-white font-black text-[13px] flex items-center justify-center shrink-0">
+            3
+          </div>
+          <div>
+            <h4 class="text-[14px] font-bold text-slate-950">Kapsul Higienis, Bebas Noda &amp; Bau di Tangan</h4>
+            <p class="text-[12px] sm:text-[12.5px] text-slate-600 mt-0.5 leading-relaxed">
+              Tinggal buka 1 kapsul berpresisi tinggi tanpa perlu takut cairan tumpah atau bau amis menempel di tangan saat makan camilan di pemancingan.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 5. SECTION: TARGET IKAN KOLAM AIR TAWAR ═══ -->
+    <section class="border-t border-slate-100 bg-slate-50/80 pt-8 pb-10 text-center">
+      <div class="px-5">
+        <h2 class="text-[clamp(21px,6.5vw,25px)] font-black text-slate-950 tracking-tight leading-[1.22]">
+          Cocok untuk Semua Jenis Ikan Kolam
+        </h2>
+        <p class="text-[13px] sm:text-[13.5px] text-slate-600 leading-relaxed mt-2 max-w-[420px] mx-auto text-center">
+          Racikan khusus pemikat ikan air tawar di kolam harian, kilo gebrus, maupun galatama:
+        </p>
+      </div>
+
+      <!-- IMAGE: TARGET IKAN KOLAM INFOGRAFIS -->
+      <div class="mt-6 relative w-full overflow-hidden bg-white shadow-md border-y border-slate-200">
+        <img
+          src="/images/landing/essen-ikan-120x/target-ikan-kolam.webp"
+          alt="Cocok untuk ikan lele, nila, mas, patin, mujair dan ikan kolam air tawar lainnya"
+          class="w-full h-auto aspect-square object-contain block"
+          loading="lazy"
+          decoding="async"
+          width="1024"
+          height="1024"
+        />
+      </div>
+
+      <!-- Grid Target Ikan -->
+      <div class="mt-5 px-4 grid grid-cols-2 gap-2 text-left">
+        <div class="p-3 rounded-xl bg-white border border-slate-200 shadow-2xs">
+          <p class="font-extrabold text-blue-900 text-[13px]">Ikan Lele &amp; Patin</p>
+          <p class="text-[11.5px] text-slate-600 mt-1 leading-snug">Sensitif pada aroma amis pekat, langsung menyambar umpan di dasar air.</p>
+        </div>
+        <div class="p-3 rounded-xl bg-white border border-slate-200 shadow-2xs">
+          <p class="font-extrabold text-blue-900 text-[13px]">Ikan Mas &amp; Nila</p>
+          <p class="text-[11.5px] text-slate-600 mt-1 leading-snug">Penciuman tajam, terpikat asam amino fermentasi yang memicu rasa lapar.</p>
+        </div>
+        <div class="p-3 rounded-xl bg-white border border-slate-200 shadow-2xs">
+          <p class="font-extrabold text-blue-900 text-[13px]">Ikan Bawal &amp; Mujair</p>
+          <p class="text-[11.5px] text-slate-600 mt-1 leading-snug">Agresif menyambar umpan di kolom tengah air dengan respon sambaran kilat.</p>
+        </div>
+        <div class="p-3 rounded-xl bg-white border border-slate-200 shadow-2xs">
+          <p class="font-extrabold text-blue-900 text-[13px]">Kolam Harian &amp; Lomba</p>
+          <p class="text-[11.5px] text-slate-600 mt-1 leading-snug">Andalan juara lapak untuk mengunci titik makan ikan saat persaingan ketat.</p>
+        </div>
+      </div>
+    </section>
+
+
+
+    <!-- ═══ 7. SECTION: REAL TESTIMONI PEMANCING ═══ -->
+    <section class="border-t border-slate-100 bg-slate-50/90 pt-8 pb-10 text-center">
+      <div class="px-5">
+        <h2 class="text-[clamp(21px,6.5vw,25px)] font-black text-slate-950 tracking-tight leading-[1.22]">
+          Kisah Nyata Para Pemancing Lapak
+        </h2>
+        <p class="text-[13px] sm:text-[13.5px] text-slate-600 leading-relaxed mt-2 max-w-[420px] mx-auto text-center mb-6">
+          Cerita jujur dari para angler yang berhasil bawa pulang tangkapan melimpah dan jadi juara lapak:
+        </p>
+      </div>
+
+      <!-- IMAGE: BUKTI TANGKAPAN LAPAK MELIMPAH (RATIO 3:2) -->
+      <div class="mt-6 relative w-full overflow-hidden bg-slate-950 aspect-[3/2] shadow-md border-y border-slate-200 mb-6">
+        <img
+          src="/images/landing/essen-ikan-120x/hasil-tangkapan.webp"
+          alt="Bukti korang pancing penuh tangkapan ikan babon di kolam pemancingan"
+          class="h-full w-full object-cover object-center block"
+          loading="lazy"
+          decoding="async"
+          width="1264"
+          height="848"
+        />
+        <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-slate-950/95 via-slate-950/70 to-transparent px-3 pt-6 pb-2 text-center">
+          <p class="text-[11.5px] sm:text-[12px] font-bold text-amber-300">
+            Hasil Nyata Lapak Kolam: Korang Penuh, Babon Melimpah
+          </p>
+        </div>
+      </div>
+
+      <div class="px-4 sm:px-5 space-y-3 text-left">
+        <!-- Testimoni 1 -->
+        <div class="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
+          <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+            <div>
+              <p class="font-bold text-[13.5px] text-slate-950">Pak Yudi Kurniawan (42 th)</p>
+              <p class="text-[11px] text-slate-500 font-medium">Pemancing Harian Lele • Bandung</p>
+            </div>
+            <span class="text-[11px] font-extrabold text-amber-500 bg-amber-50 px-2 py-0.5 rounded border border-amber-200/60">Rating 5/5</span>
+          </div>
+          <p class="text-[12.5px] text-slate-700 mt-2.5 leading-relaxed font-normal">
+            “Biasanya kalau mancing lele malam sering boncos cuma dapat anak lele kecil. Kemarin iseng coba tetes 1 kapsul Fertani ke umpan cacing. Baru 10 menit pelampung langsung amblas ditarik lele babon 3,2 kg! Joran melengkung tajam, puas luar biasa!”
+          </p>
+        </div>
+
+        <!-- Testimoni 2 -->
+        <div class="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
+          <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+            <div>
+              <p class="font-bold text-[13.5px] text-slate-950">Kang Asep Sunandar (37 th)</p>
+              <p class="text-[11px] text-slate-500 font-medium">Lomba Galatama Ikan Mas • Bogor</p>
+            </div>
+            <span class="text-[11px] font-extrabold text-amber-500 bg-amber-50 px-2 py-0.5 rounded border border-amber-200/60">Rating 5/5</span>
+          </div>
+          <p class="text-[12.5px] text-slate-700 mt-2.5 leading-relaxed font-normal">
+            “Ikut lomba galatama ikan mas tiket 250rb. Lapak kanan kiri pakai essen mahal impor tapi ikannya malah ngumpul di lapak saya. Total narik 14 ekor mas babon dan keluar sebagai juara 1 terberat. Kapsulnya juga praktis banget, tangan gak bau amis.”
+          </p>
+        </div>
+
+        <!-- Testimoni 3 -->
+        <div class="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
+          <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+            <div>
+              <p class="font-bold text-[13.5px] text-slate-950">Om Hendra Prasetyo (48 th)</p>
+              <p class="text-[11px] text-slate-500 font-medium">Pemancing Nila &amp; Patin • Surabaya</p>
+            </div>
+            <span class="text-[11px] font-extrabold text-amber-500 bg-amber-50 px-2 py-0.5 rounded border border-amber-200/60">Rating 5/5</span>
+          </div>
+          <p class="text-[12.5px] text-slate-700 mt-2.5 leading-relaxed font-normal">
+            “Kolam nila di tempat saya airnya hijau pekat dan ikannya susah makan. Pas dicampur 1 kapsul ke pelet 781, langsung ramai sambaran. Korang penuh sampai berat diangkat. Sekarang selalu siapin 2 botol di kotak pancing buat cadangan.”
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 8. SECTION: PILIHAN PAKET & HARGA PROMO (BUNDLE BOX) ═══ -->
+    <section class="w-full border-t border-slate-100 bg-[#0A192F] text-white px-4 sm:px-5 py-7 text-center">
+      <div class="max-w-[420px] mx-auto space-y-4">
+        <!-- Countdown Timer Bar (Matching 4G Lucky) -->
+        <div class="flex items-center justify-between bg-white/10 backdrop-blur-md rounded-2xl px-4 py-2.5 border border-white/20 shadow-inner">
+          <span class="text-[12px] sm:text-[13px] font-extrabold text-slate-100">Promo Berakhir Dalam:</span>
+          <div class="flex items-center gap-1.5 font-mono font-black text-[14px]">
+            <span id="countdown-minutes" class="bg-blue-600 text-white px-2.5 py-1 rounded-lg min-w-[32px] text-center shadow-md">15</span>
+            <span class="text-amber-400 font-black text-[16px] leading-none animate-pulse">:</span>
+            <span id="countdown-seconds" class="bg-blue-600 text-white px-2.5 py-1 rounded-lg min-w-[32px] text-center shadow-md">00</span>
+          </div>
+        </div>
+
+        <!-- High-Contrast Price Display -->
+        <div class="space-y-1">
+          <div class="inline-block bg-blue-600 text-white px-3 py-1 font-black text-[12px] uppercase tracking-wider rounded-md shadow-xs">
+            PILIH PAKET FERTANI ESSEN IKAN 120X
+          </div>
+          <div class="flex items-baseline justify-center gap-2 pt-1">
+            <span class="text-[14px] sm:text-[15px] font-medium text-slate-400 line-through">
+              Rp{Math.round(bundleCompare).toLocaleString('id-ID')}
+            </span>
+            <span class="text-[30px] sm:text-[36px] font-black text-amber-300 font-mono tracking-tight leading-none">
+              Rp{Math.round(bundlePrice).toLocaleString('id-ID')}
+            </span>
+          </div>
+          <div class="pt-1 flex flex-wrap items-center justify-center gap-1.5">
+            <span class="inline-block bg-white/10 text-amber-200 border border-amber-400/30 text-[11.5px] sm:text-[12.5px] font-bold px-3 py-1.5 rounded-lg leading-tight">
+              PAKET 2 BOTOL (HEMAT RP31.000)
+            </span>
+          </div>
+        </div>
+        <div class="space-y-1.5 pt-1 text-left">
+          <div class="flex items-center justify-between text-[12px] sm:text-[12.5px] font-bold">
+            <span class="flex items-center gap-1.5 text-slate-300">
+              <span class="h-2 w-2 rounded-full bg-blue-400 animate-ping shrink-0"></span>
+              <span>Sisa Kuota Promo Hari Ini:</span>
+            </span>
+            <span id="stock-count-text" class="text-amber-300 font-mono font-bold">Tersisa 8 Botol Lagi</span>
+          </div>
+          <div class="w-full bg-white/20 rounded-full h-2 overflow-hidden">
+            <div id="stock-progress-bar" class="bg-amber-400 h-full rounded-full transition-all duration-500" style="width: 60%;"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 9. FORMULIR PEMESANAN (CHECKOUT COD) ═══ -->
+    <section id="form-pemesanan" class="bg-white px-0 pt-7 pb-4 scroll-mt-4 w-full text-left">
+      <div class="px-4 pb-2 text-center">
+        <h2 class="text-[20px] font-bold tracking-tight text-slate-950 leading-tight">
+          Lengkapi Data Pengiriman
+        </h2>
+        <p class="text-[13px] text-slate-600 mt-1 max-w-[380px] mx-auto leading-relaxed">
+          Pilih paket dan isi alamat. Bayar uang tunai langsung ke kurir saat paket tiba di rumah Anda (COD).
+        </p>
+      </div>
+
+      <GeoIpResolvedForm
+        mode={formContext.mode}
+        province={formContext.province}
+        productSlug={product.slug}
+        embedded={true}
+      />
+    </section>
+
+    <!-- Social Proof Notification -->
+    <SocialProofToast
+      orderCount={socialProofOrders}
+      heroSelector="#landing-hero"
+      formSelector="#form-pemesanan"
+    />
+
+    <!-- Sticky Mobile Purchase Bar -->
+    <div
+      id="sticky-purchase-bar"
+      class="fixed inset-x-0 bottom-0 z-40 mx-auto flex w-full max-w-[480px] items-center justify-between border-t border-slate-200 bg-white/95 px-4 py-3 shadow-[0_-8px_24px_rgba(17,17,17,0.08)] backdrop-blur-md transition-all duration-300 lg:hidden"
+      style="transform: translateY(100%); opacity: 0; pointer-events: none;"
+    >
+      <div>
+        <p class="text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-500">Mulai Dari</p>
+        <p class="text-base font-bold text-slate-900">Rp{Math.round(price).toLocaleString('id-ID')}</p>
+      </div>
+      <a
+        href="#form-pemesanan"
+        class="inline-flex min-h-11 items-center justify-center rounded-full border border-blue-700 bg-blue-700 px-6 text-[11px] font-bold uppercase tracking-wider text-white transition-colors hover:bg-blue-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 active:scale-[0.98]"
+      >
+        Pesan Sekarang (COD)
+      </a>
+    </div>
+  </main>
+</BaseLayout>
+
+<script is:inline>
+  function initCountdownTimer() {
+    const minEl = document.getElementById('countdown-minutes');
+    const secEl = document.getElementById('countdown-seconds');
+    if (!minEl || !secEl) return;
+
+    const DURATION_MS = 15 * 60 * 1000;
+    const STORAGE_KEY = 'essen_ikan_countdown_v1';
+    let targetTime = parseInt(sessionStorage.getItem(STORAGE_KEY) || '0', 10);
+    const now = Date.now();
+
+    if (!targetTime || targetTime <= now || targetTime - now > DURATION_MS) {
+      targetTime = now + DURATION_MS;
+      sessionStorage.setItem(STORAGE_KEY, targetTime.toString());
+    }
+
+    const updateTimer = () => {
+      const currentTime = Date.now();
+      let remainingMs = targetTime - currentTime;
+
+      if (remainingMs <= 0) {
+        targetTime = currentTime + DURATION_MS;
+        sessionStorage.setItem(STORAGE_KEY, targetTime.toString());
+        remainingMs = DURATION_MS;
+      }
+
+      const totalSeconds = Math.floor(remainingMs / 1000);
+      const mins = Math.floor(totalSeconds / 60);
+      const secs = totalSeconds % 60;
+
+      minEl.textContent = String(mins).padStart(2, '0');
+      secEl.textContent = String(secs).padStart(2, '0');
+    };
+
+    updateTimer();
+    setInterval(updateTimer, 1000);
+  }
+
+  function initStockCounter() {
+    const stockText = document.getElementById('stock-count-text');
+    const stockBar = document.getElementById('stock-progress-bar');
+    if (!stockText || !stockBar) return;
+
+    const STORAGE_KEY = 'essen_ikan_stock_v1';
+    let stock = parseInt(sessionStorage.getItem(STORAGE_KEY) || '0', 10);
+
+    if (!stock || stock < 4 || stock > 12) {
+      stock = Math.floor(Math.random() * (12 - 6 + 1)) + 6;
+      sessionStorage.setItem(STORAGE_KEY, stock.toString());
+    }
+
+    const updateStockUI = (val) => {
+      stockText.textContent = `Tersisa ${val} Botol Lagi`;
+      const pct = Math.min(90, Math.max(30, Math.round((val / 15) * 100)));
+      stockBar.style.width = `${pct}%`;
+    };
+
+    updateStockUI(stock);
+
+    const delay = Math.floor(Math.random() * (60000 - 35000 + 1)) + 35000;
+    setTimeout(() => {
+      let current = parseInt(sessionStorage.getItem(STORAGE_KEY) || '0', 10);
+      if (current > 3) {
+        current -= 1;
+        sessionStorage.setItem(STORAGE_KEY, current.toString());
+        updateStockUI(current);
+      }
+    }, delay);
+  }
+
+  function initStickyBarObserver() {
+    const stickyBar = document.getElementById('sticky-purchase-bar');
+    const orderForm = document.getElementById('form-pemesanan');
+    const hero = document.getElementById('landing-hero');
+    if (!stickyBar || !orderForm) return;
+
+    let heroVisible = true;
+    let formVisible = false;
+
+    const applyStickyVisibility = () => {
+      if (heroVisible || formVisible) {
+        stickyBar.style.transform = 'translateY(100%)';
+        stickyBar.style.opacity = '0';
+        stickyBar.style.pointerEvents = 'none';
+      } else {
+        stickyBar.style.transform = 'translateY(0)';
+        stickyBar.style.opacity = '1';
+        stickyBar.style.pointerEvents = 'auto';
+      }
+    };
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.target === hero) heroVisible = entry.isIntersecting;
+          if (entry.target === orderForm) formVisible = entry.isIntersecting;
+        });
+        applyStickyVisibility();
+      },
+      { threshold: 0, rootMargin: '0px 0px -40px 0px' }
+    );
+
+    if (hero) observer.observe(hero);
+    else heroVisible = false;
+    observer.observe(orderForm);
+    applyStickyVisibility();
+  }
+
+  const initAll = () => {
+    initCountdownTimer();
+    initStockCounter();
+    initStickyBarObserver();
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAll);
+  } else {
+    initAll();
+  }
+</script>
