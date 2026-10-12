@@ -1,0 +1,716 @@
+---
+/*
+ * Native Astro landing page — GlowHome Foam Pembersih Toilet 500ml.
+ * High-Converting Direct-Response Indonesian Commerce Funnel.
+ * Active micro-foam bathroom & toilet stain dissolver.
+ * Zero emojis, zero emoticons, zero AI slop, WCAG AA contrast compliant.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import MetaLandingTracker from '../components/storefront/tracking/MetaLandingTracker.astro';
+import GeoIpResolvedForm from '../components/storefront/forms/GeoIpResolvedForm.astro';
+import SocialProofToast from '../components/storefront/shared/SocialProofToast.astro';
+import { recentOrderCount } from '../lib/social-proof';
+import { getRuntimeEnv } from '../lib/env';
+import { getStorefrontProduct, getStorefrontProducts } from '../lib/catalog';
+import { nativeLandingCanonicalPath } from '../lib/landing-pages';
+import { defaultCatalogContentId } from '../lib/catalog-feed';
+import { resolveFormModeContext } from '../lib/form-mode';
+import '../styles/form-hybrid.css';
+import '../styles/landing-pages/landing.css';
+import '../styles/landing-pages/foam-toilet.css';
+
+export const prerender = false;
+
+const SLUG = 'foam-pembersih-toilet-500ml';
+const PRODUCT_SLUG = 'foam-pembersih-toilet-500ml';
+
+const formContext = await resolveFormModeContext(Astro.request);
+
+// Product resolution with strict DB fallback
+let product = await getStorefrontProduct(Astro.locals, PRODUCT_SLUG);
+if (!product) {
+  product = await getStorefrontProduct(Astro.locals, '18399');
+}
+if (!product) {
+  const allProducts = await getStorefrontProducts(Astro.locals);
+  product = allProducts.find((p) => p.slug.includes('foam') || p.slug.includes('toilet')) ?? allProducts[0] ?? null;
+}
+if (!product) return Astro.rewrite('/404');
+
+const canonical = `${Astro.locals.tenant.siteUrl}${await nativeLandingCanonicalPath(Astro.locals, SLUG)}`;
+const seoTitle = `${product.productName} — Busa Aktif Rontokkan Kerak Toilet Seketika`;
+const seoDescription =
+  product.description ||
+  'GlowHome Foam Pembersih Toilet 500ml busa aktif pembersih kerak, jamur, noda air membandel pada kloset, wastafel, dan keramik. Bersih mengkilap tanpa sikat keras, 99.99% basmi kuman, aroma harum segar, bisa COD se-Indonesia.';
+
+const cheapest = [...product.variants].sort((a, b) => a.price - b.price)[0] ?? null;
+const price = cheapest?.price ?? product.price ?? 79000;
+const bundleVariant = product.variants.find((v) => v.sku === 'PG04' || v.label.includes('2') || v.id === '20068') ?? product.variants[1] ?? null;
+const bundlePrice = bundleVariant?.price ?? 148500;
+const bundleCompare = bundleVariant?.comparePrice ?? 176000;
+const bundleSavings = (bundleCompare && bundlePrice) ? bundleCompare - bundlePrice : 27500;
+const productImage = product.image || '/images/landing/foam-toilet/hero-product.webp';
+const socialProofOrders = await recentOrderCount(getRuntimeEnv(Astro.locals)?.OMS_DB as D1Database | undefined);
+---
+
+<BaseLayout
+  title={seoTitle}
+  description={seoDescription}
+  image={productImage}
+  preloadImages="/images/landing/foam-toilet/hero-product.webp"
+  canonical={canonical}
+  hideHeader={true}
+  hideFooter={true}
+>
+  <main class="mx-auto min-h-screen w-full max-w-[480px] bg-white pb-12 font-sans text-slate-900 shadow-2xl selection:bg-[#0284C7] selection:text-white antialiased">
+    <MetaLandingTracker
+      slug={SLUG}
+      contentId={defaultCatalogContentId(product)}
+      contentName={product.contentName}
+      price={price}
+    />
+
+    <!-- ═══ 1. URGENCY ANNOUNCEMENT BAR (TOP) ═══ -->
+    <header class="flex items-center justify-between border-b border-sky-950 bg-[#061826] px-3 py-2 text-white shadow-xs">
+      <div class="flex items-center gap-1.5 text-[10.5px] min-[380px]:text-[11.5px] font-extrabold tracking-wide min-w-0">
+        <span class="flex h-2 w-2 relative shrink-0">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+        </span>
+        <span class="text-amber-300 font-black uppercase shrink-0">PROMO:</span>
+        <span class="text-slate-100 font-bold whitespace-nowrap">BELI 2 HEMAT RP{Math.round(bundleSavings).toLocaleString('id-ID')}</span>
+      </div>
+      <span class="whitespace-nowrap text-[9.5px] min-[380px]:text-[10.5px] font-black tracking-wider text-amber-300 bg-sky-950/90 px-2 py-0.5 rounded-full border border-sky-700/60 shadow-xs shrink-0 ml-1.5">
+        BISA COD
+      </span>
+    </header>
+
+    <!-- ═══ 2. HERO SECTION (HEADLINE, SOMATIC HOOK & HERO PACKSHOT) ═══ -->
+    <section id="landing-hero" class="bg-white text-center pb-8">
+      <div class="px-4 sm:px-5 pt-5 sm:pt-6">
+        <!-- Social Proof Text Badge -->
+        <div class="mb-3 inline-flex items-center justify-center gap-1.5 text-[11.5px] sm:text-[12px] font-bold text-slate-800 bg-sky-50/90 px-3.5 py-1 rounded-full border border-sky-200/80 shadow-2xs">
+          <span class="text-sky-800 font-extrabold uppercase tracking-wide">Rating 4.9 / 5.0</span>
+          <span class="text-slate-400">•</span>
+          <span class="text-slate-600 font-medium">4.190+ Rumah Tangga Puas</span>
+        </div>
+
+        <!-- Main Impact Headline -->
+        <h1 class="mx-auto max-w-[440px] text-[clamp(21px,6.8vw,26px)] font-black leading-[1.25] tracking-tight text-slate-950">
+          Kloset Kuning &amp; Kerak Menahun Susah Hilang? Semprot Busa Aktif, <span class="box-decoration-clone rounded-[0.18em] bg-sky-100 text-sky-950 px-1.5 py-0.5">Kerak Rontok Sendiri</span> Tanpa Capek Sikat Keras!
+        </h1>
+
+        <!-- Somatic Problem Subheadline -->
+        <p class="mt-3 text-[13.5px] sm:text-[14.5px] leading-relaxed text-slate-600 font-normal max-w-[420px] mx-auto text-center">
+          Formula busa tebal Micro-Penetration Surfaktan K12+APG dan Asam Amino Sulfonat mengunci dan melarutkan kerak kapur, noda urin membandel, serta jamur hitam dalam 3 menit. Kloset dan wastafel kembali putih mengkilap seperti baru dipasang.
+        </p>
+      </div>
+
+      <!-- HERO IMAGE PACKSHOT -->
+      <div class="mt-5 relative w-full overflow-hidden bg-slate-950 shadow-md border-y border-slate-200">
+        <img
+          src="/images/landing/foam-toilet/hero-product.webp"
+          alt="GlowHöme Foam Pembersih Toilet 500ml busa lembut tanpa perlu disikat"
+          class="w-full h-auto aspect-[4/3] object-cover block"
+          loading="eager"
+          decoding="async"
+          fetchpriority="high"
+          width="1024"
+          height="768"
+        />
+        <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-slate-950/95 via-slate-950/70 to-transparent px-3 pt-6 pb-2 text-center">
+          <p class="text-[11.5px] sm:text-[12px] font-bold text-cyan-300">
+            Netto 500ml • Busa Lembut Tanpa Perlu Disikat • Harum Jasmine 24 Jam
+          </p>
+        </div>
+      </div>
+
+      <!-- Callout Benefit Grid -->
+      <div class="mt-4 px-4 sm:px-5">
+        <div class="p-3.5 rounded-2xl bg-sky-50/70 border border-sky-100 text-left space-y-2">
+          <div class="flex items-center gap-2">
+            <span class="h-2 w-2 rounded-full bg-sky-600 shrink-0"></span>
+            <p class="text-[12.5px] sm:text-[13px] font-bold text-slate-900">
+              Busa Aktif Menempel di Dinding Miring — Tidak Langsung Hanyut
+            </p>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="h-2 w-2 rounded-full bg-sky-600 shrink-0"></span>
+            <p class="text-[12.5px] sm:text-[13px] font-bold text-slate-900">
+              99.99% Basmi Bakteri &amp; Kuman Penyebab Bau Pesing Menusuk
+            </p>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="h-2 w-2 rounded-full bg-sky-600 shrink-0"></span>
+            <p class="text-[12.5px] sm:text-[13px] font-bold text-slate-900">
+              Aman untuk Keramik, Porselen, Kaca, dan Keran Chrome Stainless
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Scroll Anchor CTA Button -->
+      <div class="mt-5 px-4 sm:px-5">
+        <a
+          href="#form-pemesanan"
+          class="flex items-center justify-center gap-2 w-full py-3.5 px-6 rounded-xl font-extrabold text-[15px] sm:text-[16px] text-white bg-gradient-to-r from-sky-600 to-blue-700 hover:from-sky-700 hover:to-blue-800 shadow-md shadow-sky-600/25 active:scale-[0.98] transition-all tracking-wide"
+        >
+          <span>PESAN SEKARANG &amp; BAYAR DI TEMPAT (COD)</span>
+        </a>
+        <p class="mt-2 text-[11px] sm:text-[11.5px] text-slate-600 font-medium text-center">
+          Bisa COD Seluruh Indonesia • Garansi 100% Produk Original
+        </p>
+      </div>
+    </section>
+
+    <!-- ═══ 3. SECTION: PAIN & AGITATION (FRUSTRASI SIKAT WC) ═══ -->
+    <section class="border-t border-slate-200 bg-slate-50/70 pt-8 pb-10 text-center">
+      <div class="px-5">
+        <h2 class="text-[clamp(21px,6.5vw,25px)] font-black text-slate-950 tracking-tight leading-[1.22]">
+          Capek Menggosok WC Berjam-Jam, Tapi Kerak Kuning Masih Nempel?
+        </h2>
+        <p class="text-[13px] sm:text-[13.5px] text-slate-600 leading-relaxed mt-2 max-w-[420px] mx-auto text-center">
+          Kamar mandi yang berkerak kuning gelap dan berbau apek bikin malu saat ada tamu atau keluarga yang menumpang ke toilet rumah Anda:
+        </p>
+      </div>
+
+      <!-- IMAGE: EXHAUSTED MOTHER SCRUBBING TOILET -->
+      <div class="mt-6 relative w-full overflow-hidden bg-slate-950 shadow-md border-y border-slate-200">
+        <img
+          src="/images/landing/foam-toilet/capek-sikat-wc.webp"
+          alt="Ibu rumah tangga lelah menggosok kerak toilet yang membandel dan susah hilang"
+          class="w-full h-auto aspect-[4/3] object-cover block"
+          loading="eager"
+          decoding="async"
+          width="1200"
+          height="896"
+        />
+        <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-slate-950/95 via-slate-950/75 to-transparent px-3 pt-6 pb-2 text-center">
+          <p class="text-[11.5px] sm:text-[12px] font-bold text-red-300">
+            Jangan Biarkan Tenaga Habis &amp; Pinggang Pegal Hanya untuk Menyikat Kerak Kloset
+          </p>
+        </div>
+      </div>
+
+      <!-- Comparison Grid: Pembersih Biasa vs GlowHome Foam -->
+      <div class="mt-5 px-3.5 sm:px-4 grid grid-cols-2 gap-2 text-left">
+        <div class="p-2.5 rounded-xl bg-red-50/70 border border-red-200/60 shadow-2xs">
+          <p class="font-black text-red-900 uppercase tracking-wider text-[10.5px] sm:text-[11px] pb-1.5 border-b border-red-200/50 mb-2">Pembersih Biasa / Air Keras</p>
+          <ul class="space-y-1.5 text-slate-800 font-semibold text-[11.5px] sm:text-[12px]">
+            <li class="leading-snug text-red-950 font-bold">• Bau menyengat bikin sesak &amp; batuk</li>
+            <li class="leading-snug text-red-950 font-bold">• Mengikis lapisan nat dan keramik</li>
+            <li class="leading-snug text-red-950 font-bold">• Harus sikat sekuat tenaga</li>
+            <li class="leading-snug text-red-950 font-bold">• Cairan encer langsung hanyut</li>
+          </ul>
+        </div>
+        <div class="p-2.5 rounded-xl bg-sky-50/80 border border-sky-200/70 shadow-2xs">
+          <p class="font-black text-sky-900 uppercase tracking-wider text-[10.5px] sm:text-[11px] pb-1.5 border-b border-sky-200/50 mb-2">GlowHome Foam Cleaner</p>
+          <ul class="space-y-1.5 text-slate-800 font-semibold text-[11.5px] sm:text-[12px]">
+            <li class="leading-snug text-sky-950 font-bold">• Busa tebal mengunci kerak</li>
+            <li class="leading-snug text-sky-950 font-bold">• Aman untuk porselen &amp; keran</li>
+            <li class="leading-snug text-sky-950 font-bold">• Cukup semprot &amp; bilas ringan</li>
+            <li class="leading-snug text-sky-950 font-bold">• Aroma segar, bebas bau apek</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 4. SECTION: TEKNOLOGI BUSA AKTIF MICRO-PENETRATION ═══ -->
+    <section class="border-t border-slate-200 bg-white pt-8 pb-10 text-center">
+      <div class="px-5">
+        <h2 class="text-[clamp(21px,6.5vw,25px)] font-black text-slate-950 tracking-tight leading-[1.22]">
+          Bagaimana Busa Aktif GlowHome Bekerja Rontokkan Kerak?
+        </h2>
+        <p class="text-[13px] sm:text-[13.5px] text-slate-600 leading-relaxed mt-2 max-w-[420px] mx-auto text-center">
+          Tidak seperti cairan pembersih biasa yang langsung meluncur hanyut ke lubang pembuangan, busa padat GlowHome menempel erat pada permukaan kloset untuk menghancurkan ikatan mineral kerak:
+        </p>
+      </div>
+
+      <!-- IMAGE: TOILET DIAGRAM ACTION -->
+      <div class="mt-6 relative w-full overflow-hidden bg-slate-950 shadow-md border-y border-slate-200">
+        <img
+          src="/images/landing/foam-toilet/toilet-diagram.webp"
+          alt="Bersih merata hingga ke sudut tersembunyi dengan busa aktif GlowHöme Foam Pembersih Toilet"
+          class="w-full h-auto aspect-square object-contain block bg-white"
+          loading="eager"
+          decoding="async"
+          width="1024"
+          height="1024"
+        />
+        <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-slate-950/95 via-slate-950/75 to-transparent px-3 pt-6 pb-2 text-center">
+          <p class="text-[11.5px] sm:text-[12px] font-bold text-cyan-300">
+            Busa Aktif Angkat Noda &amp; Kerak Hingga ke Sudut Tersembunyi
+          </p>
+        </div>
+      </div>
+
+      <!-- IMAGE: REAL ACTION FOAM SPRAY -->
+      <div class="mt-4 relative w-full overflow-hidden bg-slate-950 shadow-md border-y border-slate-200">
+        <img
+          src="/images/landing/foam-toilet/foam-action.webp"
+          alt="Aksi nyata semprotan busa aktif GlowHöme melarutkan kerak dan noda kuning di kloset"
+          class="w-full h-auto aspect-square object-cover block"
+          loading="eager"
+          decoding="async"
+          width="1024"
+          height="1024"
+        />
+        <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-slate-950/95 via-slate-950/75 to-transparent px-3 pt-6 pb-2 text-center">
+          <p class="text-[11.5px] sm:text-[12px] font-bold text-amber-300">
+            Aksi Nyata: Busa Padat Mengembang &amp; Mengikis Kerak Seketika
+          </p>
+        </div>
+      </div>
+
+      <!-- 3 Pilar Keunggulan Mekanisme Busa -->
+      <div class="mt-6 px-4 sm:px-5 text-left space-y-3">
+        <div class="flex items-start gap-3 p-3.5 rounded-xl bg-sky-50/50 border border-sky-100">
+          <div class="h-8 w-8 rounded-lg bg-sky-700 text-white font-black text-[13px] flex items-center justify-center shrink-0">
+            1
+          </div>
+          <div>
+            <h4 class="text-[14px] font-bold text-slate-950">Daya Lekat Busa 10X Lebih Kuat di Bidang Vertikal</h4>
+            <p class="text-[12px] sm:text-[12.5px] text-slate-600 mt-0.5 leading-relaxed">
+              Struktur micro-bubble busa menempel kokoh pada lekukan dalam bibir kloset dan dinding miring, tidak cepat jatuh sehingga formula bekerja maksimal membongkar kerak.
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-start gap-3 p-3.5 rounded-xl bg-sky-50/50 border border-sky-100">
+          <div class="h-8 w-8 rounded-lg bg-sky-700 text-white font-black text-[13px] flex items-center justify-center shrink-0">
+            2
+          </div>
+          <div>
+            <h4 class="text-[14px] font-bold text-slate-950">Surfaktan K12+APG &amp; Asam Amino Sulfonat</h4>
+            <p class="text-[12px] sm:text-[12.5px] text-slate-600 mt-0.5 leading-relaxed">
+              Kombinasi zat aktif generasi baru yang bereaksi mengikat kalsium air sumur dan zat urin menahun, menjadikannya rapuh dan mudah larut hanya dengan siraman air.
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-start gap-3 p-3.5 rounded-xl bg-sky-50/50 border border-sky-100">
+          <div class="h-8 w-8 rounded-lg bg-sky-700 text-white font-black text-[13px] flex items-center justify-center shrink-0">
+            3
+          </div>
+          <div>
+            <h4 class="text-[14px] font-bold text-slate-950">Desinfeksi Mendalam &amp; Segar Tanpa Bau Asam</h4>
+            <p class="text-[12px] sm:text-[12.5px] text-slate-600 mt-0.5 leading-relaxed">
+              Membasmi 99.99% kuman dan jamur penyebab aroma tak sedap di kamar mandi tanpa menghasilkan uap gas kimia beracun yang membahayakan pernapasan keluarga.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 5. SECTION: MULTI-SURFACE CHROME & TILES ═══ -->
+    <section class="border-t border-slate-100 bg-slate-50/80 pt-8 pb-10 text-center">
+      <div class="px-5">
+        <h2 class="text-[clamp(21px,6.5vw,25px)] font-black text-slate-950 tracking-tight leading-[1.22]">
+          Satu Botol untuk Semua Area Kamar Mandi
+        </h2>
+        <p class="text-[13px] sm:text-[13.5px] text-slate-600 leading-relaxed mt-2 max-w-[420px] mx-auto text-center">
+          Tidak hanya untuk kloset, formula lembut GlowHome juga ampuh mengembalikan kilap perlengkapan sanitari rumah:
+        </p>
+      </div>
+
+      <!-- IMAGE: CHROME SHOWER DEMO -->
+      <div class="mt-6 relative w-full overflow-hidden bg-slate-950 shadow-md border-y border-slate-200">
+        <img
+          src="/images/landing/foam-toilet/shower-before-after.webp"
+          alt="Perbandingan sebelum dan sesudah pembersihan keran shower stainless steel berkarat air menjadi mengkilap dengan GlowHöme"
+          class="w-full h-auto aspect-square object-contain block bg-white"
+          loading="eager"
+          decoding="async"
+          width="1024"
+          height="1024"
+        />
+        <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-slate-950/95 via-slate-950/70 to-transparent px-3 pt-6 pb-2 text-center">
+          <p class="text-[11.5px] sm:text-[12px] font-bold text-cyan-300">
+            Bukti Nyata Keran Stainless &amp; Dinding Keramik Kembali Mengkilap Seperti Baru
+          </p>
+        </div>
+      </div>
+
+      <!-- Grid Area Pembersihan -->
+      <div class="mt-5 px-4 grid grid-cols-2 gap-2 text-left">
+        <div class="p-3 rounded-xl bg-white border border-slate-200 shadow-2xs">
+          <p class="font-extrabold text-sky-900 text-[13px]">Kloset Duduk &amp; Jongkok</p>
+          <p class="text-[11.5px] text-slate-600 mt-1 leading-snug">Menghilangkan lingkaran noda kuning dan kerak air di dasar kloset.</p>
+        </div>
+        <div class="p-3 rounded-xl bg-white border border-slate-200 shadow-2xs">
+          <p class="font-extrabold text-sky-900 text-[13px]">Keran Stainless &amp; Shower</p>
+          <p class="text-[11.5px] text-slate-600 mt-1 leading-snug">Rontokkan bercak air putih berkerak (water spots) tanpa mengikis chrome.</p>
+        </div>
+        <div class="p-3 rounded-xl bg-white border border-slate-200 shadow-2xs">
+          <p class="font-extrabold text-sky-900 text-[13px]">Wastafel &amp; Meja Keramik</p>
+          <p class="text-[11.5px] text-slate-600 mt-1 leading-snug">Bersihkan sisa sabun, pasta gigi, dan minyak kosmetik yang menempel.</p>
+        </div>
+        <div class="p-3 rounded-xl bg-white border border-slate-200 shadow-2xs">
+          <p class="font-extrabold text-sky-900 text-[13px]">Celah Nat &amp; Dinding Kamar Mandi</p>
+          <p class="text-[11.5px] text-slate-600 mt-1 leading-snug">Kikis jamur hitam dan lumut di sela-sela lantai basah secara tuntas.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 6. SECTION: HASIL NYATA BEFORE-AFTER ═══ -->
+    <section class="border-t border-slate-200 bg-white pt-8 pb-10 text-center">
+      <div class="px-5">
+        <h2 class="text-[clamp(21px,6.5vw,25px)] font-black text-slate-950 tracking-tight leading-[1.22]">
+          Hasil Nyata: Noda Langsung Lenyap
+        </h2>
+        <p class="text-[13px] sm:text-[13.5px] text-slate-600 leading-relaxed mt-2 max-w-[420px] mx-auto text-center mb-6">
+          Lihat perbandingan langsung sebelum dan sesudah penggunaan GlowHome Foam Cleaner:
+        </p>
+      </div>
+
+      <!-- IMAGE: 4-ROW BEFORE AFTER -->
+      <div class="mt-2 relative w-full overflow-hidden bg-white shadow-md border-y border-slate-200 mb-6">
+        <img
+          src="/images/landing/foam-toilet/multi-before-after.webp"
+          alt="Hasil perbandingan sebelum dan sesudah pembersihan kloset, saluran pembuangan, dan celah nat keramik"
+          class="w-full h-auto aspect-square object-contain block"
+          loading="eager"
+          decoding="async"
+          width="1024"
+          height="1024"
+        />
+      </div>
+
+      <!-- CARA PAKAI SINGKAT -->
+      <div class="px-4 sm:px-5">
+        <div class="p-4 rounded-2xl bg-sky-50/60 border border-sky-100 text-left">
+          <h3 class="text-[14px] font-extrabold text-slate-950 uppercase tracking-wide mb-3 flex items-center gap-2">
+            <span class="h-2.5 w-2.5 rounded-full bg-sky-600"></span>
+            3 Langkah Mudah Pakai GlowHome Foam
+          </h3>
+          <div class="space-y-2.5 text-[12px] sm:text-[12.5px] text-slate-700">
+            <div class="flex items-start gap-2.5">
+              <span class="font-bold text-sky-700 shrink-0">1.</span>
+              <p><strong class="text-slate-900">Buka Pengunci Nozzle:</strong> Putar ujung semprotan ke posisi buka (spray).</p>
+            </div>
+            <div class="flex items-start gap-2.5">
+              <span class="font-bold text-sky-700 shrink-0">2.</span>
+              <p><strong class="text-slate-900">Semprotkan Merata:</strong> Arahkan busa tebal langsung ke area noda dan kerak. Diamkan selama 2-10 menit.</p>
+            </div>
+            <div class="flex items-start gap-2.5">
+              <span class="font-bold text-sky-700 shrink-0">3.</span>
+              <p><strong class="text-slate-900">Bilas &amp; Nikmati Kilapnya:</strong> Siram dengan air bersih atau usap ringan menggunakan kain/sikat WC. Kerak rontok seketika!</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- IMAGE: INFORMASI PRODUK & KOMPOSISI RESMI -->
+      <div class="mt-5 relative w-full overflow-hidden bg-white shadow-md border-y border-slate-200">
+        <img
+          src="/images/landing/foam-toilet/product-spec.webp"
+          alt="Informasi resmi produk GlowHöme Foam Pembersih Toilet 500ml komposisi dan cara pakai"
+          class="w-full h-auto aspect-square object-contain block"
+          loading="eager"
+          decoding="async"
+          width="1024"
+          height="1024"
+        />
+      </div>
+    </section>
+
+    <!-- ═══ 7. SECTION: REAL TESTIMONI PENGGUNA ═══ -->
+    <section class="border-t border-slate-100 bg-slate-50/90 pt-8 pb-10 text-center">
+      <div class="px-5">
+        <h2 class="text-[clamp(21px,6.5vw,25px)] font-black text-slate-950 tracking-tight leading-[1.22]">
+          Kisah Nyata Para Pengguna GlowHome
+        </h2>
+        <p class="text-[13px] sm:text-[13.5px] text-slate-600 leading-relaxed mt-2 max-w-[420px] mx-auto text-center mb-6">
+          Pengalaman jujur dari keluarga dan pengelola properti yang berhasil membersihkan toilet tanpa lelah:
+        </p>
+      </div>
+
+      <div class="px-4 sm:px-5 space-y-3 text-left">
+        <!-- Testimoni 1 -->
+        <div class="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
+          <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+            <div>
+              <p class="font-bold text-[13.5px] text-slate-950">Ibu Ratna Dewi (38 th)</p>
+              <p class="text-[11px] text-slate-500 font-medium">Ibu Rumah Tangga • Jakarta Selatan</p>
+            </div>
+            <span class="text-[11px] font-extrabold text-amber-500 bg-amber-50 px-2 py-0.5 rounded border border-amber-200/60">Rating 5/5</span>
+          </div>
+          <p class="text-[12.5px] text-slate-700 mt-2.5 leading-relaxed font-normal">
+            “Kloset jongkok di rumah mertua keraknya sudah menahun kuning gelap, pakai cairan biru bau asam tetap gak hilang. Pakai GlowHome ini tinggal semprot busanya, tinggal masak 10 menit, pas disiram air pakai gayung keraknya langsung rontok hanyut! Bersih kinclong gak nyangka sama sekali.”
+          </p>
+        </div>
+
+        <!-- Testimoni 2 -->
+        <div class="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
+          <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+            <div>
+              <p class="font-bold text-[13.5px] text-slate-950">Pak Bambang Hidayat (45 th)</p>
+              <p class="text-[11px] text-slate-500 font-medium">Pengelola Kost 12 Pintu • Surabaya</p>
+            </div>
+            <span class="text-[11px] font-extrabold text-amber-500 bg-amber-50 px-2 py-0.5 rounded border border-amber-200/60">Rating 5/5</span>
+          </div>
+          <p class="text-[12.5px] text-slate-700 mt-2.5 leading-relaxed font-normal">
+            “Punya 12 kamar kost, tiap anak kost keluar pasti toiletnya berkerak parah. Dulu manggil tukang bersih-bersih mahal. Sekarang staf saya kasih GlowHome 500ml ini, kerjaan cepat selesai, keran shower yang tadinya buram berkerak kapur jadi kinclong kayak baru beli. Sangat menghemat biaya perawatan.”
+          </p>
+        </div>
+
+        <!-- Testimoni 3 -->
+        <div class="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
+          <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+            <div>
+              <p class="font-bold text-[13.5px] text-slate-950">Ibu Siti Nurhaliza (34 th)</p>
+              <p class="text-[11px] text-slate-500 font-medium">Keluarga Muda • Bekasi Barat</p>
+            </div>
+            <span class="text-[11px] font-extrabold text-amber-500 bg-amber-50 px-2 py-0.5 rounded border border-amber-200/60">Rating 5/5</span>
+          </div>
+          <p class="text-[12.5px] text-slate-700 mt-2.5 leading-relaxed font-normal">
+            “Paling suka karena baunya gak bikin batuk atau mata perih seperti pembersih WC kimia biasa. Busanya tebal nempel banget di bibir kloset bagian dalam yang susah disikat. Sekarang gak perlu cape-cape bungkuk nyikat sampai keringetan. Sangat recommended!”
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 8. SECTION: PILIHAN PAKET & HARGA PROMO (BUNDLE BOX) ═══ -->
+    <section class="w-full border-t border-slate-100 bg-[#061826] text-white px-4 sm:px-5 py-7 text-center">
+      <div class="max-w-[420px] mx-auto space-y-4">
+        <!-- Countdown Timer Bar (Matching 4G Lucky & Essen Ikan) -->
+        <div class="flex items-center justify-between bg-white/10 backdrop-blur-md rounded-2xl px-4 py-2.5 border border-white/20 shadow-inner">
+          <span class="text-[12px] sm:text-[13px] font-extrabold text-slate-100">Promo Berakhir Dalam:</span>
+          <div class="flex items-center gap-1.5 font-mono font-black text-[14px]">
+            <span id="countdown-minutes" class="bg-sky-600 text-white px-2.5 py-1 rounded-lg min-w-[32px] text-center shadow-md">15</span>
+            <span class="text-amber-400 font-black text-[16px] leading-none animate-pulse">:</span>
+            <span id="countdown-seconds" class="bg-sky-600 text-white px-2.5 py-1 rounded-lg min-w-[32px] text-center shadow-md">00</span>
+          </div>
+        </div>
+
+        <!-- Promo 2-Bottle Bundle Packshot -->
+        <div class="relative w-full rounded-2xl overflow-hidden shadow-lg border border-white/20 bg-slate-900">
+          <img
+            src="/images/landing/foam-toilet/bundle-packshot.webp"
+            alt="Paket Promo 2 Botol GlowHöme Foam Pembersih Toilet 500ml"
+            class="w-full h-auto aspect-square object-cover block"
+            loading="eager"
+            decoding="async"
+            width="1024"
+            height="1024"
+          />
+        </div>
+
+        <!-- High-Contrast Price Display -->
+        <div class="space-y-1">
+          <div class="inline-block bg-sky-600 text-white px-3 py-1 font-black text-[12px] uppercase tracking-wider rounded-md shadow-xs">
+            PILIH PAKET GLOWHOME FOAM 500ML
+          </div>
+          <div class="flex items-baseline justify-center gap-2 pt-1">
+            <span class="text-[14px] sm:text-[15px] font-medium text-slate-400 line-through">
+              Rp{Math.round(bundleCompare).toLocaleString('id-ID')}
+            </span>
+            <span class="text-[30px] sm:text-[36px] font-black text-amber-300 font-mono tracking-tight leading-none">
+              Rp{Math.round(bundlePrice).toLocaleString('id-ID')}
+            </span>
+          </div>
+          <div class="pt-1 flex flex-wrap items-center justify-center gap-1.5">
+            <span class="inline-block bg-white/10 text-cyan-200 border border-cyan-400/30 text-[11.5px] sm:text-[12.5px] font-bold px-3 py-1.5 rounded-lg leading-tight">
+              Paket 2 Botol (1 Liter): Rp{Math.round(bundlePrice).toLocaleString('id-ID')} (Hemat Rp{Math.round(bundleSavings).toLocaleString('id-ID')})
+            </span>
+            <span class="inline-block bg-white/10 text-slate-300 border border-white/20 text-[11.5px] sm:text-[12.5px] font-medium px-3 py-1.5 rounded-lg leading-tight">
+              Paket 1 Botol (500ml): Rp{Math.round(price).toLocaleString('id-ID')}
+            </span>
+          </div>
+        </div>
+
+        <!-- Realtime Stock Remaining Bar -->
+        <div class="bg-white/5 rounded-xl p-3 border border-white/10 text-left space-y-1.5">
+          <div class="flex items-center justify-between text-[11.5px] font-bold text-slate-200">
+            <span class="flex items-center gap-1.5">
+              <span class="h-2 w-2 rounded-full bg-red-500 animate-ping"></span>
+              Sisa Stok Promo Hari Ini
+            </span>
+            <span id="stock-count-text" class="text-amber-300 font-black font-mono">Tersisa 14 Botol</span>
+          </div>
+          <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden border border-white/10">
+            <div id="stock-progress-bar" class="bg-gradient-to-r from-amber-400 to-red-500 h-2 rounded-full w-[84%] animate-pulse transition-all duration-500"></div>
+          </div>
+        </div>
+
+        <!-- Form Scroll Anchor Button -->
+        <a
+          href="#form-pemesanan"
+          class="flex items-center justify-center gap-2 w-full py-3.5 px-6 rounded-xl font-black text-[15px] sm:text-[16px] text-slate-950 bg-gradient-to-r from-amber-300 via-amber-400 to-amber-300 hover:brightness-105 shadow-lg shadow-amber-400/20 active:scale-[0.98] transition-all tracking-wide"
+        >
+          <span>AMBIL PROMO &amp; BAYAR DI TEMPAT (COD)</span>
+        </a>
+      </div>
+    </section>
+
+    <!-- ═══ 9. DIRECT ORDER FORM SECTION ═══ -->
+    <section id="form-pemesanan" class="border-t border-slate-200 bg-white px-4 sm:px-5 py-8 scroll-mt-4">
+      <div class="text-center max-w-[420px] mx-auto mb-6">
+        <span class="inline-block text-[11px] font-extrabold uppercase tracking-wider text-sky-800 bg-sky-50 px-3 py-1 rounded-full border border-sky-200 mb-2">
+          PENGIRIMAN AMAN &amp; CEPAT
+        </span>
+        <h3 class="text-[20px] sm:text-[22px] font-black text-slate-950 tracking-tight leading-tight">
+          Formulir Pemesanan Cepat
+        </h3>
+        <p class="text-[12.5px] sm:text-[13px] text-slate-600 mt-1 leading-relaxed">
+          Silakan lengkapi data pengiriman Anda di bawah ini. Paket langsung kami siapkan dan kirim ke alamat rumah Anda.
+        </p>
+      </div>
+
+      <!-- Live GeoIP Hybrid Checkout Form Container -->
+      <div class="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-3.5 sm:p-4">
+        <GeoIpResolvedForm
+          mode={formContext.mode}
+          province={formContext.province}
+          productSlug={product.slug}
+          embedded={true}
+        />
+      </div>
+    </section>
+
+    <!-- Social Proof Toast Notification (Bottom Edge) -->
+    <SocialProofToast orderCount={socialProofOrders} />
+
+    <!-- ═══ 10. STICKY MOBILE PURCHASE BAR ═══ -->
+    <div
+      id="sticky-purchase-bar"
+      class="fixed inset-x-0 bottom-0 z-40 mx-auto flex w-full max-w-[480px] items-center justify-between border-t border-slate-200 bg-white/95 px-4 py-3 shadow-[0_-8px_24px_rgba(15,23,42,0.12)] backdrop-blur-md transition-all duration-300 lg:hidden"
+      style="transform: translateY(100%); opacity: 0; pointer-events: none;"
+    >
+      <div class="min-w-0 pr-2">
+        <p class="text-[10px] font-bold uppercase tracking-wider text-sky-700">Harga Promo</p>
+        <p class="text-[15px] font-black leading-tight text-slate-950 font-mono">
+          Rp{Math.round(price).toLocaleString('id-ID')}
+        </p>
+      </div>
+      <a
+        href="#form-pemesanan"
+        class="inline-flex min-h-11 items-center justify-center rounded-xl bg-gradient-to-r from-sky-600 to-blue-700 px-5 text-[12px] font-extrabold uppercase tracking-wide text-white shadow-md shadow-sky-600/20 transition-all hover:brightness-105 active:scale-[0.98]"
+      >
+        Pesan Sekarang
+      </a>
+    </div>
+  </main>
+
+  <script>
+    // Sticky Mobile Purchase Bar Observer (Hides over hero & form)
+    function initStickyBarObserver() {
+      const stickyBar = document.getElementById('sticky-purchase-bar');
+      const orderForm = document.getElementById('form-pemesanan');
+      const hero = document.getElementById('landing-hero');
+      if (!stickyBar || !orderForm) return;
+
+      let heroVisible = true;
+      let formVisible = false;
+
+      const applyStickyVisibility = () => {
+        if (heroVisible || formVisible) {
+          stickyBar.style.transform = 'translateY(100%)';
+          stickyBar.style.opacity = '0';
+          stickyBar.style.pointerEvents = 'none';
+        } else {
+          stickyBar.style.transform = 'translateY(0)';
+          stickyBar.style.opacity = '1';
+          stickyBar.style.pointerEvents = 'auto';
+        }
+      };
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.target === hero) heroVisible = entry.isIntersecting;
+            if (entry.target === orderForm) formVisible = entry.isIntersecting;
+          });
+          applyStickyVisibility();
+        },
+        { threshold: 0, rootMargin: '0px 0px -40px 0px' }
+      );
+
+      if (hero) observer.observe(hero);
+      else heroVisible = false;
+      observer.observe(orderForm);
+      applyStickyVisibility();
+    }
+
+    // Dynamic Urgency Countdown Timer (SessionStorage Persistent Rolling Window)
+    function initCountdownTimer() {
+      const minEl = document.getElementById('countdown-minutes');
+      const secEl = document.getElementById('countdown-seconds');
+      if (!minEl || !secEl) return;
+
+      const STORAGE_KEY = 'foam_toilet_timer_end';
+      let endTime = parseInt(sessionStorage.getItem(STORAGE_KEY) || '0', 10);
+      const now = Date.now();
+
+      if (!endTime || endTime <= now) {
+        endTime = now + 12 * 60 * 1000 + 25 * 1000;
+        sessionStorage.setItem(STORAGE_KEY, endTime.toString());
+      }
+
+      const updateTimer = () => {
+        const current = Date.now();
+        let remainingMs = endTime - current;
+        if (remainingMs <= 0) {
+          endTime = current + 15 * 60 * 1000;
+          sessionStorage.setItem(STORAGE_KEY, endTime.toString());
+          remainingMs = 15 * 60 * 1000;
+        }
+
+        const totalSeconds = Math.floor(remainingMs / 1000);
+        const mins = Math.floor(totalSeconds / 60);
+        const secs = totalSeconds % 60;
+
+        minEl.textContent = String(mins).padStart(2, '0');
+        secEl.textContent = String(secs).padStart(2, '0');
+      };
+
+      updateTimer();
+      setInterval(updateTimer, 1000);
+    }
+
+    // Dynamic Live Stock Depletion Counter
+    function initStockCounter() {
+      const stockText = document.getElementById('stock-count-text');
+      const stockBar = document.getElementById('stock-progress-bar');
+      if (!stockText || !stockBar) return;
+
+      const STORAGE_KEY = 'foam_toilet_stock_v1';
+      let stock = parseInt(sessionStorage.getItem(STORAGE_KEY) || '0', 10);
+
+      if (!stock || stock < 5 || stock > 16) {
+        stock = Math.floor(Math.random() * (14 - 9 + 1)) + 9;
+        sessionStorage.setItem(STORAGE_KEY, stock.toString());
+      }
+
+      const updateStockUI = (val: number) => {
+        stockText.textContent = `Tersisa ${val} Botol Lagi`;
+        const pct = Math.min(92, Math.max(35, Math.round((val / 16) * 100)));
+        stockBar.style.width = `${pct}%`;
+      };
+
+      updateStockUI(stock);
+
+      const delay = Math.floor(Math.random() * (50000 - 30000 + 1)) + 30000;
+      setTimeout(() => {
+        let current = parseInt(sessionStorage.getItem(STORAGE_KEY) || '0', 10);
+        if (current > 4) {
+          current -= 1;
+          sessionStorage.setItem(STORAGE_KEY, current.toString());
+          updateStockUI(current);
+        }
+      }, delay);
+    }
+
+    const initAll = () => {
+      initCountdownTimer();
+      initStockCounter();
+      initStickyBarObserver();
+    };
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initAll);
+    } else {
+      initAll();
+    }
+  </script>
+</BaseLayout>

@@ -131,6 +131,14 @@ export const nativeLandingPages: NativeLandingPage[] = [
     image: '/images/landing/essen-ikan-120x/hero-product.webp',
     isActive: true,
   },
+  {
+    slug: 'foam-pembersih-toilet-500ml',
+    title: 'GlowHome Foam Pembersih Toilet 500ml (Busa Aktif Pembersih Kerak & Noda Kloset)',
+    productSlug: 'foam-pembersih-toilet-500ml',
+    description: 'Landing page direct-response konversi tinggi untuk GlowHome Foam Pembersih Toilet 500ml busa aktif anti kerak, jamur, noda air membandel.',
+    image: '/images/landing/foam-toilet/hero-product.webp',
+    isActive: true,
+  },
 ];
 
 /**

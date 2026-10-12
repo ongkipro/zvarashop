@@ -1,0 +1,66 @@
+/*
+ * Landing page styles for GlowHome Foam Pembersih Toilet 500ml
+ * High-Converting Direct-Response Mobile-First Theme (Pristine Clean & Power Foam)
+ */
+
+@keyframes pulse-subtle {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.03);
+    opacity: 0.95;
+  }
+}
+
+@keyframes urgency-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(2, 132, 199, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(2, 132, 199, 0);
+  }
+}
+
+@keyframes live-dot-ping {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  75%, 100% {
+    opacity: 0;
+    transform: scale(2.2);
+  }
+}
+
+.animate-pulse-subtle {
+  animation: 2.5s ease-in-out infinite pulse-subtle;
+}
+
+.animate-urgency-glow {
+  animation: 2s cubic-bezier(0.4, 0, 0.6, 1) infinite urgency-glow;
+}
+
+.animate-live-ping {
+  animation: 1.5s cubic-bezier(0, 0, 0.2, 1) infinite live-dot-ping;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.highlight-cyan {
+  background-image: linear-gradient(to top, #cffafe 0.35em, rgba(207, 250, 254, 0) 0.35em);
+  background-repeat: no-repeat;
+  background-position: 0 92%;
+  background-size: 100% 100%;
+}
+
+.highlight-amber {
+  background-image: linear-gradient(to top, #fef3c7 0.35em, rgba(254, 243, 199, 0) 0.35em);
+  background-repeat: no-repeat;
+  background-position: 0 92%;
+  background-size: 100% 100%;
+}
