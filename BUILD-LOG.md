@@ -6981,3 +6981,56 @@ Checked: `npm test` (836), `npm run check`.
   Payment methods offered: COD, QRIS and five VAs through AutoLaris.
   `seller_bank_accounts` is empty, so manual transfer is not offered. No order
   was placed.
+
+## 2026-10-19 — zvarashop: rebuilding source that only production held
+
+zvarashop's production ran a build that was never pushed. Its D1 ledger listed
+`0069`–`0073`, and its register held 55 native landing pages that no
+repository had. No branch, clone or device copy was found, so the source was
+rebuilt from production.
+
+- **Migrations.** Each one was matched to the rows it introduced by comparing
+  `d1_migrations.applied_at` with `created_at`. The result is idempotent:
+  `INSERT OR IGNORE` for new products and variants, `UPDATE` for existing
+  products, and an upsert for landing rows. Production never re-runs them.
+  On a fresh local database all 74 apply in order.
+- **Route files.** Each was converted from its live render. The tracker, the
+  order form (the element holding `*-embedded-config`) and the toast become
+  their components again, and the cheapest variant price becomes
+  `{rupiah(price)}`. Page CSS is the set of unlayered, unscoped rules that not
+  every page shares; Tailwind regenerates the rest from the classes.
+- **Two traps, both caught only by comparing renders.** Astro's HTML
+  compression drops whitespace containing a newline at a text/tag boundary.
+  When prettier moved a space onto a new line, the space disappeared and the
+  text wrapped differently, so edge spaces are now written as `{' '}`. The
+  second trap: 52 images had the same path in the repo and in production but
+  different bytes, because production had replaced them. Images are now
+  compared by content, not by existence.
+- **Register.** Titles and descriptions are taken from what D1 holds, which
+  is what the hourly reconcile wrote from production's register, so the
+  first reconcile after deploy writes nothing.
+
+Evidence lives in the STATUS 2026-10-19 entry.
+
+## 2026-10-19 — 1.5.11: a script-carrier image costs no request
+
+A fleet audit (518 live product and landing pages rendered at 390 px, with
+each order form checked against D1 variant ids and prices) found five
+taniniaga CMS landings whose merchant html runs script through
+`<img src="x" style="display:none" onerror=…>`. Every view of those pages also
+requested `/x`. That request reached the Worker, which looked up a landing
+called `x` in D1, rendered the 404 page, and logged a console error. `#`, the
+other common placeholder, refetches the page itself.
+
+- `deferOffscreenImages` rewrites the placeholder `src` (`x` or `#`) of an
+  `<img>` that carries `onerror` to `data:,`. The image still fails, so the
+  handler runs, but no request is made. Real sources, and images without
+  `onerror`, are not touched (tested).
+- Checked in Chromium: `onerror` fires once, the only request is the page, and
+  no console error appears.
+
+The same audit found no form, variant, price, `<h1>`, title or overflow
+defect on any page. The `/api/meta-event` 429s it logged came from its own
+traffic: 500+ pages from one IP against the 60-per-minute limit.
+
+Checked: `npm test` (837), `npm run check`.
