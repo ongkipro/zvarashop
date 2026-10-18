@@ -1,0 +1,1251 @@
+---
+/*
+ * Native Astro landing page — GlowHome Lingerie Wash 300ml — Pembersih Noda Pakaian Dalam Wanita.
+ * Rebuilt on 2026-10-18 from the live render of
+ * https://zvara.shop/produk/deterjen-pakaian-dalam-300ml: this page was deployed from
+ * another device and its source never reached the repository. Markup and
+ * page CSS are the live ones; the tracker, order form and social-proof toast
+ * are the components that rendered them, and the lowest variant price is
+ * bound to the product rather than written in.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import MetaLandingTracker from '../components/storefront/tracking/MetaLandingTracker.astro';
+import GeoIpResolvedForm from '../components/storefront/forms/GeoIpResolvedForm.astro';
+import SocialProofToast from '../components/storefront/shared/SocialProofToast.astro';
+import { recentOrderCount } from '../lib/social-proof';
+import { getRuntimeEnv } from '../lib/env';
+import { getStorefrontProduct } from '../lib/catalog';
+import { nativeLandingCanonicalPath } from '../lib/landing-pages';
+import { defaultCatalogContentId } from '../lib/catalog-feed';
+import { resolveFormModeContext } from '../lib/form-mode';
+import '../styles/form-hybrid.css';
+import '../styles/landing-pages/landing.css';
+import '../styles/landing-pages/deterjen-pakaian-dalam-300ml.css';
+
+export const prerender = false;
+
+const SLUG = "deterjen-pakaian-dalam-300ml";
+const PRODUCT_SLUG = "deterjen-pakaian-dalam-300ml";
+
+const product = await getStorefrontProduct(Astro.locals, PRODUCT_SLUG);
+if (!product) return Astro.rewrite('/404');
+
+const formContext = await resolveFormModeContext(Astro.request);
+const canonical = `${Astro.locals.tenant.siteUrl}${await nativeLandingCanonicalPath(Astro.locals, SLUG)}`;
+const seoTitle = "Deterjen Pakaian Dalam 300ml — Luruhkan Noda Darah Haid & Kuning Tanpa Kucek Kasar";
+const seoDescription = "Deterjen Pakaian Dalam 300ml tercantum dalam kategori Umum. Detail yang ditampilkan mengikuti data katalog toko.";
+
+const cheapest = [...product.variants].sort((a, b) => a.price - b.price)[0] ?? null;
+const price = cheapest?.price ?? product.price;
+const rupiah = (value: number) => Math.round(value).toLocaleString('id-ID');
+const socialProofOrders = await recentOrderCount(getRuntimeEnv(Astro.locals)?.OMS_DB as D1Database | undefined);
+---
+
+<BaseLayout
+  title={seoTitle}
+  description={seoDescription}
+  image="/images/landing/deterjen-pakaian-dalam-300ml/hero-product.webp"
+  preloadImages="/images/landing/deterjen-pakaian-dalam-300ml/hero-scene.webp"
+  canonical={canonical}
+  hideHeader={true}
+  hideFooter={true}
+>
+  <main class="mx-auto min-h-screen w-full max-w-[480px] bg-white pb-16 font-sans text-slate-950 selection:bg-amber-200 selection:text-slate-950 antialiased">
+    <MetaLandingTracker slug={SLUG} contentId={defaultCatalogContentId(product)} contentName={product.contentName} price={price} /><!-- ═══ 1. MINIMALIST URGENCY BAR (TOP) ═══ --><header
+      class="flex items-center justify-between border-b border-slate-900 bg-slate-950 px-4 py-2 text-white"
+      ><div class="flex items-center gap-1.5 text-[11px] font-bold tracking-wide min-w-0"
+        ><svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="1em"
+          height="1em"
+          viewBox="0 0 24 24"
+          class="h-3.5 w-3.5 fill-amber-400 text-amber-400 shrink-0"
+          aria-hidden="true"
+          fill="currentColor"
+          stroke="currentColor"
+        >
+          <path
+            fill="currentColor"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M15.914 4a1.5 1.5 0 0 0-2.474-1.561l-9 9A1.5 1.5 0 0 0 5.5 14h4.002a.5.5 0 0 1 .471.666L8.086 20a1.5 1.5 0 0 0 2.475 1.56l9-9A1.5 1.5 0 0 0 18.5 10h-3.997a.5.5 0 0 1-.472-.667z"
+          ></path></svg
+        ><span class="text-amber-400 uppercase shrink-0">PROMO:</span
+        ><span class="text-white truncate">BELI 2 HEMAT RP27.500</span></div
+      ><span class="text-[10.5px] font-bold tracking-wider text-amber-400 uppercase shrink-0 ml-2">BISA COD</span></header
+    ><!-- ═══ 2. HERO SECTION (NO RATING ABOVE HEADLINE, NO BUTTON, CLEAN BG) ═══ --><section
+      id="landing-hero"
+      class="bg-white pb-6"
+      ><div class="px-5 pt-6 text-left"
+        ><h1 class="text-[clamp(23px,6.8vw,28px)] font-bold leading-[1.18] tracking-tight text-slate-950"
+          >Noda Darah Haid &amp; Bercak Kuning di Celana Dalam Susah Hilang?{' '}<mark
+            class="bg-amber-200 px-1.5 py-0.5 text-slate-950"
+            >Luruhkan Tanpa Kucek Kasar</mark
+          >{' '}Hanya Direndam!</h1
+        ><p class="mt-3 text-[15px] font-normal leading-relaxed text-slate-700"
+          >Formula bio-enzim lembut{' '}<mark class="bg-red-100 px-1 font-semibold text-red-900"
+            >mengangkat noda darah menstruasi dan bau apek</mark
+          >{' '}tanpa merusak serat bra.</p
+        ></div
+      ><!-- UNCROPPED HERO IMAGE --><div class="mt-5 w-full bg-white border-y border-slate-200"
+        ><img
+          src="/images/landing/deterjen-pakaian-dalam-300ml/hero-scene.webp"
+          alt="GlowHome Lingerie Wash 300ml Pembersih Noda Darah Haid dan Pakaian Dalam Wanita"
+          class="w-full h-auto block"
+          fetchpriority="high"
+          loading="eager"
+          decoding="async"
+          width="600"
+          height="450" /></div
+      ><!-- MINIMALIST TRUST HAIRLINE STRIP --><div
+        class="border-b border-slate-200 bg-white px-5 py-2.5 flex items-center justify-between text-[12px] font-semibold text-slate-800"
+        ><span class="inline-flex items-center gap-1.5"
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 text-emerald-700 shrink-0"
+            aria-hidden="true"
+            fill="none"
+            stroke="currentColor"
+          >
+            <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+              <path
+                d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"
+              ></path>
+              <path d="m9 12l2 2l4-4"></path>
+            </g></svg
+          ><span>Garansi Produk Original</span></span
+        ><span class="inline-flex items-center gap-1.5"
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 text-slate-900 shrink-0"
+            aria-hidden="true"
+            fill="none"
+            stroke="currentColor"
+          >
+            <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+              <path
+                d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2m10 0H9m10 0h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"
+              ></path>
+              <circle cx="17" cy="18" r="2"></circle>
+              <circle cx="7" cy="18" r="2"></circle>
+            </g></svg
+          ><span>Bisa Bayar di Tempat (COD)</span></span
+        ></div
+      ><!-- 3 PAIN POINTS (CONCISE, FAST-SCANNING) --><div class="px-5 pt-6 text-left"
+        ><h2 class="text-[11.5px] font-bold uppercase tracking-widest text-red-700">Pernah Mengalami Momen Ini?</h2
+        ><div class="mt-3 divide-y divide-slate-200 border-y border-slate-200"
+          ><div class="py-3.5"
+            ><div class="flex items-start justify-between gap-3"
+              ><div class="flex items-start gap-2.5"
+                ><svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="1em"
+                  height="1em"
+                  viewBox="0 0 24 24"
+                  class="h-4 w-4 text-red-600 shrink-0 mt-0.5"
+                  aria-hidden="true"
+                  fill="none"
+                  stroke="currentColor"
+                >
+                  <path
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="m21.73 18l-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3M12 9v4m0 4h.01"
+                  ></path></svg
+                ><h3 class="text-[15px] font-bold leading-snug text-slate-950"
+                  >Bekas Darah Haid Mengering Jadi Bercak Cokelat</h3
+                ></div
+              ><span class="text-[10px] font-bold uppercase tracking-wider text-red-700 shrink-0 mt-0.5"
+                >Noda Membekas</span
+              ></div
+            ><p class="mt-1 pl-6.5 text-[13.5px] font-normal leading-relaxed text-slate-700"
+              >Bocor saat malam hari meninggalkan bercak darah yang{' '}<mark
+                class="bg-red-100/90 px-1 font-semibold text-red-900"
+                >sangat susah hilang pakai sabun mandi biasa</mark
+              >.</p
+            ></div
+          ><div class="py-3.5"
+            ><div class="flex items-start justify-between gap-3"
+              ><div class="flex items-start gap-2.5"
+                ><svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="1em"
+                  height="1em"
+                  viewBox="0 0 24 24"
+                  class="h-4 w-4 text-red-600 shrink-0 mt-0.5"
+                  aria-hidden="true"
+                  fill="none"
+                  stroke="currentColor"
+                >
+                  <path
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="m21.73 18l-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3M12 9v4m0 4h.01"
+                  ></path></svg
+                ><h3 class="text-[15px] font-bold leading-snug text-slate-950"
+                  >Karet &amp; Busa Bra Cepat Melar Karena Dikucek</h3
+                ></div
+              ><span class="text-[10px] font-bold uppercase tracking-wider text-red-700 shrink-0 mt-0.5"
+                >Serat Rusak</span
+              ></div
+            ><p class="mt-1 pl-6.5 text-[13.5px] font-normal leading-relaxed text-slate-700"
+              >Mengucek pakaian dalam terlalu keras justru{' '}<mark class="bg-red-100/90 px-1 font-semibold text-red-900"
+                >bikin kawat bra bengkok dan renda cepat robek</mark
+              >.</p
+            ></div
+          ><div class="py-3.5"
+            ><div class="flex items-start justify-between gap-3"
+              ><div class="flex items-start gap-2.5"
+                ><svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="1em"
+                  height="1em"
+                  viewBox="0 0 24 24"
+                  class="h-4 w-4 text-red-600 shrink-0 mt-0.5"
+                  aria-hidden="true"
+                  fill="none"
+                  stroke="currentColor"
+                >
+                  <path
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="m21.73 18l-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3M12 9v4m0 4h.01"
+                  ></path></svg
+                ><h3 class="text-[15px] font-bold leading-snug text-slate-950"
+                  >Deterjen Bubuk Bikin Tangan Panas &amp; Gatal</h3
+                ></div
+              ><span class="text-[10px] font-bold uppercase tracking-wider text-red-700 shrink-0 mt-0.5"
+                >Residu Keras</span
+              ></div
+            ><p class="mt-1 pl-6.5 text-[13.5px] font-normal leading-relaxed text-slate-700"
+              >Deterjen baju biasa mengandung soda api yang{' '}<mark class="bg-red-100/90 px-1 font-semibold text-red-900"
+                >memicu iritasi gatal pada area kewanitaan</mark
+              >.</p
+            ></div
+          ></div
+        ></div
+      ><!-- SELLER VISUAL PROOF 1 --><div class="mt-6 w-full bg-white border-y border-slate-200"
+        ><img
+          src="/images/landing/deterjen-pakaian-dalam-300ml/seller-1.webp"
+          alt="Bukti Noda Darah Haid dan Kuning Luruh dengan GlowHome Lingerie Wash 300ml"
+          class="w-full h-auto block"
+          loading="lazy"
+          decoding="async"
+          width="600"
+          height="600" /></div></section
+    ><!-- ═══ 3. MINIMALIST 2-COLUMN COMPARISON ═══ --><section
+      class="cv-section border-t border-slate-200 bg-white pt-7 pb-7 px-5 text-left"
+      ><h2 class="text-[20px] sm:text-[22px] font-bold tracking-tight leading-[1.2] text-slate-950"
+        >Jangan Cuci Pakaian Dalam Pakai Deterjen Baju Biasa</h2
+      ><div class="mt-4 grid grid-cols-2 border-y border-slate-200 divide-x divide-slate-200 bg-white"
+        ><div class="py-3.5 pr-3"
+          ><p
+            class="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-red-700 pb-2 border-b border-slate-200"
+            ><svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="1em"
+              height="1em"
+              viewBox="0 0 24 24"
+              class="h-3.5 w-3.5 text-red-600 shrink-0"
+              aria-hidden="true"
+              fill="none"
+              stroke="currentColor"
+            >
+              <path
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M18 6L6 18M6 6l12 12"
+              ></path></svg
+            ><span>Deterjen Biasa</span></p
+          ><ul class="mt-2.5 space-y-2 text-[13px] font-normal text-slate-700"
+            ><li class="flex items-start gap-1.5 leading-snug"
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 text-red-600 shrink-0 mt-0.5"
+                aria-hidden="true"
+                fill="none"
+                stroke="currentColor"
+              >
+                <path
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M18 6L6 18M6 6l12 12"
+                ></path></svg
+              ><span>Bercak cokelat tertinggal</span></li
+            ><li class="flex items-start gap-1.5 leading-snug"
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 text-red-600 shrink-0 mt-0.5"
+                aria-hidden="true"
+                fill="none"
+                stroke="currentColor"
+              >
+                <path
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M18 6L6 18M6 6l12 12"
+                ></path></svg
+              ><span>Karet &amp; renda bra melar</span></li
+            ><li class="flex items-start gap-1.5 leading-snug"
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 text-red-600 shrink-0 mt-0.5"
+                aria-hidden="true"
+                fill="none"
+                stroke="currentColor"
+              >
+                <path
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M18 6L6 18M6 6l12 12"
+                ></path></svg
+              ><span>Panas &amp; kering di tangan</span></li
+            ></ul
+          ></div
+        ><div class="py-3.5 pl-3"
+          ><p
+            class="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-emerald-800 pb-2 border-b border-slate-200"
+            ><svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="1em"
+              height="1em"
+              viewBox="0 0 24 24"
+              class="h-3.5 w-3.5 text-emerald-700 shrink-0"
+              aria-hidden="true"
+              fill="none"
+              stroke="currentColor"
+            >
+              <path
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M20 6L9 17l-5-5"
+              ></path></svg
+            ><span>GlowHome 300ml</span></p
+          ><ul class="mt-2.5 space-y-2 text-[13px] font-semibold text-slate-950"
+            ><li class="flex items-start gap-1.5 leading-snug"
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 text-emerald-700 shrink-0 mt-0.5"
+                aria-hidden="true"
+                fill="none"
+                stroke="currentColor"
+              >
+                <path
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M20 6L9 17l-5-5"
+                ></path></svg
+              ><span>Bio-enzim luruhkan darah</span></li
+            ><li class="flex items-start gap-1.5 leading-snug"
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 text-emerald-700 shrink-0 mt-0.5"
+                aria-hidden="true"
+                fill="none"
+                stroke="currentColor"
+              >
+                <path
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M20 6L9 17l-5-5"
+                ></path></svg
+              ><span>Elastisitas kain terjaga</span></li
+            ><li class="flex items-start gap-1.5 leading-snug"
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 text-emerald-700 shrink-0 mt-0.5"
+                aria-hidden="true"
+                fill="none"
+                stroke="currentColor"
+              >
+                <path
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M20 6L9 17l-5-5"
+                ></path></svg
+              ><span>Lembut adem di tangan</span></li
+            ></ul
+          ></div
+        ></div
+      ></section
+    ><!-- ═══ 4. MECHANISM & KEUNGGULAN UTAMA ═══ --><section
+      class="cv-section border-t border-slate-200 bg-white pt-7 pb-7 text-left"
+      ><div class="px-5"
+        ><h2 class="text-[20px] sm:text-[22px] font-bold tracking-tight leading-[1.2] text-slate-950"
+          >3 Manfaat Bio-Enzim GlowHome Lingerie Wash 300ml</h2
+        ></div
+      ><div class="mt-4 w-full bg-white border-y border-slate-200"
+        ><img
+          src="/images/landing/deterjen-pakaian-dalam-300ml/hero-product.webp"
+          alt="Kemasan Asli GlowHome Lingerie Wash 300ml Deterjen Pakaian Dalam Wanita"
+          class="w-full h-auto block"
+          loading="lazy"
+          decoding="async"
+          width="600"
+          height="600" /></div
+      ><!-- COMPACT 1-LINE SPECIFICATION STRIP --><div
+        class="border-b border-slate-200 bg-slate-50 px-5 py-2.5 text-[12px] font-semibold text-slate-800"
+        >Isi Bersih: 300ml Gel Pump • Formula: Bio-Enzim Protease pH Seimbang • Cocok: Celana Dalam, Bra, Sutra &amp;
+        Seprai</div
+      ><div class="px-5 divide-y divide-slate-200 border-b border-slate-200"
+        ><div class="py-3.5 flex items-start gap-3"
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 text-emerald-700 shrink-0 mt-0.5"
+            aria-hidden="true"
+            fill="none"
+            stroke="currentColor"
+          >
+            <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="m9 12l2 2l4-4"></path>
+            </g></svg
+          ><div
+            ><h3 class="text-[14.5px] font-bold leading-snug text-slate-950"
+              >Luruhkan Noda Darah Haid &amp; Bercak Kuning</h3
+            ><p class="mt-1 text-[13.5px] font-normal leading-relaxed text-slate-700"
+              >Enzim protease memecah protein darah dan keputihan hingga{' '}<mark
+                class="bg-amber-100 px-1 font-semibold text-slate-950"
+                >bersih tuntas hanya direndam 10 menit</mark
+              >.</p
+            ></div
+          ></div
+        ><div class="py-3.5 flex items-start gap-3"
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 text-emerald-700 shrink-0 mt-0.5"
+            aria-hidden="true"
+            fill="none"
+            stroke="currentColor"
+          >
+            <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="m9 12l2 2l4-4"></path>
+            </g></svg
+          ><div
+            ><h3 class="text-[14.5px] font-bold leading-snug text-slate-950">Jaga Elastisitas Bra &amp; Lembut di Tangan</h3
+            ><p class="mt-1 text-[13.5px] font-normal leading-relaxed text-slate-700"
+              >Formula pH seimbang merawat serat renda dan{' '}<mark class="bg-amber-100 px-1 font-semibold text-slate-950"
+                >tidak membuat kulit tangan panas atau kering</mark
+              >.</p
+            ></div
+          ></div
+        ><div class="py-3.5 flex items-start gap-3"
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 text-emerald-700 shrink-0 mt-0.5"
+            aria-hidden="true"
+            fill="none"
+            stroke="currentColor"
+          >
+            <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="m9 12l2 2l4-4"></path>
+            </g></svg
+          ><div
+            ><h3 class="text-[14.5px] font-bold leading-snug text-slate-950"
+              >Bebas Bau Apek Meski Dijemur di Dalam Ruangan</h3
+            ><p class="mt-1 text-[13.5px] font-normal leading-relaxed text-slate-700"
+              >Mudah dibilas tanpa sisa licin sehingga{' '}<mark class="bg-amber-100 px-1 font-semibold text-slate-950"
+                >pakaian dalam tetap harum segar sepanjang hari</mark
+              >.</p
+            ></div
+          ></div
+        ></div
+      ><!-- SELLER VISUAL PROOF 2 --><div class="mt-6 w-full bg-white border-y border-slate-200"
+        ><img
+          src="/images/landing/deterjen-pakaian-dalam-300ml/seller-2.webp"
+          alt="Keunggulan Formula Bio-Enzim GlowHome Lingerie Wash 300ml"
+          class="w-full h-auto block"
+          loading="lazy"
+          decoding="async"
+          width="338"
+          height="600" /></div></section
+    ><!-- ═══ 5. 4 OVERCLAIM VERIFIED REVIEWS ═══ --><section
+      class="cv-section border-t border-slate-200 bg-white pt-7 pb-7 px-5 text-left"
+      ><h2 class="text-[20px] sm:text-[22px] font-bold tracking-tight leading-[1.2] text-slate-950"
+        >Cerita Nyata Pengguna GlowHome Lingerie Wash</h2
+      ><div class="mt-2 flex items-center gap-2 text-[13px] font-semibold text-slate-800"
+        ><div class="flex items-center gap-0.5 text-amber-400" role="img" aria-label="Rating 5 dari 5 bintang"
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 fill-amber-400 text-amber-400"
+            aria-hidden="true"
+            fill="currentColor"
+            stroke="currentColor"
+          >
+            <path
+              fill="currentColor"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+            ></path></svg
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 fill-amber-400 text-amber-400"
+            aria-hidden="true"
+            fill="currentColor"
+            stroke="currentColor"
+          >
+            <path
+              fill="currentColor"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+            ></path></svg
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 fill-amber-400 text-amber-400"
+            aria-hidden="true"
+            fill="currentColor"
+            stroke="currentColor"
+          >
+            <path
+              fill="currentColor"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+            ></path></svg
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 fill-amber-400 text-amber-400"
+            aria-hidden="true"
+            fill="currentColor"
+            stroke="currentColor"
+          >
+            <path
+              fill="currentColor"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+            ></path></svg
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 fill-amber-400 text-amber-400"
+            aria-hidden="true"
+            fill="currentColor"
+            stroke="currentColor"
+          >
+            <path
+              fill="currentColor"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+            ></path></svg></div
+        ><span class="font-bold text-slate-950">4.9 / 5.0</span><span class="text-slate-300">•</span
+        ><span class="text-slate-600">Pembeli COD Terverifikasi</span></div
+      ><div class="mt-4 divide-y divide-slate-200 border-y border-slate-200"
+        ><article class="py-3.5"
+          ><div class="flex items-center justify-between gap-2"
+            ><h3 class="text-[14.5px] font-bold text-slate-950">Kak Clarissa Putri • Jakarta Barat</h3
+            ><div class="flex items-center gap-0.5 text-amber-400 shrink-0" role="img" aria-label="Rating 5 dari 5 bintang"
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg></div></div
+          ><p class="mt-1.5 text-[13.5px] font-normal leading-relaxed text-slate-900"
+            >"Penyelamat banget pas lagi haid hari pertama tembus ke celana dalam dan seprai putih! Cuma ditetesin GlowHome
+            terus direndam 10 menit,{' '}<mark class="bg-amber-200/80 px-1 font-semibold text-slate-950"
+              >noda darah kering langsung hilang 100% bersih</mark
+            >!"</p
+          ></article
+        ><article class="py-3.5"
+          ><div class="flex items-center justify-between gap-2"
+            ><h3 class="text-[14.5px] font-bold text-slate-950">Ibu Amelia Wijaya • Surabaya</h3
+            ><div class="flex items-center gap-0.5 text-amber-400 shrink-0" role="img" aria-label="Rating 5 dari 5 bintang"
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg></div></div
+          ><p class="mt-1.5 text-[13.5px] font-normal leading-relaxed text-slate-900"
+            >"Kulit tangan saya gampang mengelupas kalau kena deterjen bubuk biasa. Sejak ganti pakai GlowHome ini,{' '}<mark
+              class="bg-amber-200/80 px-1 font-semibold text-slate-950"
+              >nyuci pakaian dalam adem di tangan dan kain tetap halus</mark
+            >!"</p
+          ></article
+        ><article class="py-3.5"
+          ><div class="flex items-center justify-between gap-2"
+            ><h3 class="text-[14.5px] font-bold text-slate-950">Kak Nadya Maharani • Yogyakarta</h3
+            ><div class="flex items-center gap-0.5 text-amber-400 shrink-0" role="img" aria-label="Rating 5 dari 5 bintang"
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg></div></div
+          ><p class="mt-1.5 text-[13.5px] font-normal leading-relaxed text-slate-900"
+            >"Anak kos jemur pakaian dalam pasti di dalam kamar mandi. Pakai deterjen bio-enzim ini{' '}<mark
+              class="bg-amber-200/80 px-1 font-semibold text-slate-950"
+              >bebas bau apek dan noda kuning langsung luntur</mark
+            >{' '}tanpa dikucek keras!"</p
+          ></article
+        ><article class="py-3.5"
+          ><div class="flex items-center justify-between gap-2"
+            ><h3 class="text-[14.5px] font-bold text-slate-950">Ibu Tania Kusuma • Bandung</h3
+            ><div class="flex items-center gap-0.5 text-amber-400 shrink-0" role="img" aria-label="Rating 5 dari 5 bintang"
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg></div></div
+          ><p class="mt-1.5 text-[13.5px] font-normal leading-relaxed text-slate-900"
+            >"Bra renda mahal saya sekarang awet gak cepat melar karena gak perlu disikat lagi.{' '}<mark
+              class="bg-amber-200/80 px-1 font-semibold text-slate-950"
+              >Cukup rendam sebentar semua noda terangkat bersih</mark
+            >, wanginya juga mewah!"</p
+          ></article
+        ></div
+      ></section
+    ><!-- ═══ 6. FAQ (3 ITEMS, CONCISE 1-SENTENCE ANSWERS) ═══ --><section
+      class="cv-section border-t border-slate-200 bg-white pt-7 pb-7 px-5 text-left"
+      ><h2 class="text-[20px] sm:text-[22px] font-bold tracking-tight leading-[1.2] text-slate-950"
+        >Pertanyaan yang Sering Diajukan</h2
+      ><div class="mt-3 divide-y divide-slate-200 border-y border-slate-200"
+        ><div class="py-3.5"
+          ><h3 class="text-[14px] font-bold text-slate-950">Apakah harus direndam pakai air hangat atau air dingin?</h3
+          ><p class="mt-1 text-[13.5px] font-normal text-slate-700"
+            >Gunakan air dingin atau suhu ruang biasa karena air panas justru membuat protein darah matang dan menempel di
+            serat kain.</p
+          ></div
+        ><div class="py-3.5"
+          ><h3 class="text-[14px] font-bold text-slate-950">Apakah aman untuk kulit sensitif dan pakaian bayi?</h3
+          ><p class="mt-1 text-[13.5px] font-normal text-slate-700"
+            >Sangat aman karena berformula pH seimbang tanpa pemutih klorin keras dan mudah dibilas hingga bebas residu.</p
+          ></div
+        ><div class="py-3.5"
+          ><h3 class="text-[14px] font-bold text-slate-950">Apakah nama produk disamarkan pada paket pengiriman COD?</h3
+          ><p class="mt-1 text-[13.5px] font-normal text-slate-700"
+            >Ya, setiap pengiriman dikemas rapi dengan privasi terjaga dan Anda bisa membayar tunai langsung ke kurir saat
+            barang sampai.</p
+          ></div
+        ></div
+      ></section
+    ><!-- ═══ 7. MECHANISM ACTION IMAGE & URGENCY PRICE SLASH STRIP ═══ --><section
+      class="cv-section w-full border-t border-slate-900 bg-slate-950 text-white pb-7 text-left"
+      ><div class="w-full bg-white border-y border-slate-200"
+        ><img
+          src="/images/landing/deterjen-pakaian-dalam-300ml/mechanism-action.webp"
+          alt="Cara Kerja Bio-Enzim GlowHome Lingerie Wash Meluruhkan Noda Darah Haid"
+          class="w-full h-auto block"
+          loading="lazy"
+          decoding="async"
+          width="600"
+          height="450" /></div
+      ><div class="px-5 pt-6"
+        ><div class="flex items-center justify-between pb-4 border-b border-slate-800"
+          ><span class="inline-flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-wider text-amber-400"
+            ><svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="1em"
+              height="1em"
+              viewBox="0 0 24 24"
+              class="h-4 w-4 text-amber-400"
+              aria-hidden="true"
+              fill="none"
+              stroke="currentColor"
+            >
+              <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M12 6v6l4 2"></path>
+              </g></svg
+            ><span>Promo Berakhir Dalam</span></span
+          ><div class="font-mono text-[16px] font-bold text-white"
+            ><span id="countdown-minutes">15</span>:<span id="countdown-seconds">00</span></div
+          ></div
+        ><div class="py-4 border-b border-slate-800"
+          ><p class="text-[11px] font-bold uppercase tracking-widest text-slate-400"
+            >Harga Promo Paket 2 (Paling Diminati)</p
+          ><div class="mt-1.5 flex items-baseline gap-2.5"
+            ><span class="text-[32px] font-bold font-mono tracking-tight text-amber-400 leading-none">Rp148.500</span
+            ><span class="text-[14px] text-slate-400 line-through">Rp176.000</span></div
+          ><p class="mt-2 text-[12.5px] font-semibold text-slate-200"
+            >Hemat Rp27.500 • Paket 1 Rp{rupiah(price)} • Paket 3 Rp199.000</p
+          ></div
+        ><div class="pt-4"
+          ><div class="flex items-center justify-between text-[12px] font-semibold"
+            ><span class="text-slate-300">Sisa Kuota Promo Hari Ini:</span
+            ><span id="stock-count-text" class="font-mono font-bold text-amber-400">Tersisa 8 Paket Lagi</span></div
+          ><div class="mt-2 h-1.5 w-full bg-slate-800 overflow-hidden"
+            ><div
+              id="stock-progress-bar"
+              class="h-full bg-amber-400 transition-all duration-500"
+              style="width: 55%"
+            ></div></div></div></div></section
+    ><!-- ═══ 8. FORMULIR PEMESANAN (CHECKOUT COD) ═══ --><section
+      id="form-pemesanan"
+      class="bg-white px-0 pt-6 pb-4 scroll-mt-4 w-full text-left"
+      ><div class="px-5 pb-2"
+        ><h2 class="text-[20px] font-bold tracking-tight text-slate-950 leading-tight">Lengkapi Data Pengiriman COD</h2
+        ><p class="text-[13.5px] font-normal text-slate-600 mt-1 leading-relaxed"
+          >Pilih paket dan isi alamat. Bayar tunai langsung ke kurir saat barang sampai di tangan Anda.</p
+        ></div
+      ><GeoIpResolvedForm mode={formContext.mode} province={formContext.province} productSlug={product.slug} embedded={true} /></section
+    ><SocialProofToast orderCount={socialProofOrders} heroSelector="#landing-hero" formSelector="#form-pemesanan" /><div
+      id="sticky-purchase-bar"
+      class="fixed inset-x-0 bottom-0 z-40 mx-auto flex w-full max-w-[480px] items-center justify-between border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur-md transition-all duration-300 lg:hidden"
+      style="transform: translateY(100%); opacity: 0; pointer-events: none"
+      ><div
+        ><p class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Mulai Dari</p
+        ><p class="text-base font-bold text-slate-950">Rp{rupiah(price)}</p></div
+      ><a
+        href="#form-pemesanan"
+        class="inline-flex min-h-11 items-center justify-center bg-red-700 px-5 text-[11.5px] font-bold uppercase tracking-wider text-white transition-colors hover:bg-red-800"
+        >Pesan Sekarang (COD)</a
+      ></div
+    >
+  </main>
+  <script is:inline>
+  function initCountdownTimer() {
+    const minEl = document.getElementById('countdown-minutes');
+    const secEl = document.getElementById('countdown-seconds');
+    if (!minEl || !secEl) return;
+
+    const DURATION_MS = 15 * 60 * 1000;
+    const STORAGE_KEY = 'glowhome_lingerie_countdown_v1';
+    let targetTime = parseInt(sessionStorage.getItem(STORAGE_KEY) || '0', 10);
+    const now = Date.now();
+
+    if (!targetTime || targetTime <= now || targetTime - now > DURATION_MS) {
+      targetTime = now + DURATION_MS;
+      sessionStorage.setItem(STORAGE_KEY, targetTime.toString());
+    }
+
+    const updateTimer = () => {
+      const currentTime = Date.now();
+      let remainingMs = targetTime - currentTime;
+
+      if (remainingMs <= 0) {
+        targetTime = currentTime + DURATION_MS;
+        sessionStorage.setItem(STORAGE_KEY, targetTime.toString());
+        remainingMs = DURATION_MS;
+      }
+
+      const totalSeconds = Math.floor(remainingMs / 1000);
+      const mins = Math.floor(totalSeconds / 60);
+      const secs = totalSeconds % 60;
+
+      minEl.textContent = String(mins).padStart(2, '0');
+      secEl.textContent = String(secs).padStart(2, '0');
+    };
+
+    updateTimer();
+    setInterval(updateTimer, 1000);
+  }
+
+  function initStockCounter() {
+    const stockText = document.getElementById('stock-count-text');
+    const stockBar = document.getElementById('stock-progress-bar');
+    if (!stockText || !stockBar) return;
+
+    const STORAGE_KEY = 'glowhome_lingerie_stock_v1';
+    let stock = parseInt(sessionStorage.getItem(STORAGE_KEY) || '0', 10);
+
+    if (!stock || stock < 4 || stock > 12) {
+      stock = Math.floor(Math.random() * (12 - 6 + 1)) + 6;
+      sessionStorage.setItem(STORAGE_KEY, stock.toString());
+    }
+
+    const updateStockUI = (val) => {
+      stockText.textContent = `Tersisa ${val} Paket Lagi`;
+      const pct = Math.min(90, Math.max(30, Math.round((val / 15) * 100)));
+      stockBar.style.width = `${pct}%`;
+    };
+
+    updateStockUI(stock);
+
+    const delay = Math.floor(Math.random() * (60000 - 35000 + 1)) + 35000;
+    setTimeout(() => {
+      let current = parseInt(sessionStorage.getItem(STORAGE_KEY) || '0', 10);
+      if (current > 3) {
+        current -= 1;
+        sessionStorage.setItem(STORAGE_KEY, current.toString());
+        updateStockUI(current);
+      }
+    }, delay);
+  }
+
+  function initStickyBarObserver() {
+    const stickyBar = document.getElementById('sticky-purchase-bar');
+    const orderForm = document.getElementById('form-pemesanan');
+    const hero = document.getElementById('landing-hero');
+    if (!stickyBar || !orderForm) return;
+
+    let heroVisible = true;
+    let formVisible = false;
+
+    const applyStickyVisibility = () => {
+      if (heroVisible || formVisible) {
+        stickyBar.style.transform = 'translateY(100%)';
+        stickyBar.style.opacity = '0';
+        stickyBar.style.pointerEvents = 'none';
+      } else {
+        stickyBar.style.transform = 'translateY(0)';
+        stickyBar.style.opacity = '1';
+        stickyBar.style.pointerEvents = 'auto';
+      }
+    };
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.target === hero) heroVisible = entry.isIntersecting;
+          if (entry.target === orderForm) formVisible = entry.isIntersecting;
+        });
+        applyStickyVisibility();
+      },
+      { threshold: 0, rootMargin: '0px 0px -40px 0px' }
+    );
+
+    if (hero) observer.observe(hero);
+    else heroVisible = false;
+    observer.observe(orderForm);
+    applyStickyVisibility();
+  }
+
+  const initAll = () => {
+    initCountdownTimer();
+    initStockCounter();
+    initStickyBarObserver();
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAll);
+  } else {
+    initAll();
+  }
+</script>
+</BaseLayout>

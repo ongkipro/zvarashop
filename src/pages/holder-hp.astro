@@ -1,15 +1,16 @@
 ---
 /*
- * Native Astro landing page — Holder HP Spion Motor Besi Tangguh.
- *
- * Architecture: 10-Section High-Converting Editorial Funnel.
- * Performance: 100% Lightweight WebP (Sub-70KB per asset).
- * Form: Native GeoIpResolvedForm with hybrid COD mode linked to product catalog.
+ * Native Astro landing page — Holder HP Spion Motor Besi Tangguh (Kokoh Anti Getar & Stabil).
+ * Rebuilt on 2026-10-18 from the live render of
+ * https://zvara.shop/produk/holder-hp: this page was deployed from
+ * another device and its source never reached the repository. Markup and
+ * page CSS are the live ones; the tracker, order form and social-proof toast
+ * are the components that rendered them, and the lowest variant price is
+ * bound to the product rather than written in.
  */
 import BaseLayout from '../layouts/BaseLayout.astro';
 import MetaLandingTracker from '../components/storefront/tracking/MetaLandingTracker.astro';
 import GeoIpResolvedForm from '../components/storefront/forms/GeoIpResolvedForm.astro';
-import Icon from '../components/storefront/shared/Icon.astro';
 import SocialProofToast from '../components/storefront/shared/SocialProofToast.astro';
 import { recentOrderCount } from '../lib/social-proof';
 import { getRuntimeEnv } from '../lib/env';
@@ -23,589 +24,1043 @@ import '../styles/landing-pages/holder-hp.css';
 
 export const prerender = false;
 
-const SLUG = 'holder-hp';
-const PRODUCT_SLUG = 'holder-hp';
+const SLUG = "holder-hp";
+const PRODUCT_SLUG = "holder-hp";
 
 const product = await getStorefrontProduct(Astro.locals, PRODUCT_SLUG);
 if (!product) return Astro.rewrite('/404');
 
 const formContext = await resolveFormModeContext(Astro.request);
-
 const canonical = `${Astro.locals.tenant.siteUrl}${await nativeLandingCanonicalPath(Astro.locals, SLUG)}`;
-const seoTitle = 'Holder HP Spion Motor Besi Tangguh — Kokoh Anti Getar, Pengunci Rotary Lock Presisi';
-const seoDescription =
-  'Holder HP spion motor bahan besi alloy tebal anti goyang dan anti getar di jalan rusak. Pas untuk semua motor matic, bebek, dan sport. Bisa COD.';
-
-const sectionTitle = 'text-[24px] font-bold leading-[1.18] tracking-tight text-[#0F2942]';
-const body = 'text-[15px] leading-relaxed text-slate-600';
-const listIcon = 'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center text-[#1E3A8A]';
-const dangerIcon = 'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center text-[#C93A1B]';
+const seoTitle = "Holder Hp — Besi Alloy Solid Anti Getar & Kunci Rotary Lock Presisi";
+const seoDescription = "Holder Hp tercantum dalam kategori Umum. Detail yang ditampilkan mengikuti data katalog toko.";
 
 const cheapest = [...product.variants].sort((a, b) => a.price - b.price)[0] ?? null;
 const price = cheapest?.price ?? product.price;
+const rupiah = (value: number) => Math.round(value).toLocaleString('id-ID');
 const socialProofOrders = await recentOrderCount(getRuntimeEnv(Astro.locals)?.OMS_DB as D1Database | undefined);
 ---
 
 <BaseLayout
   title={seoTitle}
   description={seoDescription}
-  image="/images/landing/holder-hp/hero-action.webp"
+  image="/assets/uploads/2026-08-18/e52cf4c3-bd33-4f5c-8bc7-1e3f63ee6b82.webp"
   preloadImages="/images/landing/holder-hp/hero-action.webp"
   canonical={canonical}
   hideHeader={true}
   hideFooter={true}
 >
-  <main class="mx-auto min-h-screen w-full max-w-[480px] bg-white text-slate-950 pb-20 font-sans antialiased">
-    <MetaLandingTracker
-      slug={SLUG}
-      contentId={defaultCatalogContentId(product)}
-      contentName={product.contentName}
-      price={price}
-    />
-
-    <!-- ═══ 1. TOP ANNOUNCEMENT BAR ═══ -->
-    <div class="bg-neutral-950 px-4 py-2.5 text-center text-white">
-      <p class="text-[12px] font-medium tracking-wide">
-        🔥 <span class="font-bold text-amber-300">PROMO SPESIAL HARI INI</span> — Diskon Terbatas &amp; Bisa <span class="font-bold underline text-white">COD (Bayar di Tempat)</span>
-      </p>
-    </div>
-
-    <!-- ═══ 2. HERO SECTION ═══ -->
-    <section id="landing-hero" data-hero-section class="bg-white pb-8 text-left text-slate-950">
-      <div class="px-5 pt-8">
-        <span class="inline-block rounded-full bg-amber-100 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-amber-900 mb-2">
-          Solusi Navigasi GPS Motor Aman &amp; Kokoh
-        </span>
-        <h1 class="max-w-[420px] text-[28px] font-bold leading-[1.15] tracking-tight text-slate-950">
-          HP Sering Goyang &amp; Takut Jatuh Saat Bawa Motor? <span
-            class="box-decoration-clone px-0.5 text-[#C93A1B]"
-            style="background-image: linear-gradient(to top, #FFD84D 0.22em, rgba(255,216,77,0) 0.22em); background-repeat: no-repeat; background-position: 0 94%; background-size: 100% 100%;"
-            >Holder HP Spion Motor Besi: Kunci Presisi Solid, 100% Kokoh Anti Getar!</span
-          >
-        </h1>
-
-        <p class="mt-4 max-w-[400px] text-[15px] font-semibold leading-relaxed text-slate-700">
-          Ojol, touring, hingga komuter harian — <span class="box-decoration-clone bg-[#FFD84D]/45 px-1 text-slate-950">material besi alloy tebal dengan sistem kunci rotary lock mekanik, pasang di lubang spion semua jenis motor tanpa ribet.</span>
-        </p>
-      </div>
-
-      <!-- Hero Visual with Overlay & Ping Badge -->
-      <div class="relative mt-7">
-        <div
-          class="relative overflow-hidden border-y border-slate-100 bg-slate-900 shadow-[0_14px_34px_rgba(30,58,138,0.12)]"
+  <main class="mx-auto min-h-screen w-full max-w-[480px] bg-white pb-16 font-sans text-slate-950 selection:bg-amber-200 selection:text-slate-950 antialiased">
+    <MetaLandingTracker slug={SLUG} contentId={defaultCatalogContentId(product)} contentName={product.contentName} price={price} /><!-- ═══ 1. MINIMALIST URGENCY BAR (TOP) ═══ --><header
+      class="flex items-center justify-between border-b border-slate-900 bg-slate-950 px-4 py-2 text-white"
+      ><div class="flex items-center gap-1.5 text-[11px] font-bold tracking-wide min-w-0"
+        ><svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="1em"
+          height="1em"
+          viewBox="0 0 24 24"
+          class="h-3.5 w-3.5 fill-amber-400 text-amber-400 shrink-0"
+          aria-hidden="true"
+          fill="currentColor"
+          stroke="currentColor"
         >
-          <img
-            src="/images/landing/holder-hp/hero-action.webp"
-            alt="Holder HP Spion Motor Besi Tangguh Terpasang Kokoh di Motor"
-            class="aspect-[16/9] w-full object-cover"
-            width="800"
-            height="450"
-            fetchpriority="high"
-            loading="eager"
-            decoding="async"
-          />
-        </div>
-
-        <!-- Floating Glassmorphic Benefit Card -->
-        <div
-          class="relative z-20 mx-auto -mt-6 w-[90%] rounded-xl border border-blue-200/80 bg-white/95 p-4 text-left shadow-[0_14px_34px_rgba(30,58,138,0.14)] backdrop-blur-md"
-        >
-          <div class="flex gap-3">
-            <span class="relative mt-1 flex h-3 w-3 shrink-0">
-              <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#1E3A8A] opacity-70"></span>
-              <span
-                class="relative inline-flex h-3 w-3 rounded-full bg-[#1E3A8A] shadow-[0_0_0_6px_rgba(30,58,138,0.10)]"
-              ></span>
-            </span>
-            <div>
-              <h2 class="text-[16px] font-bold leading-tight text-[#0F2942]">Lock Putar Mekanik &amp; Anti Getar!</h2>
-              <p class="mt-1 text-[13.5px] leading-relaxed text-slate-700">
-                HP terkunci rapat 360°, posisi stabil dan navigasi Google Maps/Waze nyaman terbaca. <strong class="text-[#C93A1B]">Anti jatuh di jalan berlubang.</strong>
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Hero Quick Trust Strip -->
-        <div class="mt-5 grid grid-cols-3 divide-x divide-slate-200 px-5 text-center">
-          <div class="px-2">
-            <span class="block text-[14px]">🚚</span>
-            <span class="text-[11px] font-bold text-slate-800">Bisa COD</span>
-            <p class="text-[10px] text-slate-500">Bayar di Tempat</p>
-          </div>
-          <div class="px-2">
-            <span class="block text-[14px]">🛡️</span>
-            <span class="text-[11px] font-bold text-slate-800">Bahan Besi Logam</span>
-            <p class="text-[10px] text-slate-500">Alloy Solid Anti Patah</p>
-          </div>
-          <div class="px-2">
-            <span class="block text-[14px]">⭐</span>
-            <span class="text-[11px] font-bold text-slate-800">Rating 4.9/5</span>
-            <p class="text-[10px] text-slate-500">2.400+ Terjual</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══ 3. VALUE PROPOSITION / HOOK ═══ -->
-    <section class="px-5 py-10">
-      <h2 class={sectionTitle}>
-        Solusi Riding Nyaman &amp; Aman: <span class="box-decoration-clone bg-[#EFF6FF] px-1.5 pb-0.5 text-[#1E3A8A]"
-          >Navigasi Bebas Cemas di Segala Medan Jalan</span
-        >
-      </h2>
-      <p class={`${body} mt-2`}>
-        Didesain khusus untuk pengendara motor Indonesia yang membutuhkan dudukan smartphone tangguh, awet, dan tidak gampang kendor.
-      </p>
-
-      <div class="mt-6 grid gap-3">
-        <div class="rounded-2xl border border-blue-100 bg-[#EFF6FF] p-4">
-          <div class="flex gap-3">
-            <span class={listIcon}><Icon name="check" class="h-4 w-4" aria-hidden="true" /></span>
-            <p class={body}>
-              <strong class="text-slate-950">Material Besi Logam Kokoh &amp; Awet</strong> — Terbuat dari solid alloy tahan benturan, tidak mudah pecah atau patah seperti holder plastik murahan.
-            </p>
-          </div>
-        </div>
-        <div class="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
-          <div class="flex gap-3">
-            <span class={listIcon}><Icon name="shield-check" class="h-4 w-4" aria-hidden="true" /></span>
-            <p class={body}>
-              <strong class="text-slate-950">Sistem Kunci Rotary Lock &amp; Grip Karet</strong> — Mengunci HP secara mekanik presisi dengan bantalan silikon lembut anti lecet, tetap kencang walau lewat polisi tidur tinggi.
-            </p>
-          </div>
-        </div>
-        <div class="rounded-2xl border border-blue-100 bg-[#EFF6FF] p-4">
-          <div class="flex gap-3">
-            <span class={listIcon}><Icon name="badge-check" class="h-4 w-4" aria-hidden="true" /></span>
-            <p class={body}>
-              <strong class="text-slate-950">Universal Semua Motor &amp; Smartphone</strong> — Dudukan spion standar (&lt; 9 mm) pas untuk Matic (Vario, Beat, Nmax, PCX, Scoopy, Aerox), Bebek &amp; Sport. Lebar jepit fleksibel 6–10 cm (HP 4.7–7 inci).
-            </p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══ 4. AGITATION / DANGER SIGNS ═══ -->
-    <section class="border-t border-[#C93A1B]/10 bg-[#FFF7ED] px-5 py-10">
-      <h2 class={sectionTitle}>
-        Awas! Bahaya Fatal Pakai <span
-          class="text-[#C93A1B] underline decoration-amber-300 decoration-4 underline-offset-4">Holder HP Plastik Murahan:</span>
-      </h2>
-      <div class="mt-6 grid gap-4">
-        <div class="flex gap-3">
-          <span class={dangerIcon}><Icon name="triangle-alert" class="h-4 w-4" aria-hidden="true" /></span>
-          <p class={body}>
-            <strong class="text-slate-950">HP Terpental &amp; Layar Pecah:</strong> Saat melewati jalan berlubang atau jalan berbatu, engsel plastik rapuh gampang patah dan HP jutaan rupiah langsung terbanting ke aspal.
-          </p>
-        </div>
-        <div class="flex gap-3">
-          <span class={dangerIcon}><Icon name="triangle-alert" class="h-4 w-4" aria-hidden="true" /></span>
-          <p class={body}>
-            <strong class="text-slate-950">Layar Goyang Parah &amp; Pusing:</strong> Getaran stang motor membuat peta GPS buram, sulit dibaca, dan membahayakan konsentrasi berkendara di jalan raya.
-          </p>
-        </div>
-        <div class="flex gap-3">
-          <span class={dangerIcon}><Icon name="triangle-alert" class="h-4 w-4" aria-hidden="true" /></span>
-          <p class={body}>
-            <strong class="text-slate-950">Holder Cepat Kendor &amp; Berputar:</strong> Dudukan plastik murahan sering kendor sendiri saat kena angin kencang atau terik matahari panas.
-          </p>
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══ 5. SCENARIOS BREAKDOWN (BUKTI PENGGUNAAN) ═══ -->
-    <section class="border-t border-slate-100 px-5 py-10">
-      <h2 class={sectionTitle}>
-        Solusi Tepat: <span class="box-decoration-clone bg-[#EFF6FF] px-1.5 pb-0.5 text-[#1E3A8A]"
-          >Layar Stabil, HP Aman, Perjalanan Lancar</span>
-      </h2>
-      <p class={`${body} mt-2 mb-6`}>
-        Terbukti tangguh dan diandalkan ribuan pengendara motor di seluruh Indonesia:
-      </p>
-
-      <div class="grid gap-4">
-        <figure class="relative overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
-          <img
-            src="/images/landing/holder-hp/proof-bumpy.webp"
-            alt="Tetap kokoh stabil saat melewati jalan bergelombang dan rusak"
-            class="aspect-[16/9] w-full object-cover"
-            width="800"
-            height="450"
-            loading="lazy"
-            decoding="async"
-          />
-          <figcaption
-            class="absolute left-3 top-3 rounded-md bg-[#0F2942] px-3 py-1 text-[12px] font-bold uppercase tracking-wide text-white shadow-sm"
+          <path
+            fill="currentColor"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M15.914 4a1.5 1.5 0 0 0-2.474-1.561l-9 9A1.5 1.5 0 0 0 5.5 14h4.002a.5.5 0 0 1 .471.666L8.086 20a1.5 1.5 0 0 0 2.475 1.56l9-9A1.5 1.5 0 0 0 18.5 10h-3.997a.5.5 0 0 1-.472-.667z"
+          ></path></svg
+        ><span class="text-amber-400 uppercase shrink-0">PROMO:</span
+        ><span class="text-white truncate">BELI 2 HEMAT RP21.500</span></div
+      ><span class="text-[10.5px] font-bold tracking-wider text-amber-400 uppercase shrink-0 ml-2">BISA COD</span></header
+    ><!-- ═══ 2. HERO SECTION (NO RATING ABOVE HEADLINE, NO BUTTON, CLEAN BG) ═══ --><section
+      id="landing-hero"
+      class="bg-white pb-6"
+      ><div class="px-5 pt-6 text-left"
+        ><h1 class="text-[clamp(23px,6.8vw,28px)] font-bold leading-[1.18] tracking-tight text-slate-950"
+          >Layar HP Goyang Parah &amp; Ngeri Jatuh Terlindas di Jalan Berlubang?{' '}<mark
+            class="bg-amber-200 px-1.5 py-0.5 text-slate-950"
+            >Kunci Rapat Dengan Besi Alloy</mark
+          >{' '}Anti Getar!</h1
+        ><p class="mt-3 text-[15px] font-normal leading-relaxed text-slate-700"
+          >Dudukan spion motor full logam solid HM-20{' '}<mark class="bg-red-100 px-1 font-semibold text-red-900"
+            >mencengkeram HP sekuat baja tanpa goyang sedikitpun</mark
+          >{' '}walau menghantam polisi tidur.</p
+        ></div
+      ><!-- FULL-WIDTH UNCROPPED HERO IMAGE --><div class="mt-5 w-full bg-white border-y border-slate-200"
+        ><img
+          src="/images/landing/holder-hp/hero-action.webp"
+          alt="Holder HP Spion Motor Besi Tangguh Anti Getar dan Anti Jatuh"
+          class="w-full h-auto block"
+          fetchpriority="high"
+          loading="eager"
+          decoding="async"
+          width="600"
+          height="338" /></div
+      ><!-- MINIMALIST TRUST HAIRLINE STRIP --><div
+        class="border-b border-slate-200 bg-white px-5 py-2.5 flex items-center justify-between text-[12px] font-semibold text-slate-800"
+        ><span class="inline-flex items-center gap-1.5"
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 text-emerald-700 shrink-0"
+            aria-hidden="true"
+            fill="none"
+            stroke="currentColor"
           >
-            Uji Jalan Rusak &amp; Bergelombang
-          </figcaption>
-        </figure>
-
-        <figure class="relative overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
-          <img
-            src="/images/landing/holder-hp/proof-ojol.webp"
-            alt="Andalan harian driver ojek online dan pengendara komuter harian"
-            class="aspect-[16/9] w-full object-cover"
-            width="800"
-            height="450"
-            loading="lazy"
-            decoding="async"
-          />
-          <figcaption
-            class="absolute left-3 top-3 rounded-md bg-[#16A34A] px-3 py-1 text-[12px] font-bold uppercase tracking-wide text-white shadow-sm"
+            <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+              <path
+                d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"
+              ></path>
+              <path d="m9 12l2 2l4-4"></path>
+            </g></svg
+          ><span>Garansi Produk Original</span></span
+        ><span class="inline-flex items-center gap-1.5"
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 text-slate-900 shrink-0"
+            aria-hidden="true"
+            fill="none"
+            stroke="currentColor"
           >
-            Andalan Driver Ojol &amp; Harian
-          </figcaption>
-        </figure>
-      </div>
-
-      <p class="mt-5 text-[14px] leading-relaxed text-slate-500">
-        <strong class="text-slate-950">Praktis &amp; Efisien:</strong> Pasang dan lepas HP hanya dengan memutar knob pengunci samping dalam hitungan detik.
-      </p>
-    </section>
-
-    <!-- ═══ 6. DARK CONTRAST SECTION (DETAIL KUNCI & CARA PASANG) ═══ -->
-    <section class="border-t border-slate-900 bg-[#0B1E36] px-5 py-10 text-white">
-      <h2 class="text-[26px] font-bold leading-[1.14] tracking-tight text-white">
-        Presisi Logam Solid: <span class="text-[#93C5FD]">Mekanisme Rotary Lock Anti Goyang</span>
-      </h2>
-      <p class="mt-2 mb-6 text-[15px] leading-relaxed text-slate-300">
-        Setiap komponen dirancang presisi dengan bahan alloy tebal dan bantalan karet peredam kejut:
-      </p>
-
-      <div class="-mx-5 mb-8">
-        <div class="relative overflow-hidden bg-slate-900">
-          <img
-            src="/images/landing/holder-hp/proof-clamp.webp"
-            alt="Detail mekanisme pengunci rotary lock dan bantalan peredam silikon"
-            class="aspect-[16/9] w-full object-cover"
-            width="800"
-            height="450"
-            loading="lazy"
-            decoding="async"
-          />
-          <div
-            class="absolute left-4 top-4 rounded bg-amber-500 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-slate-950 shadow"
-          >
-            Bahan Besi Solid &amp; Kunci Rotary Lock
-          </div>
-        </div>
-      </div>
-
-      <div class="border-t border-slate-700/60 pt-7">
-        <h3 class="text-[19px] font-bold text-white mb-4">3 Langkah Pemasangan Super Mudah:</h3>
-        <div class="grid gap-4">
-          <div class="flex gap-3">
-            <span
-              class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#93C5FD] text-[14px] font-bold text-slate-950"
-              >1</span
-            >
-            <p class="text-[15px] leading-relaxed text-slate-300">
-              <strong class="text-white">Lepas Baut Spion:</strong> Buka baut spion motor Anda menggunakan kunci pas standar.
-            </p>
-          </div>
-          <div class="flex gap-3">
-            <span
-              class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#93C5FD] text-[14px] font-bold text-slate-950"
-              >2</span
-            >
-            <p class="text-[15px] leading-relaxed text-slate-300">
-              <strong class="text-white">Pasang Dudukan Holder:</strong> Masukkan plat lubang dudukan holder ke ulir baut spion lalu kencangkan kembali spion motor Anda.
-            </p>
-          </div>
-          <div class="flex gap-3">
-            <span
-              class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#93C5FD] text-[14px] font-bold text-slate-950"
-              >3</span
-            >
-            <p class="text-[15px] leading-relaxed text-slate-300">
-              <strong class="text-white">Kunci HP Anda:</strong> Taruh smartphone di dudukan dan putar knob pengunci samping hingga mencengkeram kuat.
-            </p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══ 7. INFOGRAPHIC FITUR DETAIL PRODUK ═══ -->
-    <section class="border-t border-slate-100 bg-[#F8FAFC] px-4 py-8 space-y-5">
-      <div class="rounded-2xl overflow-hidden border border-slate-200 shadow-sm bg-white">
-        <img
+            <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+              <path
+                d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2m10 0H9m10 0h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"
+              ></path>
+              <circle cx="17" cy="18" r="2"></circle>
+              <circle cx="7" cy="18" r="2"></circle>
+            </g></svg
+          ><span>Bisa Bayar di Tempat (COD)</span></span
+        ></div
+      ><!-- 3 PAIN POINTS (CONCISE, MARK HIGHLIGHTED) --><div class="px-5 pt-6 text-left"
+        ><h2 class="text-[12px] font-bold uppercase tracking-widest text-red-700">Pernah Mengalami Momen Ini?</h2
+        ><div class="mt-3 divide-y divide-slate-200 border-y border-slate-200"
+          ><div class="py-3.5"
+            ><div class="flex items-start justify-between gap-3"
+              ><div class="flex items-start gap-2.5"
+                ><svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="1em"
+                  height="1em"
+                  viewBox="0 0 24 24"
+                  class="h-4 w-4 text-red-600 shrink-0 mt-0.5"
+                  aria-hidden="true"
+                  fill="none"
+                  stroke="currentColor"
+                >
+                  <path
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="m21.73 18l-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3M12 9v4m0 4h.01"
+                  ></path></svg
+                ><h3 class="text-[15px] font-bold leading-snug text-slate-950"
+                  >Holder Plastik Patah &amp; HP Terbanting ke Aspal</h3
+                ></div
+              ><span class="text-[10px] font-bold uppercase tracking-wider text-red-700 shrink-0 mt-0.5"
+                >Rugi Jutaan</span
+              ></div
+            ><p class="mt-1 pl-6.5 text-[13.5px] font-normal leading-relaxed text-slate-700"
+              >Lewat jalan berbatu atau lubang,{' '}<mark class="bg-red-100/90 px-1 font-semibold text-red-900"
+                >engsel plastik rapuh patah dan layar HP hancur</mark
+              >.</p
+            ></div
+          ><div class="py-3.5"
+            ><div class="flex items-start justify-between gap-3"
+              ><div class="flex items-start gap-2.5"
+                ><svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="1em"
+                  height="1em"
+                  viewBox="0 0 24 24"
+                  class="h-4 w-4 text-red-600 shrink-0 mt-0.5"
+                  aria-hidden="true"
+                  fill="none"
+                  stroke="currentColor"
+                >
+                  <path
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="m21.73 18l-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3M12 9v4m0 4h.01"
+                  ></path></svg
+                ><h3 class="text-[15px] font-bold leading-snug text-slate-950">Peta GPS Buram Akibat Getaran Stang</h3></div
+              ><span class="text-[10px] font-bold uppercase tracking-wider text-red-700 shrink-0 mt-0.5"
+                >Rusak Kamera</span
+              ></div
+            ><p class="mt-1 pl-6.5 text-[13.5px] font-normal leading-relaxed text-slate-700"
+              >Holder kendor yang bergetar hebat bikin{' '}<mark class="bg-red-100/90 px-1 font-semibold text-red-900"
+                >mata pusing baca rute dan OIS kamera HP rusak</mark
+              >.</p
+            ></div
+          ><div class="py-3.5"
+            ><div class="flex items-start justify-between gap-3"
+              ><div class="flex items-start gap-2.5"
+                ><svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="1em"
+                  height="1em"
+                  viewBox="0 0 24 24"
+                  class="h-4 w-4 text-red-600 shrink-0 mt-0.5"
+                  aria-hidden="true"
+                  fill="none"
+                  stroke="currentColor"
+                >
+                  <path
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="m21.73 18l-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3M12 9v4m0 4h.01"
+                  ></path></svg
+                ><h3 class="text-[15px] font-bold leading-snug text-slate-950"
+                  >Rawan Dijambret Saat Berhenti di Lampu Merah</h3
+                ></div
+              ><span class="text-[10px] font-bold uppercase tracking-wider text-red-700 shrink-0 mt-0.5"
+                >Tidak Aman</span
+              ></div
+            ><p class="mt-1 pl-6.5 text-[13.5px] font-normal leading-relaxed text-slate-700"
+              >Jepitan per plastik yang lembek membuat{' '}<mark class="bg-red-100/90 px-1 font-semibold text-red-900"
+                >HP gampang ditarik paksa oleh penjambret jalanan</mark
+              >.</p
+            ></div
+          ></div
+        ></div
+      ><!-- SELLER VISUAL 1 AFTER PAIN POINTS --><div class="mt-5 w-full bg-white border-y border-slate-200"
+        ><img
+          src="/images/landing/holder-hp/proof-bumpy.webp"
+          alt="Uji Kekokohan Holder HP Besi di Jalan Rusak dan Bergelombang"
+          class="w-full h-auto block"
+          loading="lazy"
+          decoding="async"
+          width="600"
+          height="338" /></div></section
+    ><!-- ═══ 3. MECHANISM & MANFAAT SECTION ═══ --><section
+      class="cv-section border-t border-slate-200 bg-white pt-7 pb-7 text-left"
+      ><div class="px-5"
+        ><h2 class="text-[21px] sm:text-[23px] font-bold tracking-tight leading-[1.2] text-slate-950"
+          >3 Keunggulan Utama Holder HP Spion Motor Besi HM-20</h2
+        ></div
+      ><!-- UNCROPPED PRODUCT PACKSHOT --><div class="mt-4 w-full bg-white border-y border-slate-200"
+        ><img
           src="/images/landing/holder-hp/banner-holder-tangguh.webp"
-          alt="Holder HP Tangguh - Kokoh Anti Getar, Aman Tetap Stabil, Pas di Semua Motor, Posisi Tetap Tidak Putar"
+          alt="Keunggulan Holder HP Tangguh Besi Alloy Kokoh Anti Getar dan Stabil"
           class="w-full h-auto block"
-          width="800"
-          height="1067"
           loading="lazy"
           decoding="async"
-        />
-      </div>
-
-      <div class="rounded-2xl overflow-hidden border border-slate-200 shadow-sm bg-white">
-        <img
-          src="/images/landing/holder-hp/banner-spion-besi.webp"
-          alt="Holder Spion Motor Besi HM-20 - Kokoh & Stabil, Lebar Fleksibel 6-10cm, Cocok Untuk Lubang Spion < 9mm"
-          class="w-full h-auto block"
-          width="800"
-          height="1067"
-          loading="lazy"
-          decoding="async"
-        />
-      </div>
-    </section>
-
-    <!-- ═══ 8. TESTIMONIALS (EDITORIAL OPEN PROOF PATTERN) ═══ -->
-    <section class="border-t border-slate-100 px-5 py-10">
-      <div class="mb-8">
-        <span class="inline-block rounded-md bg-[#EFF6FF] px-2.5 py-1 text-[11px] font-bold uppercase tracking-widest text-[#1E3A8A] ring-1 ring-[#1E3A8A]/15 mb-2">
-          Pengalaman Nyata Pelanggan
-        </span>
-        <h2 class={sectionTitle}>
-          Bukti Nyata Pengguna: <span class="box-decoration-clone bg-[#EFF6FF] px-1.5 pb-0.5 text-[#1E3A8A]"
-            >HP Terkunci Mantap &amp; Bebas Khawatir di Jalan</span
+          width="450"
+          height="600" /></div
+      ><!-- COMPACT 1-LINE SPECIFICATION STRIP --><div
+        class="border-b border-slate-200 bg-slate-50 px-5 py-2.5 text-[12px] font-semibold text-slate-800"
+        >100% Solid Alloy Metal • Pengunci Mekanik Rotary Lock • Universal Semua Motor &amp; HP 4.7–7 Inci</div
+      ><div class="px-5 divide-y divide-slate-200 border-b border-slate-200"
+        ><div class="py-3.5 flex items-start gap-3"
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 text-emerald-700 shrink-0 mt-0.5"
+            aria-hidden="true"
+            fill="none"
+            stroke="currentColor"
           >
-        </h2>
-        <p class={`${body} mt-2`}>
-          Cerita jujur dari para rider yang sudah membuktikan kekokohan Holder HP Besi ini:
-        </p>
-      </div>
-
-      <div class="space-y-9">
-        {
-          [
-            {
-              name: 'Bang Ridwan Santoso',
-              location: 'Jakarta Barat, DKI Jakarta',
-              avatar: '/images/landing/holder-hp/avatar-1.webp',
-              problem: 'Driver Ojol • Masalah: Holder Plastik Sering Patah Kena Polisi Tidur',
-              image: '/images/landing/holder-hp/proof-ojol.webp',
-              imageCaption: 'Hasil nyata: HP tetap stabil dan aman dipakai narik ojol 12 jam sehari',
-              review:
-                'Sudah habis 3 holder plastik gara-gara patah pas hajar jalan rusak di Jakarta. Pas ganti ke holder besi ini <strong class="box-decoration-clone bg-[#EFF6FF] px-1.5 pb-0.5 text-[#1E3A8A] font-semibold">beneran kokoh anti getar, kunci rotary lock-nya mantap banget</strong>. Sekarang narik ojol seharian lihat Google Maps jadi tenang dan gak takut HP mental!',
-              takeaway: 'Material besi solid sangat awet, HP terkunci stabil untuk penggunaan harian intensif.',
-            },
-            {
-              name: 'Mas Bayu Anggara',
-              location: 'Surabaya, Jawa Timur',
-              avatar: '/images/landing/holder-hp/avatar-2.webp',
-              problem: 'Komuter Motor Matic • Masalah: Layar Goyang Bikin Pusing Saat Riding',
-              image: '/images/landing/holder-hp/proof-bumpy.webp',
-              imageCaption: 'Hasil nyata: Peta navigasi sangat jelas terbaca walau motor melaju kencang',
-              review:
-                'Pasang di spion Vario 160 sangat presisi dan pas. <strong class="box-decoration-clone bg-[#EFF6FF] px-1.5 pb-0.5 text-[#1E3A8A] font-semibold">Karet bantalannya tebal jadi bodi HP gak lecet sama sekali</strong>. Dipakai kecepatan 70 km/jam tetap tegak lurus dan gak muter-muter kena angin. Recommended buat yang cari holder berkualitas.',
-              takeaway: 'Presisi di motor matic, bodi HP terlindungi karet lembut tanpa lecet.',
-            },
-            {
-              name: 'Mas Hendra Wijaya',
-              location: 'Semarang, Jawa Tengah',
-              avatar: '/images/landing/holder-hp/avatar-3.webp',
-              problem: 'Touring & Harian • Masalah: Takut HP Copot / Dijambret di Lampu Merah',
-              image: '/images/landing/holder-hp/proof-clamp.webp',
-              imageCaption: 'Hasil nyata: Sistem rotary lock mengunci rapat dan sangat aman',
-              review:
-                'Kualitas besinya tebal bukan kaleng-kaleng. <strong class="box-decoration-clone bg-[#EFF6FF] px-1.5 pb-0.5 text-[#1E3A8A] font-semibold">Cengkeramannya kuat banget jadi gak gampang dirampas orang saat berhenti di lampu merah</strong>. Pengiriman cepat, barang sesuai foto dan bisa bayar COD pas sampai rumah.',
-              takeaway: 'Kunci rotary lock sangat kencang dan memberi rasa aman maksimal saat berkendara.',
-            },
-          ].map((item, index, arr) => (
-            <div class="space-y-3.5">
-              <!-- Customer Header -->
-              <div class="flex items-start justify-between gap-3">
-                <div class="flex items-center gap-3">
-                  <img
-                    src={item.avatar}
-                    alt={`Foto ${item.name}`}
-                    class="h-12 w-12 rounded-full object-cover ring-2 ring-slate-100 shrink-0"
-                    width="48"
-                    height="48"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                  <div>
-                    <div class="flex items-center gap-1.5">
-                      <h3 class="text-[16px] font-bold text-slate-950">{item.name}</h3>
-                      <span class="flex h-4 w-4 items-center justify-center text-blue-600">
-                        <Icon name="badge-check" class="h-4 w-4" aria-hidden="true" />
-                      </span>
-                    </div>
-                    <p class="text-[12px] font-medium text-slate-500">{item.location}</p>
-                  </div>
-                </div>
-                <div class="shrink-0 text-[13px] text-[#FBBF24]" role="img" aria-label="5 dari 5 bintang">
-                  ★★★★★
-                </div>
-              </div>
-
-              <!-- Problem Pill -->
-              <div class="inline-block rounded-md px-2.5 py-1 text-[11px] font-semibold tracking-wide border border-slate-200/70 bg-slate-50 text-slate-700">
-                {item.problem}
-              </div>
-
-              <!-- Proof Photo with Aspect 16/9 -->
-              <div class="relative aspect-[16/9] w-full overflow-hidden rounded-xl border border-slate-200/80 shadow-sm">
-                <img
-                  src={item.image}
-                  alt={item.imageCaption}
-                  class="h-full w-full object-cover"
-                  width="800"
-                  height="450"
-                  loading="lazy"
-                  decoding="async"
-                />
-              </div>
-
-              <!-- Quote with Highlighted Spans and Left Border Accent -->
-              <p
-                class="border-l-2 border-[#1E3A8A]/35 pl-3.5 text-[15px] leading-relaxed text-slate-700 italic pt-0.5"
-                set:html={`“${item.review}”`}
-              />
-
-              <!-- Key Takeaway Box -->
-              <div class="flex items-center gap-2 rounded-lg bg-[#EFF6FF] px-3 py-2 text-[12px] font-semibold text-[#1E3A8A]">
-                <span>📌</span>
-                <span>{item.takeaway}</span>
-              </div>
-
-              {index < arr.length - 1 && (
-                <div class="pt-6">
-                  <div class="h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent" />
-                </div>
-              )}
-            </div>
-          ))
-        }
-      </div>
-    </section>
-
-    <!-- ═══ 9. GARANSI 100% BELANJA AMAN ═══ -->
-    <section class="border-t border-[#0F2942] bg-[#0F2942] px-5 py-10 text-center text-white">
-      <div class="mx-auto mb-5 flex h-16 w-16 items-center justify-center text-[#FBBF24]">
-        <Icon name="shield-check" class="h-14 w-14" aria-hidden="true" />
-      </div>
-      <p class="mb-2 text-[11px] font-bold uppercase tracking-widest text-[#93C5FD]">Jaminan Belanja Bebas Resiko</p>
-      <h2 class="text-[30px] font-bold leading-[1.1] tracking-tight text-white">BELANJA AMAN &amp; TERPERCAYA</h2>
-      <p class="mx-auto mt-3 max-w-[320px] text-[15px] leading-relaxed text-blue-100/80">
-        Pesan sekarang dengan tenang, bayar saat barang sampai di tangan Anda (COD)!
-      </p>
-
-      <div class="mt-8 grid gap-4 text-left">
-        <div class="flex items-start gap-4 rounded-2xl border border-white/10 bg-white p-4 shadow-sm">
-          <span class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center text-[#1E3A8A]">
-            <Icon name="badge-check" class="h-5 w-5" aria-hidden="true" />
-          </span>
-          <p class="text-[15px] leading-relaxed text-slate-700">
-            <strong class="mb-0.5 block text-slate-950">100% Real Picture &amp; Bahan Besi Solid.</strong> Produk sesuai dengan spesifikasi material besi alloy dan foto yang ditampilkan.
-          </p>
-        </div>
-
-        <div class="flex items-start gap-4 rounded-2xl border border-white/10 bg-white p-4 shadow-sm">
-          <span class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center text-[#1E3A8A]">
-            <Icon name="truck" class="h-5 w-5" aria-hidden="true" />
-          </span>
-          <p class="text-[15px] leading-relaxed text-slate-700">
-            <strong class="mb-0.5 block text-slate-950">Bisa Bayar di Tempat (COD).</strong> Bayar langsung ke kurir saat paket tiba di alamat Anda tanpa transfer di awal.
-          </p>
-        </div>
-
-        <div class="flex items-start gap-4 rounded-2xl border border-white/10 bg-white p-4 shadow-sm">
-          <span class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center text-[#1E3A8A]">
-            <Icon name="shield-check" class="h-5 w-5" aria-hidden="true" />
-          </span>
-          <p class="text-[15px] leading-relaxed text-slate-700">
-            <strong class="mb-0.5 block text-slate-950">Quality Check &amp; Packing Rapi.</strong> Setiap unit holder dicek kelancaran knob putar serta dikemas aman dengan bubble wrap tebal.
-          </p>
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══ 10. NATIVE HYBRID CHECKOUT FORM ═══ -->
-    <section id="form-pemesanan" class="mt-4 scroll-mt-6 overflow-hidden rounded-none bg-white p-2">
-      <div class="px-3 pt-6 pb-2 text-center">
-        <p class="text-[11px] font-bold uppercase tracking-widest text-[#1E3A8A]">
-          Formulir Pemesanan Resmi
-        </p>
-        <h2 class="mt-1 text-[24px] font-bold text-slate-950">
-          Lengkapi Data Pengiriman
-        </h2>
-        <p class="mt-1 text-[13px] text-slate-600">
-          Pilih paket promo di bawah dan isi alamat lengkap. Bayar saat barang sampai (COD).
-        </p>
-      </div>
-
-      <GeoIpResolvedForm
-        mode={formContext.mode}
-        province={formContext.province}
-        productSlug={product.slug}
-        embedded={true}
-      />
-    </section>
-
-    <!-- ═══ 11. STICKY CTA & SOCIAL PROOF ═══ -->
-    <div
+            <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="m9 12l2 2l4-4"></path>
+            </g></svg
+          ><div
+            ><h3 class="text-[14.5px] font-bold leading-snug text-slate-950">Konstruksi Full Besi Alloy Anti Patah</h3
+            ><p class="mt-1 text-[13.5px] font-normal leading-relaxed text-slate-700"
+              >Bodi logam cor padat tahan cuaca panas dan hujan,{' '}<mark class="bg-amber-100 px-1 font-semibold text-slate-950"
+                >tidak akan retak atau kendor meski dipakai bertahun-tahun</mark
+              >.</p
+            ></div
+          ></div
+        ><div class="py-3.5 flex items-start gap-3"
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 text-emerald-700 shrink-0 mt-0.5"
+            aria-hidden="true"
+            fill="none"
+            stroke="currentColor"
+          >
+            <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="m9 12l2 2l4-4"></path>
+            </g></svg
+          ><div
+            ><h3 class="text-[14.5px] font-bold leading-snug text-slate-950"
+              >Sistem Kunci Ulir Rotary Lock &amp; Bantalan Silikon</h3
+            ><p class="mt-1 text-[13.5px] font-normal leading-relaxed text-slate-700"
+              >Knob putar mekanik mengunci sisi HP dengan presisi,{' '}<mark
+                class="bg-amber-100 px-1 font-semibold text-slate-950"
+                >anti mental di jalan rusak dan bodi HP bebas lecet</mark
+              >.</p
+            ></div
+          ></div
+        ><div class="py-3.5 flex items-start gap-3"
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 text-emerald-700 shrink-0 mt-0.5"
+            aria-hidden="true"
+            fill="none"
+            stroke="currentColor"
+          >
+            <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="m9 12l2 2l4-4"></path>
+            </g></svg
+          ><div
+            ><h3 class="text-[14.5px] font-bold leading-snug text-slate-950">Pasang di Baut Spion Semua Jenis Motor</h3
+            ><p class="mt-1 text-[13.5px] font-normal leading-relaxed text-slate-700"
+              >Lubang bracket presisi{' '}<mark class="bg-amber-100 px-1 font-semibold text-slate-950"
+                >langsung pas di semua motor Matic, Bebek, dan Sport</mark
+              >{' '}tanpa ubahan.</p
+            ></div
+          ></div
+        ></div
+      ><!-- SELLER VISUAL 2 IN MECHANISM/MANFAAT SECTION --><div class="mt-5 w-full bg-white border-y border-slate-200"
+        ><img
+          src="/images/landing/holder-hp/banner-spion-besi.webp"
+          alt="Spesifikasi Dimensi Holder Spion Motor Besi HM-20 Lebar 6-10cm"
+          class="w-full h-auto block"
+          loading="lazy"
+          decoding="async"
+          width="450"
+          height="600" /></div></section
+    ><!-- ═══ 4. 4 OVERCLAIM VERIFIED REVIEWS ═══ --><section
+      class="cv-section border-t border-slate-200 bg-white pt-7 pb-7 px-5 text-left"
+      ><h2 class="text-[21px] sm:text-[23px] font-bold tracking-tight leading-[1.2] text-slate-950"
+        >Cerita Nyata Pengendara Motor Pengguna Holder Besi</h2
+      ><div class="mt-2 flex items-center gap-2 text-[13px] font-semibold text-slate-800"
+        ><div class="flex items-center gap-0.5 text-amber-400" role="img" aria-label="Rating 5 dari 5 bintang"
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 fill-amber-400 text-amber-400"
+            aria-hidden="true"
+            fill="currentColor"
+            stroke="currentColor"
+          >
+            <path
+              fill="currentColor"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+            ></path></svg
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 fill-amber-400 text-amber-400"
+            aria-hidden="true"
+            fill="currentColor"
+            stroke="currentColor"
+          >
+            <path
+              fill="currentColor"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+            ></path></svg
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 fill-amber-400 text-amber-400"
+            aria-hidden="true"
+            fill="currentColor"
+            stroke="currentColor"
+          >
+            <path
+              fill="currentColor"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+            ></path></svg
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 fill-amber-400 text-amber-400"
+            aria-hidden="true"
+            fill="currentColor"
+            stroke="currentColor"
+          >
+            <path
+              fill="currentColor"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+            ></path></svg
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 fill-amber-400 text-amber-400"
+            aria-hidden="true"
+            fill="currentColor"
+            stroke="currentColor"
+          >
+            <path
+              fill="currentColor"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+            ></path></svg></div
+        ><span class="font-bold text-slate-950">4.9 / 5.0</span><span class="text-slate-300">•</span
+        ><span class="text-slate-600">Pembeli COD Terverifikasi</span></div
+      ><div class="mt-4 divide-y divide-slate-200 border-y border-slate-200"
+        ><article class="py-3.5"
+          ><div class="flex items-center justify-between gap-2"
+            ><h3 class="text-[14.5px] font-bold text-slate-950">Bang Ridwan Santoso (36 th) • Jakarta Barat</h3
+            ><div class="flex items-center gap-0.5 text-amber-400 shrink-0" role="img" aria-label="Rating 5 dari 5 bintang"
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg></div></div
+          ><p class="mt-1.5 text-[13.5px] font-normal leading-relaxed text-slate-900"
+            >"Sudah patah 3 kali pakai holder plastik murahan pas narik ojol. Ganti ke holder besi HM-20 ini{' '}<mark
+              class="bg-amber-200/80 px-1 font-semibold text-slate-950"
+              >hajar polisi tidur dan jalan berlubang HP tetap diam anteng</mark
+            >{' '}gak goyang sedikitpun!"</p
+          ></article
+        ><article class="py-3.5"
+          ><div class="flex items-center justify-between gap-2"
+            ><h3 class="text-[14.5px] font-bold text-slate-950">Mas Bayu Anggara (28 th) • Surabaya</h3
+            ><div class="flex items-center gap-0.5 text-amber-400 shrink-0" role="img" aria-label="Rating 5 dari 5 bintang"
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg></div></div
+          ><p class="mt-1.5 text-[13.5px] font-normal leading-relaxed text-slate-900"
+            >"Pasang di spion Vario 160 cuma butuh 2 menit.{' '}<mark class="bg-amber-200/80 px-1 font-semibold text-slate-950"
+              >Bantalan karetnya tebal jadi casing HP aman gak lecet</mark
+            >, digeber 80 km/jam leher holdernya tetap kaku gak muter kena angin!"</p
+          ></article
+        ><article class="py-3.5"
+          ><div class="flex items-center justify-between gap-2"
+            ><h3 class="text-[14.5px] font-bold text-slate-950">Mas Hendra Wijaya (42 th) • Semarang</h3
+            ><div class="flex items-center gap-0.5 text-amber-400 shrink-0" role="img" aria-label="Rating 5 dari 5 bintang"
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg></div></div
+          ><p class="mt-1.5 text-[13.5px] font-normal leading-relaxed text-slate-900"
+            >"Besinya berat dan padat, bukan kaleng tipis.{' '}<mark class="bg-amber-200/80 px-1 font-semibold text-slate-950"
+              >Ulir pengunci sampingnya mengikat HP super kencang</mark
+            >, berhenti di lampu merah malam-malam tenang karena gak bisa ditarik paksa."</p
+          ></article
+        ><article class="py-3.5"
+          ><div class="flex items-center justify-between gap-2"
+            ><h3 class="text-[14.5px] font-bold text-slate-950">Pak Taufik Hidayat (45 th) • Medan</h3
+            ><div class="flex items-center gap-0.5 text-amber-400 shrink-0" role="img" aria-label="Rating 5 dari 5 bintang"
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg></div></div
+          ><p class="mt-1.5 text-[13.5px] font-normal leading-relaxed text-slate-900"
+            >"Beli paket 2 pcs buat motor saya dan anak kuliah.{' '}<mark
+              class="bg-amber-200/80 px-1 font-semibold text-slate-950"
+              >Lihat Google Maps sambil jalan jadi jelas tanpa getar</mark
+            >, pengiriman cepat dan bisa bayar COD pas kurir datang."</p
+          ></article
+        ></div
+      ></section
+    ><!-- ═══ 5. 3 CONCISE FAQ ITEMS ═══ --><section
+      class="cv-section border-t border-slate-200 bg-white pt-7 pb-7 px-5 text-left"
+      ><h2 class="text-[20px] font-bold tracking-tight leading-[1.2] text-slate-950">Pertanyaan yang Sering Diajukan</h2
+      ><div class="mt-3 divide-y divide-slate-200 border-y border-slate-200"
+        ><div class="py-3.5"
+          ><h3 class="text-[14px] font-bold text-slate-950">Apakah cocok untuk semua jenis motor dan ukuran HP?</h3
+          ><p class="mt-1 text-[13px] font-normal leading-relaxed text-slate-700"
+            >Cocok untuk semua motor berlubang spion standar (Beat, Vario, Nmax, PCX, Scoopy, Mio, Bebek) dan semua HP
+            ukuran 4.7 hingga 7 inci.</p
+          ></div
+        ><div class="py-3.5"
+          ><h3 class="text-[14px] font-bold text-slate-950">Apakah penjepit besinya membuat bodi samping HP lecet?</h3
+          ><p class="mt-1 text-[13px] font-normal leading-relaxed text-slate-700"
+            >Tidak sama sekali, karena setiap sisi penjepit sudah dilapisi bantalan karet silikon tebal yang meredam getaran
+            sekaligus melindungi bodi HP.</p
+          ></div
+        ><div class="py-3.5"
+          ><h3 class="text-[14px] font-bold text-slate-950">Apakah bisa bayar di tempat (COD) saat paket datang?</h3
+          ><p class="mt-1 text-[13px] font-normal leading-relaxed text-slate-700"
+            >Bisa, Anda cukup mengisi alamat di bawah ini dan bayar tunai langsung ke kurir saat barang tiba.</p
+          ></div
+        ></div
+      ></section
+    ><!-- ═══ 6. MECHANISM ACTION IMAGE & URGENCY PRICING STRIP ═══ --><section
+      class="cv-section w-full border-t border-slate-900 bg-slate-950 text-white pb-7 text-left"
+      ><div class="w-full bg-white border-y border-slate-200"
+        ><img
+          src="/images/landing/holder-hp/proof-ojol.webp"
+          alt="Holder HP Spion Motor Besi Tangguh Andalan Driver Ojol dan Harian"
+          class="w-full h-auto block"
+          loading="lazy"
+          decoding="async"
+          width="600"
+          height="338" /></div
+      ><div class="px-5 pt-6"
+        ><div class="flex items-center justify-between pb-4 border-b border-slate-800"
+          ><span class="inline-flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-wider text-amber-400"
+            ><svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="1em"
+              height="1em"
+              viewBox="0 0 24 24"
+              class="h-4 w-4 text-amber-400"
+              aria-hidden="true"
+              fill="none"
+              stroke="currentColor"
+            >
+              <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M12 6v6l4 2"></path>
+              </g></svg
+            ><span>Promo Berakhir Dalam</span></span
+          ><div class="font-mono text-[16px] font-bold text-white"
+            ><span id="countdown-minutes">15</span>:<span id="countdown-seconds">00</span></div
+          ></div
+        ><div class="py-4 border-b border-slate-800"
+          ><p class="text-[11px] font-bold uppercase tracking-widest text-slate-400"
+            >Harga Promo Paket 2 (Paling Diminati)</p
+          ><div class="mt-1.5 flex items-baseline gap-2.5"
+            ><span class="text-[32px] font-bold font-mono tracking-tight text-amber-400 leading-none">Rp128.500</span
+            ><span class="text-[14px] text-slate-400 line-through">Rp150.000</span></div
+          ><p class="mt-2 text-[12.5px] font-semibold text-slate-200"
+            >Hemat Rp21.500 • Paket 1 Rp{rupiah(price)} • Paket 3 Rp219.000</p
+          ></div
+        ><div class="pt-4"
+          ><div class="flex items-center justify-between text-[12px] font-semibold"
+            ><span class="text-slate-300">Sisa Kuota Promo Hari Ini:</span
+            ><span id="stock-count-text" class="font-mono font-bold text-amber-400">Tersisa 8 Paket Lagi</span></div
+          ><div class="mt-2 h-1.5 w-full bg-slate-800 overflow-hidden"
+            ><div
+              id="stock-progress-bar"
+              class="h-full bg-amber-400 transition-all duration-500"
+              style="width: 55%"
+            ></div></div></div></div></section
+    ><!-- ═══ 7. FORMULIR PEMESANAN (CHECKOUT COD) ═══ --><section
+      id="form-pemesanan"
+      class="bg-white px-0 pt-6 pb-4 scroll-mt-4 w-full text-left"
+      ><div class="px-5 pb-2"
+        ><h2 class="text-[20px] font-bold tracking-tight text-slate-950 leading-tight">Lengkapi Data Pengiriman COD</h2
+        ><p class="text-[13.5px] font-normal text-slate-600 mt-1 leading-relaxed"
+          >Pilih paket dan isi alamat. Bayar tunai langsung ke kurir saat barang sampai di tangan Anda.</p
+        ></div
+      ><GeoIpResolvedForm mode={formContext.mode} province={formContext.province} productSlug={product.slug} embedded={true} /></section
+    ><SocialProofToast orderCount={socialProofOrders} heroSelector="#landing-hero" formSelector="#form-pemesanan" /><div
       id="sticky-purchase-bar"
-      class="fixed inset-x-0 bottom-0 z-40 mx-auto flex w-full max-w-[480px] items-center justify-between border-t border-slate-200 bg-white/95 px-5 py-3 shadow-[0_-8px_24px_rgba(17,17,17,0.08)] backdrop-blur-md transition-all duration-300"
-      style="transform: translateY(100%); opacity: 0; pointer-events: none;"
-    >
-      <div>
-        <p class="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#555555]">Harga Promo</p>
-        <p class="text-base font-bold text-[#111111]">Rp{Math.round(price).toLocaleString('id-ID')}</p>
-      </div>
-      <a
+      class="fixed inset-x-0 bottom-0 z-40 mx-auto flex w-full max-w-[480px] items-center justify-between border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur-md transition-all duration-300 lg:hidden"
+      style="transform: translateY(100%); opacity: 0; pointer-events: none"
+      ><div
+        ><p class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Mulai Dari</p
+        ><p class="text-base font-bold text-slate-950">Rp{rupiah(price)}</p></div
+      ><a
         href="#form-pemesanan"
-        class="inline-flex min-h-11 items-center justify-center rounded-full bg-[#1E3A8A] px-6 text-[11px] font-bold uppercase tracking-[0.1em] text-white shadow-md transition-colors hover:bg-[#0F2942] active:scale-[0.98]"
-      >
-        Pesan Sekarang (COD)
-      </a>
-    </div>
-
-    <SocialProofToast
-      orderCount={socialProofOrders}
-      heroSelector="#landing-hero"
-      formSelector="#form-pemesanan"
-    />
+        class="inline-flex min-h-11 items-center justify-center bg-red-700 px-5 text-[11.5px] font-bold uppercase tracking-wider text-white transition-colors hover:bg-red-800"
+        >Pesan Sekarang (COD)</a
+      ></div
+    >
   </main>
+  <script is:inline>
+  function initCountdownTimer() {
+    const minEl = document.getElementById('countdown-minutes');
+    const secEl = document.getElementById('countdown-seconds');
+    if (!minEl || !secEl) return;
 
-  <script slot="head" is:inline>
-    function initStickyBarObserver() {
-      const stickyBar = document.getElementById('sticky-purchase-bar');
-      const orderForm = document.getElementById('form-pemesanan');
-      const hero = document.getElementById('landing-hero');
-      if (!stickyBar) return;
+    const DURATION_MS = 15 * 60 * 1000;
+    const STORAGE_KEY = 'holder_hp_countdown_v1';
+    let targetTime = parseInt(sessionStorage.getItem(STORAGE_KEY) || '0', 10);
+    const now = Date.now();
 
-      let heroVisible = true;
-      let formVisible = false;
-
-      const applyStickyVisibility = () => {
-        if (heroVisible || formVisible) {
-          stickyBar.style.transform = 'translateY(100%)';
-          stickyBar.style.opacity = '0';
-          stickyBar.style.pointerEvents = 'none';
-        } else {
-          stickyBar.style.transform = 'translateY(0)';
-          stickyBar.style.opacity = '1';
-          stickyBar.style.pointerEvents = 'auto';
-        }
-      };
-
-      const observer = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((entry) => {
-            if (entry.target === hero) heroVisible = entry.isIntersecting;
-            if (entry.target === orderForm) formVisible = entry.isIntersecting;
-          });
-          applyStickyVisibility();
-        },
-        { threshold: 0.05, rootMargin: '0px 0px -40px 0px' }
-      );
-
-      if (hero) observer.observe(hero);
-      if (orderForm) observer.observe(orderForm);
-      applyStickyVisibility();
+    if (!targetTime || targetTime <= now || targetTime - now > DURATION_MS) {
+      targetTime = now + DURATION_MS;
+      sessionStorage.setItem(STORAGE_KEY, targetTime.toString());
     }
 
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', initStickyBarObserver);
-    } else {
-      initStickyBarObserver();
+    const updateTimer = () => {
+      const currentTime = Date.now();
+      let remainingMs = targetTime - currentTime;
+
+      if (remainingMs <= 0) {
+        targetTime = currentTime + DURATION_MS;
+        sessionStorage.setItem(STORAGE_KEY, targetTime.toString());
+        remainingMs = DURATION_MS;
+      }
+
+      const totalSeconds = Math.floor(remainingMs / 1000);
+      const mins = Math.floor(totalSeconds / 60);
+      const secs = totalSeconds % 60;
+
+      minEl.textContent = String(mins).padStart(2, '0');
+      secEl.textContent = String(secs).padStart(2, '0');
+    };
+
+    updateTimer();
+    setInterval(updateTimer, 1000);
+  }
+
+  function initStockCounter() {
+    const stockText = document.getElementById('stock-count-text');
+    const stockBar = document.getElementById('stock-progress-bar');
+    if (!stockText || !stockBar) return;
+
+    const STORAGE_KEY = 'holder_hp_stock_v1';
+    let stock = parseInt(sessionStorage.getItem(STORAGE_KEY) || '0', 10);
+
+    if (!stock || stock < 4 || stock > 12) {
+      stock = Math.floor(Math.random() * (12 - 6 + 1)) + 6;
+      sessionStorage.setItem(STORAGE_KEY, stock.toString());
     }
-  </script>
+
+    const updateStockUI = (val) => {
+      stockText.textContent = `Tersisa ${val} Unit Lagi`;
+      const pct = Math.min(90, Math.max(30, Math.round((val / 15) * 100)));
+      stockBar.style.width = `${pct}%`;
+    };
+
+    updateStockUI(stock);
+
+    const delay = Math.floor(Math.random() * (60000 - 35000 + 1)) + 35000;
+    setTimeout(() => {
+      let current = parseInt(sessionStorage.getItem(STORAGE_KEY) || '0', 10);
+      if (current > 3) {
+        current -= 1;
+        sessionStorage.setItem(STORAGE_KEY, current.toString());
+        updateStockUI(current);
+      }
+    }, delay);
+  }
+
+  function initStickyBarObserver() {
+    const stickyBar = document.getElementById('sticky-purchase-bar');
+    const orderForm = document.getElementById('form-pemesanan');
+    const hero = document.getElementById('landing-hero');
+    if (!stickyBar || !orderForm) return;
+
+    let heroVisible = true;
+    let formVisible = false;
+
+    const applyStickyVisibility = () => {
+      if (heroVisible || formVisible) {
+        stickyBar.style.transform = 'translateY(100%)';
+        stickyBar.style.opacity = '0';
+        stickyBar.style.pointerEvents = 'none';
+      } else {
+        stickyBar.style.transform = 'translateY(0)';
+        stickyBar.style.opacity = '1';
+        stickyBar.style.pointerEvents = 'auto';
+      }
+    };
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.target === hero) heroVisible = entry.isIntersecting;
+          if (entry.target === orderForm) formVisible = entry.isIntersecting;
+        });
+        applyStickyVisibility();
+      },
+      { threshold: 0, rootMargin: '0px 0px -40px 0px' }
+    );
+
+    if (hero) observer.observe(hero);
+    else heroVisible = false;
+    observer.observe(orderForm);
+    applyStickyVisibility();
+  }
+
+  const initAll = () => {
+    initCountdownTimer();
+    initStockCounter();
+    initStickyBarObserver();
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAll);
+  } else {
+    initAll();
+  }
+</script>
 </BaseLayout>

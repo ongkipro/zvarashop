@@ -1,63 +1,58 @@
-/*
- * Landing page styles for Minyak Kemiri Bakar Murni 100ml
- * Clean Direct-Response Mobile-First Pattern
- */
+/* minyak-kemiri: page rules recovered from the live render (2026-10-18). */
 
 @keyframes urgency-glow {
-  0%, 100% {
-    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4);
+  0%,
+  to {
+    box-shadow: 0 0 #dc262666;
   }
   50% {
-    box-shadow: 0 0 0 6px rgba(220, 38, 38, 0);
+    box-shadow: 0 0 0 6px #dc262600;
   }
 }
-
 @keyframes live-dot-ping {
   0% {
     opacity: 1;
     transform: scale(1);
   }
-  75%, 100% {
+  75%,
+  to {
     opacity: 0;
     transform: scale(2.2);
   }
 }
-
 .animate-urgency-glow {
   animation: 2s cubic-bezier(0.4, 0, 0.6, 1) infinite urgency-glow;
 }
-
 .animate-live-ping {
   animation: 1.5s cubic-bezier(0, 0, 0.2, 1) infinite live-dot-ping;
 }
-
-/* Custom scroll behavior & typography smoothing */
 html {
   scroll-behavior: smooth;
   -webkit-tap-highlight-color: transparent;
 }
-
-/* Box decoration clone for highlights */
 .highlight-amber {
-  background-image: linear-gradient(to top, #fde68a 0.35em, rgba(253, 230, 138, 0) 0.35em);
-  background-repeat: no-repeat;
+  background-image: linear-gradient(0deg, #fde68a 0.35em, #fde68a00 0.35em);
   background-position: 0 92%;
+  background-repeat: no-repeat;
   background-size: 100% 100%;
 }
-
 .highlight-emerald {
-  background-image: linear-gradient(to top, #d1fae5 0.35em, rgba(209, 250, 229, 0) 0.35em);
-  background-repeat: no-repeat;
+  background-image: linear-gradient(0deg, #d1fae5 0.35em, #d1fae500 0.35em);
   background-position: 0 92%;
+  background-repeat: no-repeat;
   background-size: 100% 100%;
 }
-
-/* Mobile precision utilities */
-@media screen and (max-width: 640px) {
+@media screen and (width<=640px) {
   body {
     -webkit-text-size-adjust: 100%;
   }
-  input, select, textarea {
+  input,
+  select,
+  textarea {
     font-size: 16px;
   }
+}
+.cv-section {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 520px;
 }

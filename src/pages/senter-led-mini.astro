@@ -1,15 +1,16 @@
 ---
 /*
- * Native Astro landing page — Senter LED Mini & Headlamp Sensor Gerak.
- *
- * Architecture: 10-Section High-Converting Editorial Funnel (Pembersih-Saluran Style).
- * Performance: 100% Lightweight WebP (Sub-85KB per asset).
- * Form: Native GeoIpResolvedForm with hybrid COD mode linked to product catalog.
+ * Native Astro landing page — Lampu Senter LED Mini Multifungsi (Headlamp Sensor Gerak).
+ * Rebuilt on 2026-10-18 from the live render of
+ * https://zvara.shop/produk/lampu-led-mini: this page was deployed from
+ * another device and its source never reached the repository. Markup and
+ * page CSS are the live ones; the tracker, order form and social-proof toast
+ * are the components that rendered them, and the lowest variant price is
+ * bound to the product rather than written in.
  */
 import BaseLayout from '../layouts/BaseLayout.astro';
 import MetaLandingTracker from '../components/storefront/tracking/MetaLandingTracker.astro';
 import GeoIpResolvedForm from '../components/storefront/forms/GeoIpResolvedForm.astro';
-import Icon from '../components/storefront/shared/Icon.astro';
 import SocialProofToast from '../components/storefront/shared/SocialProofToast.astro';
 import { recentOrderCount } from '../lib/social-proof';
 import { getRuntimeEnv } from '../lib/env';
@@ -23,590 +24,1048 @@ import '../styles/landing-pages/senter-led-mini.css';
 
 export const prerender = false;
 
-const SLUG = 'senter-led-mini';
-const PRODUCT_SLUG = 'lampu-led-mini';
+const SLUG = "senter-led-mini";
+const PRODUCT_SLUG = "lampu-led-mini";
 
 const product = await getStorefrontProduct(Astro.locals, PRODUCT_SLUG);
 if (!product) return Astro.rewrite('/404');
 
 const formContext = await resolveFormModeContext(Astro.request);
-
 const canonical = `${Astro.locals.tenant.siteUrl}${await nativeLandingCanonicalPath(Astro.locals, SLUG)}`;
-const seoTitle = 'Senter LED Mini & Headlamp Sensor Gerak — Terang, Ringkas & Bebas Tangan';
-const seoDescription =
-  'Senter LED mini multifungsi dengan sensor lambaian tangan dan tali kepala elastis. Terang benderang, sudut 60°, siap untuk kerja teknisi, camping, dan mati lampu. Bayar di Tempat (COD).';
-
-const sectionTitle = 'text-[24px] font-bold leading-[1.18] tracking-tight text-[#0F2942]';
-const body = 'text-[15px] leading-relaxed text-slate-600';
-const listIcon = 'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center text-[#1E3A8A]';
-const dangerIcon = 'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center text-[#C93A1B]';
+const seoTitle = "Lampu Led Mini — Sensor Lambaian Tangan, Cahaya Super Terang & Bebas Pegang";
+const seoDescription = "Lampu Led Mini tercantum dalam kategori Umum. Detail yang ditampilkan mengikuti data katalog toko.";
 
 const cheapest = [...product.variants].sort((a, b) => a.price - b.price)[0] ?? null;
 const price = cheapest?.price ?? product.price;
+const rupiah = (value: number) => Math.round(value).toLocaleString('id-ID');
 const socialProofOrders = await recentOrderCount(getRuntimeEnv(Astro.locals)?.OMS_DB as D1Database | undefined);
 ---
 
 <BaseLayout
   title={seoTitle}
   description={seoDescription}
-  image="/images/landing/senter-led-mini/hero-action.webp"
+  image="/assets/uploads/2026-08-24/f75cfea9-b536-490d-9915-81ad3d657649.webp"
   preloadImages="/images/landing/senter-led-mini/hero-action.webp"
   canonical={canonical}
   hideHeader={true}
   hideFooter={true}
 >
-  <main class="mx-auto min-h-screen w-full max-w-[480px] bg-white text-slate-950 pb-20 font-sans antialiased">
-    <MetaLandingTracker
-      slug={SLUG}
-      contentId={defaultCatalogContentId(product)}
-      contentName={product.contentName}
-      price={price}
-    />
-
-    <!-- ═══ 1. TOP ANNOUNCEMENT BAR ═══ -->
-    <div class="bg-neutral-950 px-4 py-2.5 text-center text-white">
-      <p class="text-[12px] font-medium tracking-wide">
-        🔥 <span class="font-bold text-amber-300">PROMO SPESIAL HARI INI</span> — Diskon Terbatas &amp; Bisa <span class="font-bold underline text-white">COD (Bayar di Tempat)</span>
-      </p>
-    </div>
-
-    <!-- ═══ 2. HERO SECTION ═══ -->
-    <section id="landing-hero" data-hero-section class="bg-white pb-8 text-left text-slate-950">
-      <div class="px-5 pt-8">
-        <span class="inline-block rounded-full bg-amber-100 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-amber-900 mb-2">
-          Inovasi Senter Pintar 2-in-1
-        </span>
-        <h1 class="max-w-[420px] text-[28px] font-bold leading-[1.15] tracking-tight text-slate-950">
-          Gelap Gulita &amp; Repot Pegang Senter? <span
-            class="box-decoration-clone px-0.5 text-[#C93A1B]"
-            style="background-image: linear-gradient(to top, #FFD84D 0.22em, rgba(255,216,77,0) 0.22em); background-repeat: no-repeat; background-position: 0 94%; background-size: 100% 100%;"
-            >Lampu LED Mini &amp; Headlamp Sensor: Terang Maksimal Tanpa Pegang Senter!</span
-          >
-        </h1>
-
-        <p class="mt-4 max-w-[400px] text-[15px] font-semibold leading-relaxed text-slate-700">
-          Benerin motor di tempat gelap, tracking malam, hingga mati lampu — <span class="box-decoration-clone bg-[#FFD84D]/45 px-1 text-slate-950">sekali lambaikan tangan, lampu langsung nyala terang &amp; kedua tangan bebas bergerak.</span>
-        </p>
-      </div>
-
-      <!-- Hero Visual with Overlay & Ping Badge -->
-      <div class="relative mt-7">
-        <div
-          class="relative overflow-hidden border-y border-slate-100 bg-slate-900 shadow-[0_14px_34px_rgba(30,58,138,0.12)]"
+  <main class="mx-auto min-h-screen w-full max-w-[480px] bg-white pb-16 font-sans text-slate-950 selection:bg-amber-200 selection:text-slate-950 antialiased">
+    <MetaLandingTracker slug={SLUG} contentId={defaultCatalogContentId(product)} contentName={product.contentName} price={price} /><!-- ═══ 1. MINIMALIST URGENCY BAR (TOP) ═══ --><header
+      class="flex items-center justify-between border-b border-slate-900 bg-slate-950 px-4 py-2 text-white"
+      ><div class="flex items-center gap-1.5 text-[11px] font-bold tracking-wide min-w-0"
+        ><svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="1em"
+          height="1em"
+          viewBox="0 0 24 24"
+          class="h-3.5 w-3.5 fill-amber-400 text-amber-400 shrink-0"
+          aria-hidden="true"
+          fill="currentColor"
+          stroke="currentColor"
         >
-          <img
-            src="/images/landing/senter-led-mini/hero-action.webp"
-            alt="Lampu Senter LED Mini & Headlamp Sensor Gerak Terang di Malam Hari"
-            class="aspect-[16/9] w-full object-cover"
-            width="800"
-            height="450"
-            fetchpriority="high"
-            loading="eager"
-            decoding="async"
-          />
-        </div>
-
-        <!-- Floating Glassmorphic Benefit Card -->
-        <div
-          class="relative z-20 mx-auto -mt-6 w-[90%] rounded-xl border border-blue-200/80 bg-white/95 p-4 text-left shadow-[0_14px_34px_rgba(30,58,138,0.14)] backdrop-blur-md"
-        >
-          <div class="flex gap-3">
-            <span class="relative mt-1 flex h-3 w-3 shrink-0">
-              <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#1E3A8A] opacity-70"></span>
-              <span
-                class="relative inline-flex h-3 w-3 rounded-full bg-[#1E3A8A] shadow-[0_0_0_6px_rgba(30,58,138,0.10)]"
-              ></span>
-            </span>
-            <div>
-              <h2 class="text-[16px] font-bold leading-tight text-[#0F2942]">Sensor Gerak Pintar (Smart Wave)!</h2>
-              <p class="mt-1 text-[13.5px] leading-relaxed text-slate-700">
-                Respon lambaian tangan 10 cm on/off otomatis. <strong class="text-[#C93A1B]">Sangat praktis saat tangan kotor atau basah.</strong>
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Hero Quick Trust Strip -->
-        <div class="mt-5 grid grid-cols-3 divide-x divide-slate-200 px-5 text-center">
-          <div class="px-2">
-            <span class="block text-[14px]">🚚</span>
-            <span class="text-[11px] font-bold text-slate-800">Bisa COD</span>
-            <p class="text-[10px] text-slate-500">Bayar di Tempat</p>
-          </div>
-          <div class="px-2">
-            <span class="block text-[14px]">💡</span>
-            <span class="text-[11px] font-bold text-slate-800">Cahaya Fokus</span>
-            <p class="text-[10px] text-slate-500">Super Terang</p>
-          </div>
-          <div class="px-2">
-            <span class="block text-[14px]">⭐</span>
-            <span class="text-[11px] font-bold text-slate-800">Rating 4.9/5</span>
-            <p class="text-[10px] text-slate-500">2.100+ Terjual</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══ 3. VALUE PROPOSITION / HOOK ═══ -->
-    <section class="px-5 py-10">
-      <h2 class={sectionTitle}>
-        Solusi Praktis Segala Situasi: <span class="box-decoration-clone bg-[#EFF6FF] px-1.5 pb-0.5 text-[#1E3A8A]"
-          >Kedua Tangan Bebas, Pandangan Terang Benderang</span
-        >
-      </h2>
-      <p class={`${body} mt-2`}>
-        Satu alat untuk berbagai kebutuhan darurat, hobi outdoor, maupun pekerjaan teknis sehari-hari.
-      </p>
-
-      <div class="mt-6 grid gap-3">
-        <div class="rounded-2xl border border-blue-100 bg-[#EFF6FF] p-4">
-          <div class="flex gap-3">
-            <span class={listIcon}><Icon name="check" class="h-4 w-4" aria-hidden="true" /></span>
-            <p class={body}>
-              <strong class="text-slate-950">Sensor Gerak Cepat &amp; Bebas Sentuh</strong> — Nyalakan dan matikan lampu hanya dengan melambaikan tangan di depan sensor dalam jarak 10 cm.
-            </p>
-          </div>
-        </div>
-        <div class="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
-          <div class="flex gap-3">
-            <span class={listIcon}><Icon name="shield-check" class="h-4 w-4" aria-hidden="true" /></span>
-            <p class={body}>
-              <strong class="text-slate-950">Sudut Putar 60° &amp; Ikat Kepala Nyaman</strong> — Arahkan sorot lampu presisi ke area kerja tanpa bikin silau orang lain di depan Anda.
-            </p>
-          </div>
-        </div>
-        <div class="rounded-2xl border border-blue-100 bg-[#EFF6FF] p-4">
-          <div class="flex gap-3">
-            <span class={listIcon}><Icon name="badge-check" class="h-4 w-4" aria-hidden="true" /></span>
-            <p class={body}>
-              <strong class="text-slate-950">Desain 2-in-1 (Headlamp + Senter Saku)</strong> — Unit lampu bisa dilepas dari tali kepala dan disimpan ringkas di dalam kantong baju atau saku celana.
-            </p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══ 4. AGITATION / DANGER SIGNS ═══ -->
-    <section class="border-t border-[#C93A1B]/10 bg-[#FFF7ED] px-5 py-10">
-      <h2 class={sectionTitle}>
-        Awas! Ribetnya Menggunakan <span
-          class="text-[#C93A1B] underline decoration-amber-300 decoration-4 underline-offset-4">Senter Konvensional di Kondisi Darurat:</span>
-      </h2>
-      <div class="mt-6 grid gap-4">
-        <div class="flex gap-3">
-          <span class={dangerIcon}><Icon name="triangle-alert" class="h-4 w-4" aria-hidden="true" /></span>
-          <p class={body}>
-            <strong class="text-slate-950">Tangan Terkunci Memegang Senter:</strong> Susah benerin mesin mobil, pipa air, atau barang rusak karena satu tangan sibuk memegang senter/HP.
-          </p>
-        </div>
-        <div class="flex gap-3">
-          <span class={dangerIcon}><Icon name="triangle-alert" class="h-4 w-4" aria-hidden="true" /></span>
-          <p class={body}>
-            <strong class="text-slate-950">Tombol Kotor &amp; Berlumur Oli:</strong> Menekan tombol sakelar dengan tangan berminyak atau basah membuat tombol cepat aus dan kotor.
-          </p>
-        </div>
-        <div class="flex gap-3">
-          <span class={dangerIcon}><Icon name="triangle-alert" class="h-4 w-4" aria-hidden="true" /></span>
-          <p class={body}>
-            <strong class="text-slate-950">Senter Berat &amp; Bikin Kepala Pusing:</strong> Headlamp murah zaman dulu berbahan berat dan talinya kaku menekan kening.
-          </p>
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══ 5. SCENARIOS BREAKDOWN (BUKTI PENGGUNAAN) ═══ -->
-    <section class="border-t border-slate-100 px-5 py-10">
-      <h2 class={sectionTitle}>
-        Solusi Tepat: <span class="box-decoration-clone bg-[#EFF6FF] px-1.5 pb-0.5 text-[#1E3A8A]"
-          >Kerja Cepat, Jalan Aman, Rumah Siaga</span
-        >
-      </h2>
-      <p class={`${body} mt-2 mb-6`}>
-        Satu lampu serbaguna yang menjawab berbagai kebutuhan dalam satu genggaman:
-      </p>
-
-      <div class="grid gap-4">
-        <figure class="relative overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
-          <img
-            src="/images/landing/senter-led-mini/proof-mechanic.webp"
-            alt="Pekerjaan teknisi otomotif dengan headlamp sensor gerak"
-            class="aspect-[16/9] w-full object-cover"
-            width="800"
-            height="450"
-            loading="lazy"
-            decoding="async"
-          />
-          <figcaption
-            class="absolute left-3 top-3 rounded-md bg-[#0F2942] px-3 py-1 text-[12px] font-bold uppercase tracking-wide text-white shadow-sm"
+          <path
+            fill="currentColor"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M15.914 4a1.5 1.5 0 0 0-2.474-1.561l-9 9A1.5 1.5 0 0 0 5.5 14h4.002a.5.5 0 0 1 .471.666L8.086 20a1.5 1.5 0 0 0 2.475 1.56l9-9A1.5 1.5 0 0 0 18.5 10h-3.997a.5.5 0 0 1-.472-.667z"
+          ></path></svg
+        ><span class="text-amber-400 uppercase shrink-0">PROMO:</span
+        ><span class="text-white truncate">BELI 2 HEMAT RP51.500</span></div
+      ><span class="text-[10.5px] font-bold tracking-wider text-amber-400 uppercase shrink-0 ml-2">BISA COD</span></header
+    ><!-- ═══ 2. HERO SECTION (NO RATING ABOVE HEADLINE, NO BUTTON, CLEAN BG) ═══ --><section
+      id="landing-hero"
+      class="bg-white pb-6"
+      ><div class="px-5 pt-6 text-left"
+        ><h1 class="text-[clamp(23px,6.8vw,28px)] font-bold leading-[1.18] tracking-tight text-slate-950"
+          >Gelap Gulita Saat Benerin Mesin &amp; Repot Gigit Senter?{' '}<mark class="bg-amber-200 px-1.5 py-0.5 text-slate-950"
+            >Nyalakan Dengan Lambaian Tangan</mark
+          >{' '}Tanpa Sentuh Tombol!</h1
+        ><p class="mt-3 text-[15px] font-normal leading-relaxed text-slate-700"
+          >Headlamp LED Mini 2-in-1 berteknologi Smart Wave{' '}<mark class="bg-red-100 px-1 font-semibold text-red-900"
+            >menyorot terang benderang hingga sudut sempit</mark
+          >{' '}sementara kedua tangan bebas bekerja.</p
+        ></div
+      ><!-- FULL-WIDTH UNCROPPED HERO IMAGE --><div class="mt-5 w-full bg-white border-y border-slate-200"
+        ><img
+          src="/images/landing/senter-led-mini/hero-action.webp"
+          alt="Senter LED Mini dan Headlamp Sensor Gerak Super Terang Bebas Tangan"
+          class="w-full h-auto block"
+          fetchpriority="high"
+          loading="eager"
+          decoding="async"
+          width="600"
+          height="338" /></div
+      ><!-- MINIMALIST TRUST HAIRLINE STRIP --><div
+        class="border-b border-slate-200 bg-white px-5 py-2.5 flex items-center justify-between text-[12px] font-semibold text-slate-800"
+        ><span class="inline-flex items-center gap-1.5"
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 text-emerald-700 shrink-0"
+            aria-hidden="true"
+            fill="none"
+            stroke="currentColor"
           >
-            Kerja Teknisi &amp; Bengkel
-          </figcaption>
-        </figure>
-
-        <figure class="relative overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
-          <img
-            src="/images/landing/senter-led-mini/proof-camping.webp"
-            alt="Camping dan tracking malam hari dengan senter kepala"
-            class="aspect-[16/9] w-full object-cover"
-            width="800"
-            height="450"
-            loading="lazy"
-            decoding="async"
-          />
-          <figcaption
-            class="absolute left-3 top-3 rounded-md bg-[#16A34A] px-3 py-1 text-[12px] font-bold uppercase tracking-wide text-white shadow-sm"
+            <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+              <path
+                d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"
+              ></path>
+              <path d="m9 12l2 2l4-4"></path>
+            </g></svg
+          ><span>Garansi Produk Original</span></span
+        ><span class="inline-flex items-center gap-1.5"
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 text-slate-900 shrink-0"
+            aria-hidden="true"
+            fill="none"
+            stroke="currentColor"
           >
-            Camping &amp; Outdoor Harian
-          </figcaption>
-        </figure>
-      </div>
-
-      <p class="mt-5 text-[14px] leading-relaxed text-slate-500">
-        <strong class="text-slate-950">Praktis &amp; Efisien:</strong> Pasang di kepala, lambaikan tangan, dan nikmati pencahayaan optimal tanpa perlu repot.
-      </p>
-    </section>
-
-    <!-- ═══ 6. DARK CONTRAST SECTION (RUMAH SIAGA & CARA PAKAI) ═══ -->
-    <section class="border-t border-slate-900 bg-[#0B1E36] px-5 py-10 text-white">
-      <h2 class="text-[26px] font-bold leading-[1.14] tracking-tight text-white">
-        Kenyamanan Nyata: <span class="text-[#93C5FD]">Siaga Mati Lampu di Rumah</span>
-      </h2>
-      <p class="mt-2 mb-6 text-[15px] leading-relaxed text-slate-300">
-        Bebas panik saat pemadaman listrik mendadak, letakkan di meja sebagai lampu darurat:
-      </p>
-
-      <div class="-mx-5 mb-8">
-        <div class="relative overflow-hidden bg-slate-900">
-          <img
-            src="/images/landing/senter-led-mini/proof-blackout.webp"
-            alt="Lampu darurat saat mati lampu di rumah"
-            class="aspect-[16/9] w-full object-cover"
-            width="800"
-            height="450"
-            loading="lazy"
-            decoding="async"
-          />
-          <div
-            class="absolute left-4 top-4 rounded bg-amber-500 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-slate-950 shadow"
-          >
-            Lampu Siaga Darurat Rumah
-          </div>
-        </div>
-      </div>
-
-      <div class="border-t border-slate-700/60 pt-7">
-        <h3 class="text-[19px] font-bold text-white mb-4">3 Langkah Mudah Penggunaan:</h3>
-        <div class="grid gap-4">
-          <div class="flex gap-3">
-            <span
-              class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#93C5FD] text-[14px] font-bold text-slate-950"
-              >1</span
-            >
-            <p class="text-[15px] leading-relaxed text-slate-300">
-              <strong class="text-white">Pilih Mode Pemakaian:</strong> Pasang pada tali kepala untuk mode headlamp, atau gunakan unitnya langsung sebagai senter saku mini.
-            </p>
-          </div>
-          <div class="flex gap-3">
-            <span
-              class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#93C5FD] text-[14px] font-bold text-slate-950"
-              >2</span
-            >
-            <p class="text-[15px] leading-relaxed text-slate-300">
-              <strong class="text-white">Aktifkan Sensor Gerak:</strong> Tekan tombol sensor satu kali, lalu cukup lambaikan tangan di depan lampu untuk menyalakan/mematikan.
-            </p>
-          </div>
-          <div class="flex gap-3">
-            <span
-              class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#93C5FD] text-[14px] font-bold text-slate-950"
-              >3</span
-            >
-            <p class="text-[15px] leading-relaxed text-slate-300">
-              <strong class="text-white">Setel Sudut 60°:</strong> Sesuaikan arah sorot lampu ke bawah sesuai jarak pandang kerja agar tepat sasaran.
-            </p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══ 7. INFOGRAPHIC FITUR DETAIL PRODUK ═══ -->
-    <section class="border-t border-slate-100 bg-[#F8FAFC] px-4 py-8 space-y-5">
-      <div class="rounded-2xl overflow-hidden border border-slate-200 shadow-sm bg-white">
-        <img
+            <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+              <path
+                d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2m10 0H9m10 0h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"
+              ></path>
+              <circle cx="17" cy="18" r="2"></circle>
+              <circle cx="7" cy="18" r="2"></circle>
+            </g></svg
+          ><span>Bisa Bayar di Tempat (COD)</span></span
+        ></div
+      ><!-- 3 PAIN POINTS (CONCISE, MARK HIGHLIGHTED) --><div class="px-5 pt-6 text-left"
+        ><h2 class="text-[12px] font-bold uppercase tracking-widest text-red-700">Pernah Mengalami Momen Ini?</h2
+        ><div class="mt-3 divide-y divide-slate-200 border-y border-slate-200"
+          ><div class="py-3.5"
+            ><div class="flex items-start justify-between gap-3"
+              ><div class="flex items-start gap-2.5"
+                ><svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="1em"
+                  height="1em"
+                  viewBox="0 0 24 24"
+                  class="h-4 w-4 text-red-600 shrink-0 mt-0.5"
+                  aria-hidden="true"
+                  fill="none"
+                  stroke="currentColor"
+                >
+                  <path
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="m21.73 18l-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3M12 9v4m0 4h.01"
+                  ></path></svg
+                ><h3 class="text-[15px] font-bold leading-snug text-slate-950"
+                  >Satu Tangan Terkunci Pegang Senter HP</h3
+                ></div
+              ><span class="text-[10px] font-bold uppercase tracking-wider text-red-700 shrink-0 mt-0.5"
+                >Susah Kerja</span
+              ></div
+            ><p class="mt-1 pl-6.5 text-[13.5px] font-normal leading-relaxed text-slate-700"
+              >Saat servis motor atau ganti sekring malam hari,{' '}<mark class="bg-red-100/90 px-1 font-semibold text-red-900"
+                >tangan kram pegang HP dan rawan jatuh pecah</mark
+              >.</p
+            ></div
+          ><div class="py-3.5"
+            ><div class="flex items-start justify-between gap-3"
+              ><div class="flex items-start gap-2.5"
+                ><svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="1em"
+                  height="1em"
+                  viewBox="0 0 24 24"
+                  class="h-4 w-4 text-red-600 shrink-0 mt-0.5"
+                  aria-hidden="true"
+                  fill="none"
+                  stroke="currentColor"
+                >
+                  <path
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="m21.73 18l-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3M12 9v4m0 4h.01"
+                  ></path></svg
+                ><h3 class="text-[15px] font-bold leading-snug text-slate-950"
+                  >Tombol Senter Rusak Kena Tangan Kotor</h3
+                ></div
+              ><span class="text-[10px] font-bold uppercase tracking-wider text-red-700 shrink-0 mt-0.5"
+                >Kotor &amp; Aus</span
+              ></div
+            ><p class="mt-1 pl-6.5 text-[13.5px] font-normal leading-relaxed text-slate-700"
+              >Menekan sakelar saat tangan penuh oli atau lumpur bikin{' '}<mark
+                class="bg-red-100/90 px-1 font-semibold text-red-900"
+                >senter cepat korslet dan licin digenggam</mark
+              >.</p
+            ></div
+          ><div class="py-3.5"
+            ><div class="flex items-start justify-between gap-3"
+              ><div class="flex items-start gap-2.5"
+                ><svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="1em"
+                  height="1em"
+                  viewBox="0 0 24 24"
+                  class="h-4 w-4 text-red-600 shrink-0 mt-0.5"
+                  aria-hidden="true"
+                  fill="none"
+                  stroke="currentColor"
+                >
+                  <path
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="m21.73 18l-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3M12 9v4m0 4h.01"
+                  ></path></svg
+                ><h3 class="text-[15px] font-bold leading-snug text-slate-950"
+                  >Panik Gelap Gulita Saat Listrik Padam</h3
+                ></div
+              ><span class="text-[10px] font-bold uppercase tracking-wider text-red-700 shrink-0 mt-0.5"
+                >Darurat Malam</span
+              ></div
+            ><p class="mt-1 pl-6.5 text-[13.5px] font-normal leading-relaxed text-slate-700"
+              >Mati lampu mendadak di malam hari tapi{' '}<mark class="bg-red-100/90 px-1 font-semibold text-red-900"
+                >senter biasa baterainya habis dan redup</mark
+              >.</p
+            ></div
+          ></div
+        ></div
+      ><!-- SELLER VISUAL 1 AFTER PAIN POINTS --><div class="mt-5 w-full bg-white border-y border-slate-200"
+        ><img
+          src="/images/landing/senter-led-mini/proof-blackout.webp"
+          alt="Senter LED Mini Siaga Darurat Saat Mati Lampu di Rumah"
+          class="w-full h-auto block"
+          loading="lazy"
+          decoding="async"
+          width="600"
+          height="338" /></div></section
+    ><!-- ═══ 3. MECHANISM & MANFAAT SECTION ═══ --><section
+      class="cv-section border-t border-slate-200 bg-white pt-7 pb-7 text-left"
+      ><div class="px-5"
+        ><h2 class="text-[21px] sm:text-[23px] font-bold tracking-tight leading-[1.2] text-slate-950"
+          >3 Keunggulan Utama Senter LED Mini &amp; Headlamp Sensor</h2
+        ></div
+      ><!-- UNCROPPED PRODUCT PACKSHOT --><div class="mt-4 w-full bg-white border-y border-slate-200"
+        ><img
           src="/images/landing/senter-led-mini/banner-hero-features.webp"
-          alt="Lampu LED Mini - Ringkas, Cahaya Fokus, Siap untuk Berbagai Kebutuhan"
+          alt="Fitur Utama Senter LED Mini Ringkas Cahaya Fokus dan Baterai Awet"
           class="w-full h-auto block"
-          width="800"
-          height="1000"
           loading="lazy"
           decoding="async"
-        />
-      </div>
-
-      <div class="rounded-2xl overflow-hidden border border-slate-200 shadow-sm bg-white">
-        <img
-          src="/images/landing/senter-led-mini/banner-headlamp-sensor.webp"
-          alt="Lampu Headlamp LED - Sensor Gerak Pintar, Sudut Penyesuaian 60 Derajat, Ikat Kepala Elastis"
-          class="w-full h-auto block"
-          width="800"
-          height="1000"
-          loading="lazy"
-          decoding="async"
-        />
-      </div>
-    </section>
-
-    <!-- ═══ 8. TESTIMONIALS (EDITORIAL OPEN PROOF PATTERN) ═══ -->
-    <section class="border-t border-slate-100 px-5 py-10">
-      <div class="mb-8">
-        <span class="inline-block rounded-md bg-[#EFF6FF] px-2.5 py-1 text-[11px] font-bold uppercase tracking-widest text-[#1E3A8A] ring-1 ring-[#1E3A8A]/15 mb-2">
-          Pengalaman Nyata Pelanggan
-        </span>
-        <h2 class={sectionTitle}>
-          Bukti Nyata Pengguna: <span class="box-decoration-clone bg-[#EFF6FF] px-1.5 pb-0.5 text-[#1E3A8A]"
-            >Terang Maksimal &amp; Sangat Praktis</span
+          width="480"
+          height="600" /></div
+      ><!-- COMPACT 1-LINE SPECIFICATION STRIP --><div
+        class="border-b border-slate-200 bg-slate-50 px-5 py-2.5 text-[12px] font-semibold text-slate-800"
+        >Sensor Lambaian 10cm • Sudut Putar 60 Derajat • Desain 2-in-1 Headlamp &amp; Senter Saku</div
+      ><div class="px-5 divide-y divide-slate-200 border-b border-slate-200"
+        ><div class="py-3.5 flex items-start gap-3"
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 text-emerald-700 shrink-0 mt-0.5"
+            aria-hidden="true"
+            fill="none"
+            stroke="currentColor"
           >
-        </h2>
-        <p class={`${body} mt-2`}>
-          Cerita jujur dari pelanggan setelah menggunakan Senter LED Mini &amp; Headlamp Sensor:
-        </p>
-      </div>
-
-      <div class="space-y-9">
-        {
-          [
-            {
-              name: 'Pak Joko Santoso',
-              location: 'Semarang, Jawa Tengah',
-              avatar: '/images/landing/senter-led-mini/avatar-2.webp',
-              problem: 'Kerja Bengkel Otomotif • Masalah: Tangan Kotor Saat Benerin Mesin',
-              image: '/images/landing/senter-led-mini/proof-mechanic.webp',
-              imageCaption: 'Hasil nyata: Kedua tangan leluasa bekerja, lampu on/off hanya dengan lambaian tangan',
-              review:
-                'Kecil-kecil cabe rawit! Pas tangan lagi penuh oli benerin mesin mobil, <strong class="box-decoration-clone bg-[#EFF6FF] px-1.5 pb-0.5 text-[#1E3A8A] font-semibold">sensor lambaian tangannya sangat responsif</strong> tinggal kibaskan tangan langsung nyala. Gak perlu lagi gigit senter atau minta tolong orang pegangin lampu.',
-              takeaway: 'Kedua tangan leluasa bekerja cepat, tombol bebas kotoran dan oli mesin.',
-            },
-            {
-              name: 'Mas Bagus Pratama',
-              location: 'Bandung, Jawa Barat',
-              avatar: '/images/landing/senter-led-mini/avatar-1.webp',
-              problem: 'Outdoor & Hiking • Masalah: Butuh Headlamp Ringan & Anti Pusing',
-              image: '/images/landing/senter-led-mini/proof-camping.webp',
-              imageCaption: 'Hasil nyata: Tali elastis empuk dan sorot lampu bisa disetel 60 derajat ke bawah',
-              review:
-                'Sangat ringan di kepala dan <strong class="box-decoration-clone bg-[#EFF6FF] px-1.5 pb-0.5 text-[#1E3A8A] font-semibold">talinya empuk gak bikin pusing kening</strong> walau dipakai berjam-jam jalan malam. Sorot 60 derajat ke bawah pas banget buat lihat jalanan bebatuan tanpa bikin silau teman di depan.',
-              takeaway: 'Ringan, nyaman dipakai semalaman, sudut cahaya presisi ke jalur tracking.',
-            },
-            {
-              name: 'Ibu Ratna Dewi',
-              location: 'Surabaya, Jawa Timur',
-              avatar: '/images/landing/senter-led-mini/avatar-3.webp',
-              problem: 'Rumah Tangga • Masalah: Siaga Listrik Padam Tiba-tiba',
-              image: '/images/landing/senter-led-mini/proof-blackout.webp',
-              imageCaption: 'Hasil nyata: Lampu diletakkan di meja saat mati lampu, ruangan langsung terang benderang',
-              review:
-                'Wajib punya di rumah buat jaga-jaga kalau mati lampu malam-malam. <strong class="box-decoration-clone bg-[#EFF6FF] px-1.5 pb-0.5 text-[#1E3A8A] font-semibold">Cahayanya terang fokus, baterai awet gampang dicas, dan pengirimannya cepat bisa bayar COD pas kurir datang.</strong> Sangat recommended!',
-              takeaway: 'Solusi penerangan darurat rumah tangga yang aman dan bebas repot lilin.',
-            },
-          ].map((item, index, arr) => (
-            <div class="space-y-3.5">
-              <!-- Customer Header -->
-              <div class="flex items-start justify-between gap-3">
-                <div class="flex items-center gap-3">
-                  <img
-                    src={item.avatar}
-                    alt={`Foto ${item.name}`}
-                    class="h-12 w-12 rounded-full object-cover ring-2 ring-slate-100 shrink-0"
-                    width="48"
-                    height="48"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                  <div>
-                    <div class="flex items-center gap-1.5">
-                      <h3 class="text-[16px] font-bold text-slate-950">{item.name}</h3>
-                      <span class="flex h-4 w-4 items-center justify-center text-blue-600">
-                        <Icon name="badge-check" class="h-4 w-4" aria-hidden="true" />
-                      </span>
-                    </div>
-                    <p class="text-[12px] font-medium text-slate-500">{item.location}</p>
-                  </div>
-                </div>
-                <div class="shrink-0 text-[13px] text-[#FBBF24]" role="img" aria-label="5 dari 5 bintang">
-                  ★★★★★
-                </div>
-              </div>
-
-              <!-- Problem Pill -->
-              <div class="inline-block rounded-md px-2.5 py-1 text-[11px] font-semibold tracking-wide border border-slate-200/70 bg-slate-50 text-slate-700">
-                {item.problem}
-              </div>
-
-              <!-- Proof Photo with Aspect 16/9 -->
-              <div class="relative aspect-[16/9] w-full overflow-hidden rounded-xl border border-slate-200/80 shadow-sm">
-                <img
-                  src={item.image}
-                  alt={item.imageCaption}
-                  class="h-full w-full object-cover"
-                  width="800"
-                  height="450"
-                  loading="lazy"
-                  decoding="async"
-                />
-              </div>
-
-              <!-- Quote with Highlighted Spans and Left Border Accent -->
-              <p
-                class="border-l-2 border-[#1E3A8A]/35 pl-3.5 text-[15px] leading-relaxed text-slate-700 italic pt-0.5"
-                set:html={`“${item.review}”`}
-              />
-
-              <!-- Key Takeaway Box -->
-              <div class="flex items-center gap-2 rounded-lg bg-[#EFF6FF] px-3 py-2 text-[12px] font-semibold text-[#1E3A8A]">
-                <span>📌</span>
-                <span>{item.takeaway}</span>
-              </div>
-
-              {index < arr.length - 1 && (
-                <div class="pt-6">
-                  <div class="h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent" />
-                </div>
-              )}
-            </div>
-          ))
-        }
-      </div>
-    </section>
-
-    <!-- ═══ 9. GARANSI 100% BELANJA AMAN ═══ -->
-    <section class="border-t border-[#0F2942] bg-[#0F2942] px-5 py-10 text-center text-white">
-      <div class="mx-auto mb-5 flex h-16 w-16 items-center justify-center text-[#FBBF24]">
-        <Icon name="shield-check" class="h-14 w-14" aria-hidden="true" />
-      </div>
-      <p class="mb-2 text-[11px] font-bold uppercase tracking-widest text-[#93C5FD]">Jaminan Belanja Bebas Resiko</p>
-      <h2 class="text-[30px] font-bold leading-[1.1] tracking-tight text-white">BELANJA AMAN &amp; TERPERCAYA</h2>
-      <p class="mx-auto mt-3 max-w-[320px] text-[15px] leading-relaxed text-blue-100/80">
-        Pesan sekarang dengan tenang, bayar saat barang sampai di tangan Anda (COD)!
-      </p>
-
-      <div class="mt-8 grid gap-4 text-left">
-        <div class="flex items-start gap-4 rounded-2xl border border-white/10 bg-white p-4 shadow-sm">
-          <span class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center text-[#1E3A8A]">
-            <Icon name="badge-check" class="h-5 w-5" aria-hidden="true" />
-          </span>
-          <p class="text-[15px] leading-relaxed text-slate-700">
-            <strong class="mb-0.5 block text-slate-950">100% Real Picture &amp; Berfungsi Normal.</strong> Produk sesuai dengan spesifikasi dan foto yang ditampilkan.
-          </p>
-        </div>
-
-        <div class="flex items-start gap-4 rounded-2xl border border-white/10 bg-white p-4 shadow-sm">
-          <span class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center text-[#1E3A8A]">
-            <Icon name="truck" class="h-5 w-5" aria-hidden="true" />
-          </span>
-          <p class="text-[15px] leading-relaxed text-slate-700">
-            <strong class="mb-0.5 block text-slate-950">Bisa Bayar di Tempat (COD).</strong> Bayar langsung ke kurir saat paket tiba di alamat Anda tanpa transfer di awal.
-          </p>
-        </div>
-
-        <div class="flex items-start gap-4 rounded-2xl border border-white/10 bg-white p-4 shadow-sm">
-          <span class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center text-[#1E3A8A]">
-            <Icon name="shield-check" class="h-5 w-5" aria-hidden="true" />
-          </span>
-          <p class="text-[15px] leading-relaxed text-slate-700">
-            <strong class="mb-0.5 block text-slate-950">Quality Check &amp; Packing Rapi.</strong> Setiap produk dicek teliti dan dikemas aman dengan bubble wrap sebelum dikirim.
-          </p>
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══ 10. NATIVE HYBRID CHECKOUT FORM ═══ -->
-    <section id="form-pemesanan" class="mt-4 scroll-mt-6 overflow-hidden rounded-none bg-white p-2">
-      <div class="px-3 pt-6 pb-2 text-center">
-        <p class="text-[11px] font-bold uppercase tracking-widest text-[#1E3A8A]">
-          Formulir Pemesanan Resmi
-        </p>
-        <h2 class="mt-1 text-[24px] font-bold text-slate-950">
-          Lengkapi Data Pengiriman
-        </h2>
-        <p class="mt-1 text-[13px] text-slate-600">
-          Pilih paket promo di bawah dan isi alamat lengkap. Bayar saat barang sampai (COD).
-        </p>
-      </div>
-
-      <GeoIpResolvedForm
-        mode={formContext.mode}
-        province={formContext.province}
-        productSlug={product.slug}
-        embedded={true}
-      />
-    </section>
-
-    <!-- ═══ 11. STICKY CTA & SOCIAL PROOF ═══ -->
-    <div
+            <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="m9 12l2 2l4-4"></path>
+            </g></svg
+          ><div
+            ><h3 class="text-[14.5px] font-bold leading-snug text-slate-950">Sensor Gerak Pintar (Smart Wave 10cm)</h3
+            ><p class="mt-1 text-[13.5px] font-normal leading-relaxed text-slate-700"
+              >Cukup kibaskan tangan di depan sensor,{' '}<mark class="bg-amber-100 px-1 font-semibold text-slate-950"
+                >lampu otomatis menyala atau mati dalam 0.1 detik</mark
+              >{' '}tanpa menyentuh bodi.</p
+            ></div
+          ></div
+        ><div class="py-3.5 flex items-start gap-3"
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 text-emerald-700 shrink-0 mt-0.5"
+            aria-hidden="true"
+            fill="none"
+            stroke="currentColor"
+          >
+            <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="m9 12l2 2l4-4"></path>
+            </g></svg
+          ><div
+            ><h3 class="text-[14.5px] font-bold leading-snug text-slate-950"
+              >Sorot LED Fokus &amp; Sudut Tekuk 60 Derajat</h3
+            ><p class="mt-1 text-[13.5px] font-normal leading-relaxed text-slate-700"
+              >Arahkan cahaya tepat ke titik kerja di bawah tanpa menunduk,{' '}<mark
+                class="bg-amber-100 px-1 font-semibold text-slate-950"
+                >leher bebas pegal dan tidak menyilaukan rekan</mark
+              >.</p
+            ></div
+          ></div
+        ><div class="py-3.5 flex items-start gap-3"
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 text-emerald-700 shrink-0 mt-0.5"
+            aria-hidden="true"
+            fill="none"
+            stroke="currentColor"
+          >
+            <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="m9 12l2 2l4-4"></path>
+            </g></svg
+          ><div
+            ><h3 class="text-[14.5px] font-bold leading-snug text-slate-950"
+              >Bodi Super Ringan &amp; Bisa Dilepas Jadi Senter Saku</h3
+            ><p class="mt-1 text-[13.5px] font-normal leading-relaxed text-slate-700"
+              >Tali kepala elastis empuk tidak menekan kening,{' '}<mark class="bg-amber-100 px-1 font-semibold text-slate-950"
+                >nyaman dipakai berjam-jam dan praktis masuk kantong</mark
+              >.</p
+            ></div
+          ></div
+        ></div
+      ><!-- SELLER VISUAL 2 IN MECHANISM/MANFAAT SECTION --><div class="mt-5 w-full bg-white border-y border-slate-200"
+        ><img
+          src="/images/landing/senter-led-mini/banner-headlamp-sensor.webp"
+          alt="Detail Headlamp LED Sensor Gerak Pintar Sudut 60 Derajat dan Ikat Kepala Elastis"
+          class="w-full h-auto block"
+          loading="lazy"
+          decoding="async"
+          width="480"
+          height="600" /></div></section
+    ><!-- ═══ 4. 4 OVERCLAIM VERIFIED REVIEWS ═══ --><section
+      class="cv-section border-t border-slate-200 bg-white pt-7 pb-7 px-5 text-left"
+      ><h2 class="text-[21px] sm:text-[23px] font-bold tracking-tight leading-[1.2] text-slate-950"
+        >Cerita Nyata Pengguna Senter LED Mini Sensor</h2
+      ><div class="mt-2 flex items-center gap-2 text-[13px] font-semibold text-slate-800"
+        ><div class="flex items-center gap-0.5 text-amber-400" role="img" aria-label="Rating 5 dari 5 bintang"
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 fill-amber-400 text-amber-400"
+            aria-hidden="true"
+            fill="currentColor"
+            stroke="currentColor"
+          >
+            <path
+              fill="currentColor"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+            ></path></svg
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 fill-amber-400 text-amber-400"
+            aria-hidden="true"
+            fill="currentColor"
+            stroke="currentColor"
+          >
+            <path
+              fill="currentColor"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+            ></path></svg
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 fill-amber-400 text-amber-400"
+            aria-hidden="true"
+            fill="currentColor"
+            stroke="currentColor"
+          >
+            <path
+              fill="currentColor"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+            ></path></svg
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 fill-amber-400 text-amber-400"
+            aria-hidden="true"
+            fill="currentColor"
+            stroke="currentColor"
+          >
+            <path
+              fill="currentColor"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+            ></path></svg
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 fill-amber-400 text-amber-400"
+            aria-hidden="true"
+            fill="currentColor"
+            stroke="currentColor"
+          >
+            <path
+              fill="currentColor"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+            ></path></svg></div
+        ><span class="font-bold text-slate-950">4.9 / 5.0</span><span class="text-slate-300">•</span
+        ><span class="text-slate-600">Pembeli COD Terverifikasi</span></div
+      ><div class="mt-4 divide-y divide-slate-200 border-y border-slate-200"
+        ><article class="py-3.5"
+          ><div class="flex items-center justify-between gap-2"
+            ><h3 class="text-[14.5px] font-bold text-slate-950">Pak Joko Santoso (44 th) • Semarang</h3
+            ><div class="flex items-center gap-0.5 text-amber-400 shrink-0" role="img" aria-label="Rating 5 dari 5 bintang"
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg></div></div
+          ><p class="mt-1.5 text-[13.5px] font-normal leading-relaxed text-slate-900"
+            >"Kerja bengkel malam hari sekarang cepat selesai! Saat tangan belepotan oli mesin,{' '}<mark
+              class="bg-amber-200/80 px-1 font-semibold text-slate-950"
+              >tinggal kibaskan tangan lampu langsung nyala super terang</mark
+            >{' '}sampai baut kecil di kolong mesin kelihatan jelas."</p
+          ></article
+        ><article class="py-3.5"
+          ><div class="flex items-center justify-between gap-2"
+            ><h3 class="text-[14.5px] font-bold text-slate-950">Mas Bagus Pratama (32 th) • Bandung</h3
+            ><div class="flex items-center gap-0.5 text-amber-400 shrink-0" role="img" aria-label="Rating 5 dari 5 bintang"
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg></div></div
+          ><p class="mt-1.5 text-[13.5px] font-normal leading-relaxed text-slate-900"
+            >"Dipakai mancing malam dan ronda kampung mantap betul.{' '}<mark
+              class="bg-amber-200/80 px-1 font-semibold text-slate-950"
+              >Enteng banget di kening gak bikin kepala pusing</mark
+            >, pasang umpan kail pancing jadi gampang karena kedua tangan bebas."</p
+          ></article
+        ><article class="py-3.5"
+          ><div class="flex items-center justify-between gap-2"
+            ><h3 class="text-[14.5px] font-bold text-slate-950">Ibu Ratna Dewi (41 th) • Surabaya</h3
+            ><div class="flex items-center gap-0.5 text-amber-400 shrink-0" role="img" aria-label="Rating 5 dari 5 bintang"
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg></div></div
+          ><p class="mt-1.5 text-[13.5px] font-normal leading-relaxed text-slate-900"
+            >"Kemarin komplek mati lampu 4 jam, taruh senter kecil ini di meja ruang tamu{' '}<mark
+              class="bg-amber-200/80 px-1 font-semibold text-slate-950"
+              >satu ruangan langsung terang benderang tanpa lilin</mark
+            >. Baterainya awet dan mudah dicas ulang!"</p
+          ></article
+        ><article class="py-3.5"
+          ><div class="flex items-center justify-between gap-2"
+            ><h3 class="text-[14.5px] font-bold text-slate-950">Pak Hendra Kusuma (49 th) • Bekasi</h3
+            ><div class="flex items-center gap-0.5 text-amber-400 shrink-0" role="img" aria-label="Rating 5 dari 5 bintang"
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg></div></div
+          ><p class="mt-1.5 text-[13.5px] font-normal leading-relaxed text-slate-900"
+            >"Ambil paket 2 pcs buat di bagasi mobil dan kotak perkakas rumah.{' '}<mark
+              class="bg-amber-200/80 px-1 font-semibold text-slate-950"
+              >Cahayanya tembus jauh dan sensornya sangat akurat</mark
+            >, pengiriman cepat bayar COD aman."</p
+          ></article
+        ></div
+      ></section
+    ><!-- ═══ 5. 3 CONCISE FAQ ITEMS ═══ --><section
+      class="cv-section border-t border-slate-200 bg-white pt-7 pb-7 px-5 text-left"
+      ><h2 class="text-[20px] font-bold tracking-tight leading-[1.2] text-slate-950">Pertanyaan yang Sering Diajukan</h2
+      ><div class="mt-3 divide-y divide-slate-200 border-y border-slate-200"
+        ><div class="py-3.5"
+          ><h3 class="text-[14px] font-bold text-slate-950">Apakah sudah termasuk tali kepala (headband)?</h3
+          ><p class="mt-1 text-[13px] font-normal leading-relaxed text-slate-700"
+            >Sudah lengkap, setiap pembelian mendapatkan unit senter LED mini sekaligus tali kepala elastis yang bisa
+            dilepas-pasang.</p
+          ></div
+        ><div class="py-3.5"
+          ><h3 class="text-[14px] font-bold text-slate-950">Bagaimana cara mengaktifkan sensor lambaian tangan?</h3
+          ><p class="mt-1 text-[13px] font-normal leading-relaxed text-slate-700"
+            >Tekan tombol mode sensor satu kali, lalu cukup lambaikan tangan berjarak 10 cm di depan lampu untuk menyalakan
+            atau mematikan.</p
+          ></div
+        ><div class="py-3.5"
+          ><h3 class="text-[14px] font-bold text-slate-950">Apakah bisa bayar di tempat (COD) saat paket datang?</h3
+          ><p class="mt-1 text-[13px] font-normal leading-relaxed text-slate-700"
+            >Bisa, Anda cukup mengisi alamat di bawah ini dan bayar tunai langsung ke kurir saat barang tiba.</p
+          ></div
+        ></div
+      ></section
+    ><!-- ═══ 6. MECHANISM ACTION IMAGE & URGENCY PRICING STRIP ═══ --><section
+      class="cv-section w-full border-t border-slate-900 bg-slate-950 text-white pb-7 text-left"
+      ><div class="w-full bg-white border-y border-slate-200"
+        ><img
+          src="/images/landing/senter-led-mini/proof-mechanic.webp"
+          alt="Penggunaan Senter LED Mini Headlamp Sensor Gerak untuk Kerja Teknisi dan Bengkel"
+          class="w-full h-auto block"
+          loading="lazy"
+          decoding="async"
+          width="600"
+          height="338" /></div
+      ><div class="px-5 pt-6"
+        ><div class="flex items-center justify-between pb-4 border-b border-slate-800"
+          ><span class="inline-flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-wider text-amber-400"
+            ><svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="1em"
+              height="1em"
+              viewBox="0 0 24 24"
+              class="h-4 w-4 text-amber-400"
+              aria-hidden="true"
+              fill="none"
+              stroke="currentColor"
+            >
+              <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M12 6v6l4 2"></path>
+              </g></svg
+            ><span>Promo Berakhir Dalam</span></span
+          ><div class="font-mono text-[16px] font-bold text-white"
+            ><span id="countdown-minutes">15</span>:<span id="countdown-seconds">00</span></div
+          ></div
+        ><div class="py-4 border-b border-slate-800"
+          ><p class="text-[11px] font-bold uppercase tracking-widest text-slate-400"
+            >Harga Promo Paket 2 (Paling Diminati)</p
+          ><div class="mt-1.5 flex items-baseline gap-2.5"
+            ><span class="text-[32px] font-bold font-mono tracking-tight text-amber-400 leading-none">Rp124.500</span
+            ><span class="text-[14px] text-slate-400 line-through">Rp176.000</span></div
+          ><p class="mt-2 text-[12.5px] font-semibold text-slate-200"
+            >Hemat Rp51.500 • Paket 1 Rp{rupiah(price)} • Paket 3 Rp219.000</p
+          ></div
+        ><div class="pt-4"
+          ><div class="flex items-center justify-between text-[12px] font-semibold"
+            ><span class="text-slate-300">Sisa Kuota Promo Hari Ini:</span
+            ><span id="stock-count-text" class="font-mono font-bold text-amber-400">Tersisa 8 Paket Lagi</span></div
+          ><div class="mt-2 h-1.5 w-full bg-slate-800 overflow-hidden"
+            ><div
+              id="stock-progress-bar"
+              class="h-full bg-amber-400 transition-all duration-500"
+              style="width: 55%"
+            ></div></div></div></div></section
+    ><!-- ═══ 7. FORMULIR PEMESANAN (CHECKOUT COD) ═══ --><section
+      id="form-pemesanan"
+      class="bg-white px-0 pt-6 pb-4 scroll-mt-4 w-full text-left"
+      ><div class="px-5 pb-2"
+        ><h2 class="text-[20px] font-bold tracking-tight text-slate-950 leading-tight">Lengkapi Data Pengiriman COD</h2
+        ><p class="text-[13.5px] font-normal text-slate-600 mt-1 leading-relaxed"
+          >Pilih paket dan isi alamat. Bayar tunai langsung ke kurir saat barang sampai di tangan Anda.</p
+        ></div
+      ><GeoIpResolvedForm mode={formContext.mode} province={formContext.province} productSlug={product.slug} embedded={true} /></section
+    ><SocialProofToast orderCount={socialProofOrders} heroSelector="#landing-hero" formSelector="#form-pemesanan" /><div
       id="sticky-purchase-bar"
-      class="fixed inset-x-0 bottom-0 z-40 mx-auto flex w-full max-w-[480px] items-center justify-between border-t border-slate-200 bg-white/95 px-5 py-3 shadow-[0_-8px_24px_rgba(17,17,17,0.08)] backdrop-blur-md transition-all duration-300"
-      style="transform: translateY(100%); opacity: 0; pointer-events: none;"
-    >
-      <div>
-        <p class="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#555555]">Harga Promo</p>
-        <p class="text-base font-bold text-[#111111]">Rp{Math.round(price).toLocaleString('id-ID')}</p>
-      </div>
-      <a
+      class="fixed inset-x-0 bottom-0 z-40 mx-auto flex w-full max-w-[480px] items-center justify-between border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur-md transition-all duration-300 lg:hidden"
+      style="transform: translateY(100%); opacity: 0; pointer-events: none"
+      ><div
+        ><p class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Mulai Dari</p
+        ><p class="text-base font-bold text-slate-950">Rp{rupiah(price)}</p></div
+      ><a
         href="#form-pemesanan"
-        class="inline-flex min-h-11 items-center justify-center rounded-full bg-[#1E3A8A] px-6 text-[11px] font-bold uppercase tracking-[0.1em] text-white shadow-md transition-colors hover:bg-[#0F2942] active:scale-[0.98]"
-      >
-        Pesan Sekarang (COD)
-      </a>
-    </div>
-
-    <SocialProofToast
-      orderCount={socialProofOrders}
-      heroSelector="#landing-hero"
-      formSelector="#form-pemesanan"
-    />
+        class="inline-flex min-h-11 items-center justify-center bg-red-700 px-5 text-[11.5px] font-bold uppercase tracking-wider text-white transition-colors hover:bg-red-800"
+        >Pesan Sekarang (COD)</a
+      ></div
+    >
   </main>
+  <script is:inline>
+  function initCountdownTimer() {
+    const minEl = document.getElementById('countdown-minutes');
+    const secEl = document.getElementById('countdown-seconds');
+    if (!minEl || !secEl) return;
 
-  <script slot="head" is:inline>
-    function initStickyBarObserver() {
-      const stickyBar = document.getElementById('sticky-purchase-bar');
-      const orderForm = document.getElementById('form-pemesanan');
-      const hero = document.getElementById('landing-hero');
-      if (!stickyBar) return;
+    const DURATION_MS = 15 * 60 * 1000;
+    const STORAGE_KEY = 'senter_led_mini_countdown_v1';
+    let targetTime = parseInt(sessionStorage.getItem(STORAGE_KEY) || '0', 10);
+    const now = Date.now();
 
-      let heroVisible = true;
-      let formVisible = false;
-
-      const applyStickyVisibility = () => {
-        if (heroVisible || formVisible) {
-          stickyBar.style.transform = 'translateY(100%)';
-          stickyBar.style.opacity = '0';
-          stickyBar.style.pointerEvents = 'none';
-        } else {
-          stickyBar.style.transform = 'translateY(0)';
-          stickyBar.style.opacity = '1';
-          stickyBar.style.pointerEvents = 'auto';
-        }
-      };
-
-      const observer = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((entry) => {
-            if (entry.target === hero) heroVisible = entry.isIntersecting;
-            if (entry.target === orderForm) formVisible = entry.isIntersecting;
-          });
-          applyStickyVisibility();
-        },
-        { threshold: 0.05, rootMargin: '0px 0px -40px 0px' }
-      );
-
-      if (hero) observer.observe(hero);
-      if (orderForm) observer.observe(orderForm);
-      applyStickyVisibility();
+    if (!targetTime || targetTime <= now || targetTime - now > DURATION_MS) {
+      targetTime = now + DURATION_MS;
+      sessionStorage.setItem(STORAGE_KEY, targetTime.toString());
     }
 
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', initStickyBarObserver);
-    } else {
-      initStickyBarObserver();
+    const updateTimer = () => {
+      const currentTime = Date.now();
+      let remainingMs = targetTime - currentTime;
+
+      if (remainingMs <= 0) {
+        targetTime = currentTime + DURATION_MS;
+        sessionStorage.setItem(STORAGE_KEY, targetTime.toString());
+        remainingMs = DURATION_MS;
+      }
+
+      const totalSeconds = Math.floor(remainingMs / 1000);
+      const mins = Math.floor(totalSeconds / 60);
+      const secs = totalSeconds % 60;
+
+      minEl.textContent = String(mins).padStart(2, '0');
+      secEl.textContent = String(secs).padStart(2, '0');
+    };
+
+    updateTimer();
+    setInterval(updateTimer, 1000);
+  }
+
+  function initStockCounter() {
+    const stockText = document.getElementById('stock-count-text');
+    const stockBar = document.getElementById('stock-progress-bar');
+    if (!stockText || !stockBar) return;
+
+    const STORAGE_KEY = 'senter_led_mini_stock_v1';
+    let stock = parseInt(sessionStorage.getItem(STORAGE_KEY) || '0', 10);
+
+    if (!stock || stock < 4 || stock > 12) {
+      stock = Math.floor(Math.random() * (12 - 6 + 1)) + 6;
+      sessionStorage.setItem(STORAGE_KEY, stock.toString());
     }
-  </script>
+
+    const updateStockUI = (val) => {
+      stockText.textContent = `Tersisa ${val} Unit Lagi`;
+      const pct = Math.min(90, Math.max(30, Math.round((val / 15) * 100)));
+      stockBar.style.width = `${pct}%`;
+    };
+
+    updateStockUI(stock);
+
+    const delay = Math.floor(Math.random() * (60000 - 35000 + 1)) + 35000;
+    setTimeout(() => {
+      let current = parseInt(sessionStorage.getItem(STORAGE_KEY) || '0', 10);
+      if (current > 3) {
+        current -= 1;
+        sessionStorage.setItem(STORAGE_KEY, current.toString());
+        updateStockUI(current);
+      }
+    }, delay);
+  }
+
+  function initStickyBarObserver() {
+    const stickyBar = document.getElementById('sticky-purchase-bar');
+    const orderForm = document.getElementById('form-pemesanan');
+    const hero = document.getElementById('landing-hero');
+    if (!stickyBar || !orderForm) return;
+
+    let heroVisible = true;
+    let formVisible = false;
+
+    const applyStickyVisibility = () => {
+      if (heroVisible || formVisible) {
+        stickyBar.style.transform = 'translateY(100%)';
+        stickyBar.style.opacity = '0';
+        stickyBar.style.pointerEvents = 'none';
+      } else {
+        stickyBar.style.transform = 'translateY(0)';
+        stickyBar.style.opacity = '1';
+        stickyBar.style.pointerEvents = 'auto';
+      }
+    };
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.target === hero) heroVisible = entry.isIntersecting;
+          if (entry.target === orderForm) formVisible = entry.isIntersecting;
+        });
+        applyStickyVisibility();
+      },
+      { threshold: 0, rootMargin: '0px 0px -40px 0px' }
+    );
+
+    if (hero) observer.observe(hero);
+    else heroVisible = false;
+    observer.observe(orderForm);
+    applyStickyVisibility();
+  }
+
+  const initAll = () => {
+    initCountdownTimer();
+    initStockCounter();
+    initStickyBarObserver();
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAll);
+  } else {
+    initAll();
+  }
+</script>
 </BaseLayout>

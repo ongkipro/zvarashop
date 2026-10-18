@@ -1,8 +1,12 @@
 ---
 /*
- * Native Astro landing page — DT Kapsul M-Say.
- * Clean, High-Converting Direct-Response Funnel
- * Exact Visual & Structural Reference: https://zvara.shop/nature-gemuk-badan
+ * Native Astro landing page — DT Kapsul M-Say Herbal Metabolisme & Pencernaan BPOM.
+ * Rebuilt on 2026-10-18 from the live render of
+ * https://zvara.shop/produk/kapsul-dt-pelangsing-penurun-berat-badan-30-kapsul: this page was deployed from
+ * another device and its source never reached the repository. Markup and
+ * page CSS are the live ones; the tracker, order form and social-proof toast
+ * are the components that rendered them, and the lowest variant price is
+ * bound to the product rather than written in.
  */
 import BaseLayout from '../layouts/BaseLayout.astro';
 import MetaLandingTracker from '../components/storefront/tracking/MetaLandingTracker.astro';
@@ -10,7 +14,7 @@ import GeoIpResolvedForm from '../components/storefront/forms/GeoIpResolvedForm.
 import SocialProofToast from '../components/storefront/shared/SocialProofToast.astro';
 import { recentOrderCount } from '../lib/social-proof';
 import { getRuntimeEnv } from '../lib/env';
-import { getStorefrontProduct, getStorefrontProducts } from '../lib/catalog';
+import { getStorefrontProduct } from '../lib/catalog';
 import { nativeLandingCanonicalPath } from '../lib/landing-pages';
 import { defaultCatalogContentId } from '../lib/catalog-feed';
 import { resolveFormModeContext } from '../lib/form-mode';
@@ -20,719 +24,1046 @@ import '../styles/landing-pages/dt-kapsul.css';
 
 export const prerender = false;
 
-const SLUG = 'dt-kapsul';
-const PRODUCT_SLUG = 'kapsul-dt-pelangsing-penurun-berat-badan-30-kapsul';
+const SLUG = "dt-kapsul";
+const PRODUCT_SLUG = "kapsul-dt-pelangsing-penurun-berat-badan-30-kapsul";
 
-// Product resolution with strict DB fallback
-let product = await getStorefrontProduct(Astro.locals, PRODUCT_SLUG);
-if (!product) {
-  const allProducts = await getStorefrontProducts(Astro.locals);
-  product = allProducts.find((p) => p.slug.includes('dt') || p.slug.includes('pelangsing')) ?? allProducts[0] ?? null;
-}
+const product = await getStorefrontProduct(Astro.locals, PRODUCT_SLUG);
 if (!product) return Astro.rewrite('/404');
 
 const formContext = await resolveFormModeContext(Astro.request);
-
 const canonical = `${Astro.locals.tenant.siteUrl}${await nativeLandingCanonicalPath(Astro.locals, SLUG)}`;
-const seoTitle = 'DT Kapsul M-Say Herbal BPOM — Pelancar Metabolisme & Pencernaan Alami';
-const seoDescription =
-  'DT Kapsul herbal alami resmi BPOM (POM TR.243002691). Membantu melancarkan metabolisme, pencernaan lebih smooth tanpa mulas berlebih, dan mendukung bentuk tubuh ideal.';
+const seoTitle = "Kapsul Dt Pelangsing Penurun Berat Badan 30 Kapsul — Kempeskan Perut Buncit & Lancarkan BAB Alami";
+const seoDescription = "Kapsul Dt Pelangsing Penurun Berat Badan 30 Kapsul tercantum dalam kategori Umum. Detail yang ditampilkan mengikuti data katalog toko.";
 
 const cheapest = [...product.variants].sort((a, b) => a.price - b.price)[0] ?? null;
 const price = cheapest?.price ?? product.price;
-const comparePrice = cheapest?.comparePrice ?? Math.round(price * 1.08);
+const rupiah = (value: number) => Math.round(value).toLocaleString('id-ID');
 const socialProofOrders = await recentOrderCount(getRuntimeEnv(Astro.locals)?.OMS_DB as D1Database | undefined);
 ---
 
 <BaseLayout
   title={seoTitle}
   description={seoDescription}
-  image="/images/landing/dt-kapsul/hero-lifestyle.webp"
+  image="/assets/uploads/2026-08-18/2081707a-5a79-4c6c-b49b-7c14b23e3865.webp"
   preloadImages="/images/landing/dt-kapsul/hero-lifestyle.webp"
   canonical={canonical}
   hideHeader={true}
   hideFooter={true}
 >
-  <main class="mx-auto min-h-screen w-full max-w-[480px] bg-white pb-12 font-sans text-slate-900 shadow-2xl selection:bg-[#0F766E] selection:text-white antialiased">
-    <MetaLandingTracker
-      slug={SLUG}
-      contentId={defaultCatalogContentId(product)}
-      contentName={product.contentName}
-      price={price}
-    />
-
-    <!-- ═══ 1. URGENCY ANNOUNCEMENT BAR (TOP) ═══ -->
-    <header class="flex items-center justify-between border-b border-cyan-950 bg-[#083344] px-4 py-2.5 text-white shadow-sm">
-      <div class="flex items-center gap-2 text-[12px] font-bold tracking-wide">
-        <span class="flex h-2 w-2 relative">
-          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-          <span class="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-        </span>
-        <span class="text-amber-300">PROMO HARI INI:</span>
-        <span class="text-white">MULAI Rp{Math.round(price).toLocaleString('id-ID')}</span>
-      </div>
-      <div class="rounded-full bg-white/15 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-100 backdrop-blur-xs">
-        Bisa COD
-      </div>
-    </header>
-
-    <!-- ═══ 2. HERO SECTION ═══ -->
-    <section id="landing-hero" class="relative overflow-hidden bg-gradient-to-b from-teal-50/50 via-white to-white pt-6 pb-2">
-      <div class="px-5">
-        <!-- Rating & Social Proof -->
-        <div class="mb-3.5 flex items-center gap-2">
-          <div class="flex items-center gap-0.5 text-amber-500" role="img" aria-label="Rating 4.9 dari 5 bintang">
-            <svg class="h-4 w-4 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-            <svg class="h-4 w-4 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-            <svg class="h-4 w-4 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-            <svg class="h-4 w-4 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-            <svg class="h-4 w-4 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-          </div>
-          <p class="text-[12.5px] font-semibold text-slate-600">
-            4.9 / 5.0 <span class="mx-1 text-slate-300">•</span> (4.900+ Konsumen Terverifikasi)
-          </p>
-        </div>
-
-        <h1 class="text-[clamp(21px,6vw,26px)] font-extrabold leading-[1.25] tracking-tight text-slate-900">
-          Perut Buncit, BAB Macet &amp; Metabolisme Lambat Bikin Tubuh&nbsp;<span class="text-[#0F766E] underline decoration-teal-400 decoration-3 underline-offset-4 whitespace-nowrap">Begah &amp; Berat?</span>
-        </h1>
-
-        <p class="mt-3.5 text-[15px] leading-relaxed text-slate-600">
-          <strong class="font-bold text-slate-900">Formula Herbal Alami Berizin Resmi BPOM (POM TR.243002691):</strong> DT Kapsul M-Say membantu mengoptimalkan metabolisme tubuh, melancarkan buang air besar secara smooth tanpa mulas berlebih, membersihkan racun usus (detox alami), dan membantu merampingkan lingkar perut secara bertahap.
-        </p>
-      </div>
-
-      <!-- ═══ FULL-WIDTH HERO IMAGE BANNER ═══ -->
-      <div class="relative mx-auto mt-6 w-full overflow-hidden border-y border-slate-200 bg-slate-50">
-        <img
+  <main class="mx-auto min-h-screen w-full max-w-[480px] bg-white pb-16 font-sans text-slate-950 selection:bg-amber-200 selection:text-slate-950 antialiased">
+    <MetaLandingTracker slug={SLUG} contentId={defaultCatalogContentId(product)} contentName={product.contentName} price={price} /><!-- ═══ 1. MINIMALIST URGENCY BAR (TOP) ═══ --><header
+      class="flex items-center justify-between border-b border-slate-900 bg-slate-950 px-4 py-2 text-white"
+      ><div class="flex items-center gap-1.5 text-[11px] font-bold tracking-wide min-w-0"
+        ><svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="1em"
+          height="1em"
+          viewBox="0 0 24 24"
+          class="h-3.5 w-3.5 fill-amber-400 text-amber-400 shrink-0"
+          aria-hidden="true"
+          fill="currentColor"
+          stroke="currentColor"
+        >
+          <path
+            fill="currentColor"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M15.914 4a1.5 1.5 0 0 0-2.474-1.561l-9 9A1.5 1.5 0 0 0 5.5 14h4.002a.5.5 0 0 1 .471.666L8.086 20a1.5 1.5 0 0 0 2.475 1.56l9-9A1.5 1.5 0 0 0 18.5 10h-3.997a.5.5 0 0 1-.472-.667z"
+          ></path></svg
+        ><span class="text-amber-400 uppercase shrink-0">PROMO:</span
+        ><span class="text-white truncate">BELI 2 HEMAT RP21.500</span></div
+      ><span class="text-[10.5px] font-bold tracking-wider text-amber-400 uppercase shrink-0 ml-2">BISA COD</span></header
+    ><!-- ═══ 2. HERO SECTION (NO RATING ABOVE HEADLINE, NO BUTTON, CLEAN BG) ═══ --><section
+      id="landing-hero"
+      class="bg-white pb-6"
+      ><div class="px-5 pt-6 text-left"
+        ><h1 class="text-[clamp(23px,6.8vw,28px)] font-bold leading-[1.18] tracking-tight text-slate-950"
+          >Perut Buncit Membatu, BAB Macet &amp; Celana Sempit Sesak?{' '}<mark class="bg-amber-200 px-1.5 py-0.5 text-slate-950"
+            >Luruhkan Lemak Perut</mark
+          >{' '}Tanpa Mulas Menyiksa!</h1
+        ><p class="mt-3 text-[15px] font-normal leading-relaxed text-slate-700"
+          >Ekstrak herbal murni BPOM TR.243002691{' '}<mark class="bg-red-100 px-1 font-semibold text-red-900"
+            >menguras tumpukan kerak kotoran usus</mark
+          >{' '}dan mengaktifkan pembakaran lemak 24 jam.</p
+        ></div
+      ><!-- FULL-WIDTH UNCROPPED HERO IMAGE --><div class="mt-5 w-full bg-white border-y border-slate-200"
+        ><img
           src="/images/landing/dt-kapsul/hero-lifestyle.webp"
-          alt="DT Kapsul M-Say Herbal BPOM Pelancar Metabolisme & Pencernaan"
+          alt="DT Kapsul M-Say Herbal BPOM Solusi Perut Buncit dan Pelancar Pencernaan"
           class="w-full h-auto block"
           fetchpriority="high"
           loading="eager"
           decoding="async"
-        />
-        <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-slate-950/85 via-slate-950/40 to-transparent px-4 pt-8 pb-3 text-center text-white">
-          <p class="text-[13px] font-medium text-teal-200">
-            Metabolisme lebih aktif, pencernaan lancar &amp; tubuh terasa ringan berenergi
-          </p>
-        </div>
-      </div>
-
-      <!-- Trust Strip Badges with Clean SVG Icons -->
-      <div class="flex divide-x divide-slate-200 border-b border-slate-200 bg-white py-3 text-center text-slate-700">
-        <div class="flex flex-1 flex-col items-center justify-center gap-1.5 px-1">
-          <svg class="h-5 w-5 text-teal-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>
-          <span class="text-[10px] font-bold uppercase tracking-wider text-slate-900">Bisa COD</span>
-        </div>
-        <div class="flex flex-1 flex-col items-center justify-center gap-1.5 px-1">
-          <svg class="h-5 w-5 text-teal-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
-          <span class="text-[10px] font-bold uppercase tracking-wider text-slate-900">BPOM Resmi</span>
-        </div>
-        <div class="flex flex-1 flex-col items-center justify-center gap-1.5 px-1">
-          <svg class="h-5 w-5 text-teal-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
-          <span class="text-[10px] font-bold uppercase tracking-wider text-slate-900">100% Herbal</span>
-        </div>
-        <div class="flex flex-1 flex-col items-center justify-center gap-1.5 px-1">
-          <svg class="h-5 w-5 text-teal-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-          <span class="text-[10px] font-bold uppercase tracking-wider text-slate-900">Nyaman Perut</span>
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══ 3. SECTION: PROBLEM / AGITATION ═══ -->
-    <section class="border-t border-slate-100 bg-white px-5 pt-10 pb-8">
-      <div class="text-center">
-        <span class="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.2em] text-[#0F766E]">Kendala Tubuh Sehari-Hari</span>
-        <h2 class="text-[clamp(21px,6.2vw,25px)] font-extrabold tracking-tight leading-[1.25] text-slate-950">
-          Sering Mengalami Masalah Ini Saat Ingin Badan Ramping &amp; Sehat?
-        </h2>
-        <p class="mt-2 text-[14px] text-slate-600 leading-relaxed max-w-[420px] mx-auto">
-          Pencernaan lambat dan penumpukan sisa kotoran di usus membuat perut buncit dan tubuh terasa begah:
-        </p>
-      </div>
-
-      <div class="mt-6 space-y-3.5">
-        <div class="flex items-start gap-3.5 rounded-xl border border-rose-100 bg-rose-50/50 p-4">
-          <div class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-rose-200/70 text-rose-800 font-bold text-xs">
-            !
-          </div>
-          <div>
-            <h3 class="text-[15px] font-bold text-slate-900">BAB Tidak Lancar &amp; Perut Sering Begah</h3>
-            <p class="mt-1 text-[13px] leading-relaxed text-slate-600">
-              Sering sembelit berhari-hari, perut terasa penuh mengganjal, dan sisa makanan yang menumpuk menimbulkan rasa tidak nyaman sepanjang hari.
-            </p>
-          </div>
-        </div>
-
-        <div class="flex items-start gap-3.5 rounded-xl border border-rose-100 bg-rose-50/50 p-4">
-          <div class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-rose-200/70 text-rose-800 font-bold text-xs">
-            !
-          </div>
-          <div>
-            <h3 class="text-[15px] font-bold text-slate-900">Lemak Menumpuk di Lingkar Perut &amp; Pinggang</h3>
-            <p class="mt-1 text-[13px] leading-relaxed text-slate-600">
-              Metabolisme tubuh melambat sehingga kalori makanan lebih mudah berubah menjadi timbunan lemak membandel di perut dan paha.
-            </p>
-          </div>
-        </div>
-
-        <div class="flex items-start gap-3.5 rounded-xl border border-rose-100 bg-rose-50/50 p-4">
-          <div class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-rose-200/70 text-rose-800 font-bold text-xs">
-            !
-          </div>
-          <div>
-            <h3 class="text-[15px] font-bold text-slate-900">Takut Efek Samping Obat Pencahar Ekstrem</h3>
-            <p class="mt-1 text-[13px] leading-relaxed text-slate-600">
-              Obat pelangsing kimia sering memicu mulas melilit, diare parah, jantung berdebar kencang, dan badan lemas tak berdaya.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div class="mt-6 rounded-xl border-l-4 border-[#0F766E] bg-slate-50 p-4 text-[13.5px] leading-relaxed text-slate-700">
-        Menurunkan berat badan dan mengecilkan perut buncit harus dimulai dari kesehatan pencernaan. Dengan metabolisme yang lancar dan usus yang bersih, tubuh membakar kalori lebih efisien secara alami tanpa rasa mulas menyiksa.
-      </div>
-    </section>
-
-    <!-- ═══ 4. SECTION: PERBANDINGAN METODE ═══ -->
-    <section class="border-t border-slate-200/80 bg-slate-50/70 px-4 sm:px-5 py-9">
-      <div class="text-center">
-        <span class="inline-block rounded-full bg-teal-100/70 px-3 py-0.5 text-[11px] font-bold uppercase tracking-wider text-teal-800">
-          Perbandingan Metode
-        </span>
-        <h2 class="mt-2 text-[clamp(20px,5.8vw,24px)] font-extrabold tracking-tight text-slate-900 leading-tight">
-          Pelangsing Kimia vs DT Kapsul Herbal BPOM
-        </h2>
-        <p class="mt-1.5 text-[13px] text-slate-600 leading-relaxed max-w-[390px] mx-auto">
-          Bandingkan efeknya langsung terhadap kenyamanan dan kesehatan tubuh Anda:
-        </p>
-      </div>
-
-      <div class="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs">
-        <div class="grid grid-cols-2 text-[12.5px] font-bold border-b border-slate-200">
-          <div class="bg-rose-50/70 p-3 text-center text-rose-900 border-r border-slate-200">
-            Pelangsing Kimia
-          </div>
-          <div class="bg-teal-50 text-center p-3 text-teal-950 font-extrabold">
-            DT Kapsul Herbal
-          </div>
-        </div>
-
-        <div class="divide-y divide-slate-100 text-[12px] sm:text-[12.5px]">
-          <div class="grid grid-cols-2">
-            <div class="flex items-start gap-2 p-3 text-slate-600 border-r border-slate-200/70 bg-rose-50/20">
-              <svg class="h-4 w-4 shrink-0 text-rose-500 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-              <span>Mulas melilit &amp; diare lemas</span>
-            </div>
-            <div class="flex items-start gap-2 p-3 text-slate-800 bg-teal-50/20 font-medium">
-              <svg class="h-4 w-4 shrink-0 text-teal-600 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
-              <span>Pencernaan smooth &amp; nyaman</span>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-2">
-            <div class="flex items-start gap-2 p-3 text-slate-600 border-r border-slate-200/70 bg-rose-50/20">
-              <svg class="h-4 w-4 shrink-0 text-rose-500 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-              <span>Jantung berdebar &amp; pusing</span>
-            </div>
-            <div class="flex items-start gap-2 p-3 text-slate-800 bg-teal-50/20 font-medium">
-              <svg class="h-4 w-4 shrink-0 text-teal-600 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
-              <span>Tubuh segar &amp; bugar berenergi</span>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-2">
-            <div class="flex items-start gap-2 p-3 text-slate-600 border-r border-slate-200/70 bg-rose-50/20">
-              <svg class="h-4 w-4 shrink-0 text-rose-500 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-              <span>Beban bagi lambung &amp; ginjal</span>
-            </div>
-            <div class="flex items-start gap-2 p-3 text-slate-800 bg-teal-50/20 font-medium">
-              <svg class="h-4 w-4 shrink-0 text-teal-600 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
-              <span>100% Herbal izin BPOM</span>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-2">
-            <div class="flex items-start gap-2 p-3 text-slate-600 border-r border-slate-200/70 bg-rose-50/20">
-              <svg class="h-4 w-4 shrink-0 text-rose-500 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-              <span>Efek yoyo cepat naik drastis</span>
-            </div>
-            <div class="flex items-start gap-2 p-3 text-slate-800 bg-teal-50/20 font-medium">
-              <svg class="h-4 w-4 shrink-0 text-teal-600 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
-              <span>Metabolisme aktif &amp; hasil stabil</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══ 5. SECTION: DUAL PERSPEKTIF ═══ -->
-    <section class="border-t border-slate-100 bg-white pt-10 pb-10 text-center">
-      <div class="px-5">
-        <span class="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.2em] text-[#0F766E]">Manfaat Nyata</span>
-        <h2 class="text-[clamp(21px,6.2vw,25px)] font-extrabold text-slate-950 tracking-tight leading-[1.25]">
-          Solusi Ideal Bagi Pria &amp; Wanita
-        </h2>
-        <p class="text-[14px] text-slate-600 leading-relaxed mt-2 max-w-[420px] mx-auto text-center">
-          Dukung tubuh proporsional, perut rata, dan pencernaan sehat harian:
-        </p>
-      </div>
-
-      <!-- PERSPEKTIF PRIA -->
-      <div class="mt-7 px-5 text-left space-y-2">
-        <div class="flex items-center gap-2">
-          <span class="text-[11px] font-bold uppercase tracking-wider text-white bg-[#0F766E] px-2.5 py-0.5 rounded-sm">Untuk Pria</span>
-          <span class="text-[13.5px] font-bold text-slate-900">Kikis Perut Buncit &amp; Jaga Vitalitas</span>
-        </div>
-        <p class="text-[13px] text-slate-600 leading-relaxed">
-          Mengurangi timbunan lemak visceral akibat sering makan malam atau duduk seharian, membuat kemeja kerja pas dan badan terasa ringan.
-        </p>
-        <div class="grid grid-cols-2 gap-2 text-[12.5px] font-semibold text-slate-800 pt-1">
-          <div class="flex items-center gap-2 p-2 rounded-md bg-slate-50 border border-slate-200/80">
-            <svg class="h-4 w-4 shrink-0 text-teal-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
-            <span>Perut Lebih Ramping</span>
-          </div>
-          <div class="flex items-center gap-2 p-2 rounded-md bg-slate-50 border border-slate-200/80">
-            <svg class="h-4 w-4 shrink-0 text-teal-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
-            <span>Badan Enteng Berenergi</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="my-6 mx-5 border-t border-slate-100"></div>
-
-      <!-- PERSPEKTIF WANITA -->
-      <div class="px-5 text-left space-y-2">
-        <div class="flex items-center gap-2">
-          <span class="text-[11px] font-bold uppercase tracking-wider text-white bg-slate-800 px-2.5 py-0.5 rounded-sm">Untuk Wanita</span>
-          <span class="text-[13.5px] font-bold text-slate-900">Lingkar Pinggang Ramping &amp; Bebas Begah</span>
-        </div>
-        <p class="text-[13px] text-slate-600 leading-relaxed">
-          Membantu melancarkan sirkulasi pembuangan racun tubuh dan mengempiskan perut begah, membuat pakaian kesayangan kembali muat nyaman.
-        </p>
-        <div class="grid grid-cols-2 gap-2 text-[12.5px] font-semibold text-slate-800 pt-1">
-          <div class="flex items-center gap-2 p-2 rounded-md bg-slate-50 border border-slate-200/80">
-            <svg class="h-4 w-4 shrink-0 text-teal-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
-            <span>Pinggang Lebih Langsing</span>
-          </div>
-          <div class="flex items-center gap-2 p-2 rounded-md bg-slate-50 border border-slate-200/80">
-            <svg class="h-4 w-4 shrink-0 text-teal-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
-            <span>Pencernaan Teratur Lancar</span>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══ 6. SECTION: KEUNGGULAN FORMULA (INFOGRAFIS RESMI) ═══ -->
-    <section class="border-t border-slate-100 bg-slate-50/70 px-5 py-10">
-      <div class="text-center mb-6">
-        <span class="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.2em] text-[#0F766E]">Formula &amp; Khasiat</span>
-        <h2 class="text-[clamp(21px,6.2vw,25px)] font-extrabold text-slate-950 tracking-tight leading-[1.25]">
-          Keunggulan &amp; Cara Kerja DT Kapsul
-        </h2>
-        <p class="text-[13.5px] text-slate-600 leading-relaxed mt-1.5 max-w-[420px] mx-auto">
-          Diformulasikan dari ekstrak herbal pilihan dengan standar mutu tinggi:
-        </p>
-      </div>
-
-      <!-- INFOGRAPHIC IMAGE (WEBP) -->
-      <div class="overflow-hidden rounded-2xl border border-slate-200 shadow-sm mb-6 bg-white">
-        <img
-          src="/images/landing/dt-kapsul/infografis-formula.webp"
-          alt="Formula Herbal Alami DT Kapsul Pelancar Metabolisme dan Pencernaan"
+          width="448"
+          height="600" /></div
+      ><!-- MINIMALIST TRUST HAIRLINE STRIP --><div
+        class="border-b border-slate-200 bg-white px-5 py-2.5 flex items-center justify-between text-[12px] font-semibold text-slate-800"
+        ><span class="inline-flex items-center gap-1.5"
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 text-emerald-700 shrink-0"
+            aria-hidden="true"
+            fill="none"
+            stroke="currentColor"
+          >
+            <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+              <path
+                d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"
+              ></path>
+              <path d="m9 12l2 2l4-4"></path>
+            </g></svg
+          ><span>Garansi Produk Original</span></span
+        ><span class="inline-flex items-center gap-1.5"
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 text-slate-900 shrink-0"
+            aria-hidden="true"
+            fill="none"
+            stroke="currentColor"
+          >
+            <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+              <path
+                d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2m10 0H9m10 0h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"
+              ></path>
+              <circle cx="17" cy="18" r="2"></circle>
+              <circle cx="7" cy="18" r="2"></circle>
+            </g></svg
+          ><span>Bisa Bayar di Tempat (COD)</span></span
+        ></div
+      ><!-- 3 PAIN POINTS (CONCISE, MARK HIGHLIGHTED) --><div class="px-5 pt-6 text-left"
+        ><h2 class="text-[12px] font-bold uppercase tracking-widest text-red-700">Pernah Mengalami Momen Ini?</h2
+        ><div class="mt-3 divide-y divide-slate-200 border-y border-slate-200"
+          ><div class="py-3.5"
+            ><div class="flex items-start justify-between gap-3"
+              ><div class="flex items-start gap-2.5"
+                ><svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="1em"
+                  height="1em"
+                  viewBox="0 0 24 24"
+                  class="h-4 w-4 text-red-600 shrink-0 mt-0.5"
+                  aria-hidden="true"
+                  fill="none"
+                  stroke="currentColor"
+                >
+                  <path
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="m21.73 18l-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3M12 9v4m0 4h.01"
+                  ></path></svg
+                ><h3 class="text-[15px] font-bold leading-snug text-slate-950"
+                  >BAB Macet Berhari-Hari &amp; Perut Begah Keras</h3
+                ></div
+              ><span class="text-[10px] font-bold uppercase tracking-wider text-red-700 shrink-0 mt-0.5"
+                >Usus Kotor</span
+              ></div
+            ><p class="mt-1 pl-6.5 text-[13.5px] font-normal leading-relaxed text-slate-700"
+              >Sisa makanan mengendap di lipatan usus hingga{' '}<mark class="bg-red-100/90 px-1 font-semibold text-red-900"
+                >perut terasa penuh sesak dan buncit ke depan</mark
+              >.</p
+            ></div
+          ><div class="py-3.5"
+            ><div class="flex items-start justify-between gap-3"
+              ><div class="flex items-start gap-2.5"
+                ><svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="1em"
+                  height="1em"
+                  viewBox="0 0 24 24"
+                  class="h-4 w-4 text-red-600 shrink-0 mt-0.5"
+                  aria-hidden="true"
+                  fill="none"
+                  stroke="currentColor"
+                >
+                  <path
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="m21.73 18l-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3M12 9v4m0 4h.01"
+                  ></path></svg
+                ><h3 class="text-[15px] font-bold leading-snug text-slate-950"
+                  >Makan Sedikit Tapi Berat Badan Terus Naik</h3
+                ></div
+              ><span class="text-[10px] font-bold uppercase tracking-wider text-red-700 shrink-0 mt-0.5"
+                >Metabolisme Mati</span
+              ></div
+            ><p class="mt-1 pl-6.5 text-[13.5px] font-normal leading-relaxed text-slate-700"
+              >Pembakaran kalori melambat drastis sehingga{' '}<mark class="bg-red-100/90 px-1 font-semibold text-red-900"
+                >lemak membandel menumpuk di pinggang dan paha</mark
+              >.</p
+            ></div
+          ><div class="py-3.5"
+            ><div class="flex items-start justify-between gap-3"
+              ><div class="flex items-start gap-2.5"
+                ><svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="1em"
+                  height="1em"
+                  viewBox="0 0 24 24"
+                  class="h-4 w-4 text-red-600 shrink-0 mt-0.5"
+                  aria-hidden="true"
+                  fill="none"
+                  stroke="currentColor"
+                >
+                  <path
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="m21.73 18l-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3M12 9v4m0 4h.01"
+                  ></path></svg
+                ><h3 class="text-[15px] font-bold leading-snug text-slate-950"
+                  >Kapok Obat Diet Kimia Bikin Jantung Berdebar</h3
+                ></div
+              ><span class="text-[10px] font-bold uppercase tracking-wider text-red-700 shrink-0 mt-0.5"
+                >Bahaya Kimia</span
+              ></div
+            ><p class="mt-1 pl-6.5 text-[13.5px] font-normal leading-relaxed text-slate-700"
+              >Pencahar kimia keras memicu{' '}<mark class="bg-red-100/90 px-1 font-semibold text-red-900"
+                >mulas melilit, diare lemas, dan pusing gemetar</mark
+              >.</p
+            ></div
+          ></div
+        ></div
+      ><!-- SELLER VISUAL 1 AFTER PAIN POINTS --><div class="mt-5 w-full bg-white border-y border-slate-200"
+        ><img
+          src="/images/landing/dt-kapsul/infografis-metabolisme.webp"
+          alt="Infografis Kendala Metabolisme Lambat dan Solusi DT Kapsul BPOM"
           class="w-full h-auto block"
           loading="lazy"
           decoding="async"
-        />
-      </div>
-
-      <div class="space-y-3">
-        <div class="rounded-xl border border-slate-200/80 bg-white p-4 shadow-xs">
-          <h3 class="text-[14.5px] font-bold text-slate-900">1. Tingkatkan Metabolisme Tubuh</h3>
-          <p class="mt-1 text-[13px] leading-relaxed text-slate-600">
-            Membantu mengoptimalkan proses pembakaran kalori dan cadangan lemak harian agar tubuh tidak gampang lesu dan lebih berenergi.
-          </p>
-        </div>
-
-        <div class="rounded-xl border border-slate-200/80 bg-white p-4 shadow-xs">
-          <h3 class="text-[14.5px] font-bold text-slate-900">2. Pencernaan Smooth Tanpa Mulas Ekstrem</h3>
-          <p class="mt-1 text-[13px] leading-relaxed text-slate-600">
-            Membantu melunakkan feses dan merangsang gerakan peristaltik usus secara lembut tanpa menimbulkan rasa melilit atau diare parah.
-          </p>
-        </div>
-
-        <div class="rounded-xl border border-slate-200/80 bg-white p-4 shadow-xs">
-          <h3 class="text-[14.5px] font-bold text-slate-900">3. Bersihkan Sisa Racun Usus (Detox Alami)</h3>
-          <p class="mt-1 text-[13px] leading-relaxed text-slate-600">
-            Membantu membuang tumpukan kotoran dan gas berlebih di saluran pencernaan sehingga perut terasa enteng dan bebas begah.
-          </p>
-        </div>
-
-        <div class="rounded-xl border border-slate-200/80 bg-white p-4 shadow-xs">
-          <h3 class="text-[14.5px] font-bold text-slate-900">4. Menjaga Daya Tahan &amp; Kebugaran Tubuh</h3>
-          <p class="mt-1 text-[13px] leading-relaxed text-slate-600">
-            Kaya nutrisi dan antioksidan herbal alami yang membantu menjaga imunitas tubuh agar tetap prima saat menjalani rutinitas harian.
-          </p>
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══ 7. SECTION: 3 VERIFIED TESTIMONIALS ═══ -->
-    <section class="border-t border-slate-100 bg-white pt-10 pb-10 text-center">
-      <div class="px-5">
-        <span class="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.2em] text-[#0F766E]">Ulasan Pembeli</span>
-        <h2 class="text-[clamp(21px,6.2vw,25px)] font-extrabold text-slate-950 tracking-tight leading-[1.25] mt-1">
-          Pengalaman Nyata Pelanggan
-        </h2>
-        <p class="text-[13.5px] text-slate-600 leading-relaxed mt-1.5 max-w-[420px] mx-auto text-center mb-6">
-          Kesan mereka setelah rutin mengonsumsi DT Kapsul:
-        </p>
-      </div>
-
-      <!-- 3 Testimonial Cards Flow -->
-      <div class="px-5 space-y-5 text-left">
-        <!-- Testi 1 -->
-        <div class="rounded-xl border border-slate-200 bg-slate-50/50 p-4.5 space-y-2.5">
-          <div class="flex items-center justify-between">
-            <div>
-              <div class="flex items-center gap-1.5">
-                <h3 class="text-[14.5px] font-bold text-slate-900">Ratna Sari (33 th)</h3>
-                <span class="inline-flex items-center text-teal-700" title="Pembeli Terverifikasi">
-                  <svg class="h-4 w-4 fill-current" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-                </span>
-              </div>
-              <p class="text-[12px] text-slate-500 mt-0.5">Bandung • Ibu Rumah Tangga</p>
-            </div>
-            <div class="flex items-center gap-0.5 text-amber-500">
-              <svg class="h-3.5 w-3.5 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-              <svg class="h-3.5 w-3.5 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-              <svg class="h-3.5 w-3.5 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-              <svg class="h-3.5 w-3.5 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-              <svg class="h-3.5 w-3.5 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-            </div>
-          </div>
-          <p class="border-l-2 border-[#0F766E] pl-3 text-[13px] leading-relaxed text-slate-700 italic">
-            "Setelah melahirkan anak kedua lingkar perut susah sekali turun dan sering susah BAB sampai berhari-hari. Rutin minum DT Kapsul setiap pagi pencernaan jadi sangat lancar tanpa mulas melilit, perut kempes 4 cm dalam sebulan."
-          </p>
-        </div>
-
-        <!-- Testi 2 -->
-        <div class="rounded-xl border border-slate-200 bg-slate-50/50 p-4.5 space-y-2.5">
-          <div class="flex items-center justify-between">
-            <div>
-              <div class="flex items-center gap-1.5">
-                <h3 class="text-[14.5px] font-bold text-slate-900">Hendra Gunawan (38 th)</h3>
-                <span class="inline-flex items-center text-teal-700" title="Pembeli Terverifikasi">
-                  <svg class="h-4 w-4 fill-current" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-                </span>
-              </div>
-              <p class="text-[12px] text-slate-500 mt-0.5">Jakarta • Karyawan Swasta</p>
-            </div>
-            <div class="flex items-center gap-0.5 text-amber-500">
-              <svg class="h-3.5 w-3.5 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-              <svg class="h-3.5 w-3.5 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-              <svg class="h-3.5 w-3.5 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-              <svg class="h-3.5 w-3.5 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-              <svg class="h-3.5 w-3.5 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-            </div>
-          </div>
-          <p class="border-l-2 border-[#0F766E] pl-3 text-[13px] leading-relaxed text-slate-700 italic">
-            "Pekerjaan saya duduk di kantor berjam-jam bikin perut maju ke depan dan badan gampang lemas. Setelah minum habis 2 botol, perut buncit terasa jauh lebih kempes dan pas pakai celana bahan sudah tidak sesak lagi."
-          </p>
-        </div>
-
-        <!-- Testi 3 -->
-        <div class="rounded-xl border border-slate-200 bg-slate-50/50 p-4.5 space-y-2.5">
-          <div class="flex items-center justify-between">
-            <div>
-              <div class="flex items-center gap-1.5">
-                <h3 class="text-[14.5px] font-bold text-slate-900">Dian Anggraini (28 th)</h3>
-                <span class="inline-flex items-center text-teal-700" title="Pembeli Terverifikasi">
-                  <svg class="h-4 w-4 fill-current" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-                </span>
-              </div>
-              <p class="text-[12px] text-slate-500 mt-0.5">Yogyakarta • Wiraswasta</p>
-            </div>
-            <div class="flex items-center gap-0.5 text-amber-500">
-              <svg class="h-3.5 w-3.5 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-              <svg class="h-3.5 w-3.5 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-              <svg class="h-3.5 w-3.5 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-              <svg class="h-3.5 w-3.5 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-              <svg class="h-3.5 w-3.5 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-            </div>
-          </div>
-          <p class="border-l-2 border-[#0F766E] pl-3 text-[13px] leading-relaxed text-slate-700 italic">
-            "Suka banget karena sama sekali gak bikin diare atau jantung berdebar seperti obat diet lain. BAB jadi lancar teratur tiap pagi dan badan terasa jauh lebih bugar berenergi. Pengiriman COD cepat dan packing privasi aman."
-          </p>
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══ 8. SECTION: JAMINAN & BELANJA AMAN ═══ -->
-    <section class="border-t border-slate-100 bg-slate-50/70 px-5 py-10 text-center">
-      <span class="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.2em] text-[#0F766E]">Jaminan Layanan</span>
-      <h2 class="text-[clamp(21px,6.2vw,25px)] font-extrabold text-slate-950 tracking-tight leading-[1.25] mt-1">
-        Belanja Aman &amp; Bebas Khawatir
-      </h2>
-      <div class="mt-7 space-y-3.5 text-left">
-        <div class="flex items-start gap-3.5 rounded-xl border border-slate-200/80 bg-white p-4">
-          <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-teal-700 mt-0.5">
-            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
-          </div>
-          <div>
-            <h3 class="text-[14.5px] font-bold text-slate-950">100% Produk Original BPOM</h3>
-            <p class="text-[13px] text-slate-600 mt-0.5 leading-relaxed">
-              Jaminan formula herbal resmi terdaftar di BPOM RI (POM TR.243002691) dengan segel hologram asli dan masa kedaluwarsa panjang.
-            </p>
-          </div>
-        </div>
-
-        <div class="flex items-start gap-3.5 rounded-xl border border-slate-200/80 bg-white p-4">
-          <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-teal-700 mt-0.5">
-            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-          </div>
-          <div>
-            <h3 class="text-[14.5px] font-bold text-slate-950">Bisa Bayar di Tempat (COD)</h3>
-            <p class="text-[13px] text-slate-600 mt-0.5 leading-relaxed">
-              Transaksi aman tanpa harus transfer terlebih dahulu. Pembayaran diserahkan langsung secara tunai ke kurir saat paket tiba di alamat Anda.
-            </p>
-          </div>
-        </div>
-
-        <div class="flex items-start gap-3.5 rounded-xl border border-slate-200/80 bg-white p-4">
-          <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-teal-700 mt-0.5">
-            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
-          </div>
-          <div>
-            <h3 class="text-[14.5px] font-bold text-slate-950">Kemasan Tersegel &amp; Privasi Terjaga</h3>
-            <p class="text-[13px] text-slate-600 mt-0.5 leading-relaxed">
-              Setiap botol dikemas dengan bubble wrap rapat dan kardus polos tanpa label mencolok demi menjaga privasi pesanan Anda.
-            </p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══ 9. PENAWARAN KHUSUS & URGENCY PROMO ═══ -->
-    <section class="w-full border-t border-slate-100 bg-[#083344] text-white px-4 sm:px-5 py-7 text-center">
-      <div class="max-w-[420px] mx-auto space-y-4">
-        <!-- Countdown Timer Bar -->
-        <div class="flex items-center justify-between bg-white/10 backdrop-blur-xs rounded-xl px-4 py-2.5 border border-white/15">
-          <div class="flex items-center gap-2 text-[12.5px] font-bold text-slate-100">
-            <svg class="h-4 w-4 text-amber-300 shrink-0 fill-none stroke-current stroke-2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-            <span>Promo Berakhir Dalam:</span>
-          </div>
-          <div class="flex items-center gap-1.5 font-mono font-bold text-[14px]">
-            <span id="countdown-minutes" class="bg-red-600 text-white px-2 py-0.5 rounded text-center">15</span>
-            <span class="text-amber-400 font-bold leading-none">:</span>
-            <span id="countdown-seconds" class="bg-red-600 text-white px-2 py-0.5 rounded text-center">00</span>
-          </div>
-        </div>
-
-        <!-- High-Contrast Price Display -->
-        <div class="space-y-1">
-          <div class="inline-block bg-red-600 text-white px-3 py-0.5 font-bold text-[12px] uppercase tracking-wider rounded">
-            HARGA PROMO HARI INI
-          </div>
-          <div class="flex items-baseline justify-center gap-2 pt-1">
-            <span class="text-[15px] font-medium text-slate-400 line-through">
-              Rp{Math.round(comparePrice).toLocaleString('id-ID')}
-            </span>
-            <span class="text-[32px] sm:text-[35px] font-extrabold text-amber-300 font-mono tracking-tight leading-none">
-              Rp{Math.round(price).toLocaleString('id-ID')}
-            </span>
-          </div>
-          <div class="pt-1">
-            <span class="inline-flex items-center bg-white/10 text-amber-200 border border-amber-400/30 text-[12px] font-semibold px-3 py-1 rounded-md">
-              Beli 2 Lebih Hemat (Hanya Rp148.500) + BISA COD
-            </span>
-          </div>
-        </div>
-
-        <!-- Stock Progress Bar -->
-        <div class="space-y-1 pt-1">
-          <div class="flex items-center justify-between text-[11.5px] font-medium">
-            <span class="text-slate-300">Sisa Kuota Promo Hari Ini:</span>
-            <span id="stock-count-text" class="text-amber-300 font-bold">Tersisa 13 Botol Lagi</span>
-          </div>
-          <div class="w-full bg-white/20 h-2 rounded-full overflow-hidden">
-            <div id="stock-progress-bar" class="bg-gradient-to-r from-amber-400 to-red-500 h-full rounded-full transition-all duration-500" style="width: 60%;"></div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══ 10. FORMULIR PEMESANAN RESMI (CHECKOUT) ═══ -->
-    <section id="form-pemesanan" class="bg-white px-0 pt-7 pb-4 scroll-mt-4 w-full">
-      <div class="px-4 pb-2 text-center">
-        <div class="inline-flex items-center gap-1.5 text-[11.5px] font-bold uppercase tracking-wider text-[#083344] mb-1">
-          <svg class="h-3.5 w-3.5 shrink-0 fill-none stroke-current stroke-2" viewBox="0 0 24 24"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73zm1 .27V12"/><path d="M3.29 7L12 12l8.71-5M7.5 4.27l9 5.15"/></svg>
-          <span>Formulir Pemesanan Resmi</span>
-        </div>
-        <h2 class="text-[21px] font-bold tracking-tight text-slate-950 leading-tight">
-          Lengkapi Data Pengiriman
-        </h2>
-        <p class="text-[13px] text-slate-600 mt-1 max-w-[380px] mx-auto leading-relaxed">
-          Silakan pilih paket dan isi alamat tujuan pengiriman. Pembayaran tunai dilakukan ke kurir saat barang sampai (COD).
-        </p>
-      </div>
-
-      <GeoIpResolvedForm
-        mode={formContext.mode}
-        province={formContext.province}
-        productSlug={product.slug}
-        embedded={true}
-      />
-    </section>
-
-    <!-- ═══ 11. STICKY MOBILE PURCHASE BAR ═══ -->
-    <div
+          width="450"
+          height="600" /></div></section
+    ><!-- ═══ 3. MECHANISM & MANFAAT SECTION ═══ --><section
+      class="cv-section border-t border-slate-200 bg-white pt-7 pb-7 text-left"
+      ><div class="px-5"
+        ><h2 class="text-[21px] sm:text-[23px] font-bold tracking-tight leading-[1.2] text-slate-950"
+          >3 Keunggulan Utama DT Kapsul Herbal BPOM</h2
+        ></div
+      ><!-- UNCROPPED PRODUCT PACKSHOT --><div class="mt-4 w-full bg-white border-y border-slate-200"
+        ><img
+          src="/images/landing/dt-kapsul/product-bottle.webp"
+          alt="Kemasan Resmi DT Kapsul M-Say Isi 30 Kapsul BPOM TR.243002691"
+          class="w-full h-auto block"
+          loading="lazy"
+          decoding="async"
+          width="448"
+          height="600" /></div
+      ><!-- COMPACT 1-LINE SPECIFICATION STRIP --><div
+        class="border-b border-slate-200 bg-slate-50 px-5 py-2.5 text-[12px] font-semibold text-slate-800"
+        >Isi 30 Kapsul • Resmi BPOM TR.243002691 • 100% Ekstrak Herbal Tanpa Efek Mulas</div
+      ><div class="px-5 divide-y divide-slate-200 border-b border-slate-200"
+        ><div class="py-3.5 flex items-start gap-3"
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 text-emerald-700 shrink-0 mt-0.5"
+            aria-hidden="true"
+            fill="none"
+            stroke="currentColor"
+          >
+            <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="m9 12l2 2l4-4"></path>
+            </g></svg
+          ><div
+            ><h3 class="text-[14.5px] font-bold leading-snug text-slate-950"
+              >Aktifkan Pembakaran Lemak &amp; Metabolisme Harian</h3
+            ><p class="mt-1 text-[13.5px] font-normal leading-relaxed text-slate-700"
+              >Senyawa herbal termogenik alami{' '}<mark class="bg-amber-100 px-1 font-semibold text-slate-950"
+                >mengubah cadangan lemak perut menjadi energi</mark
+              >.</p
+            ></div
+          ></div
+        ><div class="py-3.5 flex items-start gap-3"
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 text-emerald-700 shrink-0 mt-0.5"
+            aria-hidden="true"
+            fill="none"
+            stroke="currentColor"
+          >
+            <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="m9 12l2 2l4-4"></path>
+            </g></svg
+          ><div
+            ><h3 class="text-[14.5px] font-bold leading-snug text-slate-950"
+              >Detox Usus &amp; Lancarkan BAB Tanpa Mulas Melilit</h3
+            ><p class="mt-1 text-[13.5px] font-normal leading-relaxed text-slate-700"
+              >Melunakkan sisa kotoran membandel di usus agar{' '}<mark class="bg-amber-100 px-1 font-semibold text-slate-950"
+                >BAB teratur tiap pagi dan perut langsung enteng</mark
+              >.</p
+            ></div
+          ></div
+        ><div class="py-3.5 flex items-start gap-3"
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 text-emerald-700 shrink-0 mt-0.5"
+            aria-hidden="true"
+            fill="none"
+            stroke="currentColor"
+          >
+            <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="m9 12l2 2l4-4"></path>
+            </g></svg
+          ><div
+            ><h3 class="text-[14.5px] font-bold leading-snug text-slate-950"
+              >100% Herbal BPOM Nyaman di Lambung &amp; Jantung</h3
+            ><p class="mt-1 text-[13.5px] font-normal leading-relaxed text-slate-700"
+              >Bebas bahan kimia obat pencahar keras,{' '}<mark class="bg-amber-100 px-1 font-semibold text-slate-950"
+                >tidak bikin jantung berdebar ataupun lemas</mark
+              >.</p
+            ></div
+          ></div
+        ></div
+      ><!-- SELLER VISUAL 2 IN MECHANISM/MANFAAT SECTION --><div class="mt-5 w-full bg-white border-y border-slate-200"
+        ><img
+          src="/images/landing/dt-kapsul/infografis-manfaat.webp"
+          alt="Infografis Manfaat Lengkap DT Kapsul M-Say BPOM"
+          class="w-full h-auto block"
+          loading="lazy"
+          decoding="async"
+          width="450"
+          height="600" /></div></section
+    ><!-- ═══ 4. 4 OVERCLAIM VERIFIED REVIEWS ═══ --><section
+      class="cv-section border-t border-slate-200 bg-white pt-7 pb-7 px-5 text-left"
+      ><h2 class="text-[21px] sm:text-[23px] font-bold tracking-tight leading-[1.2] text-slate-950"
+        >Cerita Nyata Pengguna DT Kapsul M-Say</h2
+      ><div class="mt-2 flex items-center gap-2 text-[13px] font-semibold text-slate-800"
+        ><div class="flex items-center gap-0.5 text-amber-400" role="img" aria-label="Rating 5 dari 5 bintang"
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 fill-amber-400 text-amber-400"
+            aria-hidden="true"
+            fill="currentColor"
+            stroke="currentColor"
+          >
+            <path
+              fill="currentColor"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+            ></path></svg
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 fill-amber-400 text-amber-400"
+            aria-hidden="true"
+            fill="currentColor"
+            stroke="currentColor"
+          >
+            <path
+              fill="currentColor"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+            ></path></svg
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 fill-amber-400 text-amber-400"
+            aria-hidden="true"
+            fill="currentColor"
+            stroke="currentColor"
+          >
+            <path
+              fill="currentColor"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+            ></path></svg
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 fill-amber-400 text-amber-400"
+            aria-hidden="true"
+            fill="currentColor"
+            stroke="currentColor"
+          >
+            <path
+              fill="currentColor"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+            ></path></svg
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 fill-amber-400 text-amber-400"
+            aria-hidden="true"
+            fill="currentColor"
+            stroke="currentColor"
+          >
+            <path
+              fill="currentColor"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+            ></path></svg></div
+        ><span class="font-bold text-slate-950">4.9 / 5.0</span><span class="text-slate-300">•</span
+        ><span class="text-slate-600">Pembeli COD Terverifikasi</span></div
+      ><div class="mt-4 divide-y divide-slate-200 border-y border-slate-200"
+        ><article class="py-3.5"
+          ><div class="flex items-center justify-between gap-2"
+            ><h3 class="text-[14.5px] font-bold text-slate-950">Mbak Ratna Sari (33 th) • Bandung</h3
+            ><div class="flex items-center gap-0.5 text-amber-400 shrink-0" role="img" aria-label="Rating 5 dari 5 bintang"
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg></div></div
+          ><p class="mt-1.5 text-[13.5px] font-normal leading-relaxed text-slate-900"
+            >"Sejak melahirkan anak kedua perut buncit susah turun dan sembelit berhari-hari. Rutin minum DT Kapsul,{' '}<mark
+              class="bg-amber-200/80 px-1 font-semibold text-slate-950"
+              >BAB lancar tiap pagi tanpa mulas dan lingkar perut susut 5 cm</mark
+            >!"</p
+          ></article
+        ><article class="py-3.5"
+          ><div class="flex items-center justify-between gap-2"
+            ><h3 class="text-[14.5px] font-bold text-slate-950">Pak Hendra Gunawan (38 th) • Jakarta</h3
+            ><div class="flex items-center gap-0.5 text-amber-400 shrink-0" role="img" aria-label="Rating 5 dari 5 bintang"
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg></div></div
+          ><p class="mt-1.5 text-[13.5px] font-normal leading-relaxed text-slate-900"
+            >"Kerja duduk seharian di kantor bikin perut maju ke depan dan gampang begah. Habis 2 botol DT Kapsul,{' '}<mark
+              class="bg-amber-200/80 px-1 font-semibold text-slate-950"
+              >perut buncit kempes rata dan celana kerja longgar lagi</mark
+            >!"</p
+          ></article
+        ><article class="py-3.5"
+          ><div class="flex items-center justify-between gap-2"
+            ><h3 class="text-[14.5px] font-bold text-slate-950">Kak Dian Anggraini (28 th) • Yogyakarta</h3
+            ><div class="flex items-center gap-0.5 text-amber-400 shrink-0" role="img" aria-label="Rating 5 dari 5 bintang"
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg></div></div
+          ><p class="mt-1.5 text-[13.5px] font-normal leading-relaxed text-slate-900"
+            >"Suka banget karena resmi BPOM dan sama sekali gak bikin diare atau deg-degan.{' '}<mark
+              class="bg-amber-200/80 px-1 font-semibold text-slate-950"
+              >Badan enteng berenergi dan berat badan turun 4 kg stabil</mark
+            >!"</p
+          ></article
+        ><article class="py-3.5"
+          ><div class="flex items-center justify-between gap-2"
+            ><h3 class="text-[14.5px] font-bold text-slate-950">Ibu Rina Kusuma (42 th) • Surabaya</h3
+            ><div class="flex items-center gap-0.5 text-amber-400 shrink-0" role="img" aria-label="Rating 5 dari 5 bintang"
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg></div></div
+          ><p class="mt-1.5 text-[13.5px] font-normal leading-relaxed text-slate-900"
+            >"Punya riwayat maag jadi pilih-pilih suplemen pelangsing. Minum DT Kapsul sesudah makan,{' '}<mark
+              class="bg-amber-200/80 px-1 font-semibold text-slate-950"
+              >lambung tetap nyaman dan lipatan lemak pinggang mengecil</mark
+            >!"</p
+          ></article
+        ></div
+      ></section
+    ><!-- ═══ 5. 3 CONCISE FAQ ITEMS ═══ --><section
+      class="cv-section border-t border-slate-200 bg-white pt-7 pb-7 px-5 text-left"
+      ><h2 class="text-[20px] font-bold tracking-tight leading-[1.2] text-slate-950">Pertanyaan yang Sering Diajukan</h2
+      ><div class="mt-3 divide-y divide-slate-200 border-y border-slate-200"
+        ><div class="py-3.5"
+          ><h3 class="text-[14px] font-bold text-slate-950">Bagaimana aturan minum DT Kapsul untuk hasil optimal?</h3
+          ><p class="mt-1 text-[13px] font-normal leading-relaxed text-slate-700"
+            >Minum rutin 2 kali sehari masing-masing 1-2 kapsul sesudah makan dengan air putih hangat.</p
+          ></div
+        ><div class="py-3.5"
+          ><h3 class="text-[14px] font-bold text-slate-950">Apakah bikin mulas melilit atau diare terus-menerus?</h3
+          ><p class="mt-1 text-[13px] font-normal leading-relaxed text-slate-700"
+            >Tidak, formula herbal BPOM TR.243002691 bekerja melancarkan pencernaan secara alami dan nyaman tanpa efek
+            pencahar kimia keras.</p
+          ></div
+        ><div class="py-3.5"
+          ><h3 class="text-[14px] font-bold text-slate-950">Apakah bisa bayar di tempat (COD) saat paket datang?</h3
+          ><p class="mt-1 text-[13px] font-normal leading-relaxed text-slate-700"
+            >Bisa, Anda cukup mengisi alamat di bawah ini dan bayar tunai langsung ke kurir saat barang tiba.</p
+          ></div
+        ></div
+      ></section
+    ><!-- ═══ 6. MECHANISM ACTION IMAGE & URGENCY PRICING STRIP ═══ --><section
+      class="cv-section w-full border-t border-slate-900 bg-slate-950 text-white pb-7 text-left"
+      ><div class="w-full bg-white border-y border-slate-200"
+        ><img
+          src="/images/landing/dt-kapsul/infografis-formula.webp"
+          alt="Komposisi Ekstrak Herbal Alami DT Kapsul M-Say Resmi BPOM"
+          class="w-full h-auto block"
+          loading="lazy"
+          decoding="async"
+          width="448"
+          height="600" /></div
+      ><div class="px-5 pt-6"
+        ><div class="flex items-center justify-between pb-4 border-b border-slate-800"
+          ><span class="inline-flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-wider text-amber-400"
+            ><svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="1em"
+              height="1em"
+              viewBox="0 0 24 24"
+              class="h-4 w-4 text-amber-400"
+              aria-hidden="true"
+              fill="none"
+              stroke="currentColor"
+            >
+              <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M12 6v6l4 2"></path>
+              </g></svg
+            ><span>Promo Berakhir Dalam</span></span
+          ><div class="font-mono text-[16px] font-bold text-white"
+            ><span id="countdown-minutes">15</span>:<span id="countdown-seconds">00</span></div
+          ></div
+        ><div class="py-4 border-b border-slate-800"
+          ><p class="text-[11px] font-bold uppercase tracking-widest text-slate-400"
+            >Harga Promo Paket 2 Botol (Paling Diminati)</p
+          ><div class="mt-1.5 flex items-baseline gap-2.5"
+            ><span class="text-[32px] font-bold font-mono tracking-tight text-amber-400 leading-none">Rp148.500</span
+            ><span class="text-[14px] text-slate-400 line-through">Rp170.000</span></div
+          ><p class="mt-2 text-[12.5px] font-semibold text-slate-200"
+            >Hemat Rp21.500 • Paket 1 Rp{rupiah(price)} • Paket 3 Rp214.500</p
+          ></div
+        ><div class="pt-4"
+          ><div class="flex items-center justify-between text-[12px] font-semibold"
+            ><span class="text-slate-300">Sisa Kuota Promo Hari Ini:</span
+            ><span id="stock-count-text" class="font-mono font-bold text-amber-400">Tersisa 8 Botol Lagi</span></div
+          ><div class="mt-2 h-1.5 w-full bg-slate-800 overflow-hidden"
+            ><div
+              id="stock-progress-bar"
+              class="h-full bg-amber-400 transition-all duration-500"
+              style="width: 55%"
+            ></div></div></div></div></section
+    ><!-- ═══ 7. FORMULIR PEMESANAN (CHECKOUT COD) ═══ --><section
+      id="form-pemesanan"
+      class="bg-white px-0 pt-6 pb-4 scroll-mt-4 w-full text-left"
+      ><div class="px-5 pb-2"
+        ><h2 class="text-[20px] font-bold tracking-tight text-slate-950 leading-tight">Lengkapi Data Pengiriman COD</h2
+        ><p class="text-[13.5px] font-normal text-slate-600 mt-1 leading-relaxed"
+          >Pilih paket dan isi alamat. Bayar tunai langsung ke kurir saat barang sampai di tangan Anda.</p
+        ></div
+      ><GeoIpResolvedForm mode={formContext.mode} province={formContext.province} productSlug={product.slug} embedded={true} /></section
+    ><SocialProofToast orderCount={socialProofOrders} heroSelector="#landing-hero" formSelector="#form-pemesanan" /><div
       id="sticky-purchase-bar"
-      class="fixed inset-x-0 bottom-0 z-40 mx-auto flex w-full max-w-[480px] items-center justify-between border-t border-slate-200 bg-white/95 px-5 py-3 shadow-[0_-8px_24px_rgba(17,17,17,0.08)] backdrop-blur-md transition-all duration-300"
-      style="transform: translateY(100%); opacity: 0; pointer-events: none;"
-    >
-      <div class="flex flex-col justify-center">
-        <p class="text-[10px] font-bold uppercase tracking-[0.1em] text-teal-700">Promo Hari Ini</p>
-        <p class="text-[18px] font-extrabold tracking-tight text-[#083344] font-mono">
-          Rp{Math.round(price).toLocaleString('id-ID')}
-        </p>
-      </div>
-      <a
+      class="fixed inset-x-0 bottom-0 z-40 mx-auto flex w-full max-w-[480px] items-center justify-between border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur-md transition-all duration-300 lg:hidden"
+      style="transform: translateY(100%); opacity: 0; pointer-events: none"
+      ><div
+        ><p class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Mulai Dari</p
+        ><p class="text-base font-bold text-slate-950">Rp{rupiah(price)}</p></div
+      ><a
         href="#form-pemesanan"
-        class="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-gradient-to-r from-teal-600 to-cyan-600 px-6 text-[13px] font-bold uppercase tracking-[0.06em] text-white shadow-sm transition-all hover:brightness-105 active:scale-[0.98]"
-      >
-        Pesan Sekarang (COD)
-      </a>
-    </div>
-
-    <!-- Social Proof Toast - Blocked on #landing-hero so it only shows after scrolling down! -->
-    <SocialProofToast
-      orderCount={socialProofOrders}
-      heroSelector="#landing-hero"
-      formSelector="#form-pemesanan"
-    />
+        class="inline-flex min-h-11 items-center justify-center bg-red-700 px-5 text-[11.5px] font-bold uppercase tracking-wider text-white transition-colors hover:bg-red-800"
+        >Pesan Sekarang (COD)</a
+      ></div
+    >
   </main>
+  <script is:inline>
+  function initCountdownTimer() {
+    const minEl = document.getElementById('countdown-minutes');
+    const secEl = document.getElementById('countdown-seconds');
+    if (!minEl || !secEl) return;
 
-  <script slot="head" is:inline>
-    function initStickyBarObserver() {
-      const stickyBar = document.getElementById('sticky-purchase-bar');
-      const orderForm = document.getElementById('form-pemesanan');
-      const hero = document.getElementById('landing-hero');
-      if (!stickyBar) return;
+    const DURATION_MS = 15 * 60 * 1000;
+    const STORAGE_KEY = 'dt_kapsul_countdown_v1';
+    let targetTime = parseInt(sessionStorage.getItem(STORAGE_KEY) || '0', 10);
+    const now = Date.now();
 
-      let heroVisible = true;
-      let formVisible = false;
-
-      const applyStickyVisibility = () => {
-        if (heroVisible || formVisible) {
-          stickyBar.style.transform = 'translateY(100%)';
-          stickyBar.style.opacity = '0';
-          stickyBar.style.pointerEvents = 'none';
-        } else {
-          stickyBar.style.transform = 'translateY(0)';
-          stickyBar.style.opacity = '1';
-          stickyBar.style.pointerEvents = 'auto';
-        }
-      };
-
-      const observer = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((entry) => {
-            if (entry.target === hero) heroVisible = entry.isIntersecting;
-            if (entry.target === orderForm) formVisible = entry.isIntersecting;
-          });
-          applyStickyVisibility();
-        },
-        { threshold: 0.05, rootMargin: '0px 0px -40px 0px' }
-      );
-
-      if (hero) observer.observe(hero);
-      if (orderForm) observer.observe(orderForm);
-      applyStickyVisibility();
+    if (!targetTime || targetTime <= now || targetTime - now > DURATION_MS) {
+      targetTime = now + DURATION_MS;
+      sessionStorage.setItem(STORAGE_KEY, targetTime.toString());
     }
 
-    function initCountdownTimer() {
-      const minEl = document.getElementById('countdown-minutes');
-      const secEl = document.getElementById('countdown-seconds');
-      if (!minEl || !secEl) return;
+    const updateTimer = () => {
+      const currentTime = Date.now();
+      let remainingMs = targetTime - currentTime;
 
-      const DURATION_MS = 15 * 60 * 1000; // 15 rolling minutes
-      const STORAGE_KEY = 'dtkapsul_countdown_v1';
-      let targetTime = parseInt(sessionStorage.getItem(STORAGE_KEY) || '0', 10);
-      const now = Date.now();
-
-      if (!targetTime || targetTime <= now || targetTime - now > DURATION_MS) {
-        targetTime = now + DURATION_MS;
+      if (remainingMs <= 0) {
+        targetTime = currentTime + DURATION_MS;
         sessionStorage.setItem(STORAGE_KEY, targetTime.toString());
+        remainingMs = DURATION_MS;
       }
 
-      const updateTimer = () => {
-        const currentTime = Date.now();
-        let remainingMs = targetTime - currentTime;
+      const totalSeconds = Math.floor(remainingMs / 1000);
+      const mins = Math.floor(totalSeconds / 60);
+      const secs = totalSeconds % 60;
 
-        if (remainingMs <= 0) {
-          targetTime = currentTime + DURATION_MS;
-          sessionStorage.setItem(STORAGE_KEY, targetTime.toString());
-          remainingMs = DURATION_MS;
-        }
-
-        const totalSeconds = Math.floor(remainingMs / 1000);
-        const mins = Math.floor(totalSeconds / 60);
-        const secs = totalSeconds % 60;
-
-        minEl.textContent = String(mins).padStart(2, '0');
-        secEl.textContent = String(secs).padStart(2, '0');
-      };
-
-      updateTimer();
-      setInterval(updateTimer, 1000);
-    }
-
-    function initStockCounter() {
-      const stockText = document.getElementById('stock-count-text');
-      const stockBar = document.getElementById('stock-progress-bar');
-      if (!stockText || !stockBar) return;
-
-      const STORAGE_KEY = 'dtkapsul_stock_v1';
-      let stock = parseInt(sessionStorage.getItem(STORAGE_KEY) || '0', 10);
-
-      // Lock per session within 8 - 18 random range
-      if (!stock || stock < 8 || stock > 18) {
-        stock = Math.floor(Math.random() * (18 - 8 + 1)) + 8;
-        sessionStorage.setItem(STORAGE_KEY, stock.toString());
-      }
-
-      const updateStockUI = (val) => {
-        stockText.textContent = `Tersisa ${val} Botol Lagi`;
-        const pct = Math.min(92, Math.max(30, Math.round((val / 20) * 100)));
-        stockBar.style.width = `${pct}%`;
-      };
-
-      updateStockUI(stock);
-
-      // Subtle organic live decrement after 35-65 seconds if user stays on page
-      const delay = Math.floor(Math.random() * (65000 - 35000 + 1)) + 35000;
-      setTimeout(() => {
-        let current = parseInt(sessionStorage.getItem(STORAGE_KEY) || '0', 10);
-        if (current > 5) {
-          current -= 1;
-          sessionStorage.setItem(STORAGE_KEY, current.toString());
-          updateStockUI(current);
-        }
-      }, delay);
-    }
-
-    const initAll = () => {
-      initStickyBarObserver();
-      initCountdownTimer();
-      initStockCounter();
+      minEl.textContent = String(mins).padStart(2, '0');
+      secEl.textContent = String(secs).padStart(2, '0');
     };
 
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', initAll);
-    } else {
-      initAll();
+    updateTimer();
+    setInterval(updateTimer, 1000);
+  }
+
+  function initStockCounter() {
+    const stockText = document.getElementById('stock-count-text');
+    const stockBar = document.getElementById('stock-progress-bar');
+    if (!stockText || !stockBar) return;
+
+    const STORAGE_KEY = 'dt_kapsul_stock_v1';
+    let stock = parseInt(sessionStorage.getItem(STORAGE_KEY) || '0', 10);
+
+    if (!stock || stock < 4 || stock > 12) {
+      stock = Math.floor(Math.random() * (12 - 6 + 1)) + 6;
+      sessionStorage.setItem(STORAGE_KEY, stock.toString());
     }
-  </script>
+
+    const updateStockUI = (val) => {
+      stockText.textContent = `Tersisa ${val} Botol Lagi`;
+      const pct = Math.min(90, Math.max(30, Math.round((val / 15) * 100)));
+      stockBar.style.width = `${pct}%`;
+    };
+
+    updateStockUI(stock);
+
+    const delay = Math.floor(Math.random() * (60000 - 35000 + 1)) + 35000;
+    setTimeout(() => {
+      let current = parseInt(sessionStorage.getItem(STORAGE_KEY) || '0', 10);
+      if (current > 3) {
+        current -= 1;
+        sessionStorage.setItem(STORAGE_KEY, current.toString());
+        updateStockUI(current);
+      }
+    }, delay);
+  }
+
+  function initStickyBarObserver() {
+    const stickyBar = document.getElementById('sticky-purchase-bar');
+    const orderForm = document.getElementById('form-pemesanan');
+    const hero = document.getElementById('landing-hero');
+    if (!stickyBar || !orderForm) return;
+
+    let heroVisible = true;
+    let formVisible = false;
+
+    const applyStickyVisibility = () => {
+      if (heroVisible || formVisible) {
+        stickyBar.style.transform = 'translateY(100%)';
+        stickyBar.style.opacity = '0';
+        stickyBar.style.pointerEvents = 'none';
+      } else {
+        stickyBar.style.transform = 'translateY(0)';
+        stickyBar.style.opacity = '1';
+        stickyBar.style.pointerEvents = 'auto';
+      }
+    };
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.target === hero) heroVisible = entry.isIntersecting;
+          if (entry.target === orderForm) formVisible = entry.isIntersecting;
+        });
+        applyStickyVisibility();
+      },
+      { threshold: 0, rootMargin: '0px 0px -40px 0px' }
+    );
+
+    if (hero) observer.observe(hero);
+    else heroVisible = false;
+    observer.observe(orderForm);
+    applyStickyVisibility();
+  }
+
+  const initAll = () => {
+    initCountdownTimer();
+    initStockCounter();
+    initStickyBarObserver();
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAll);
+  } else {
+    initAll();
+  }
+</script>
 </BaseLayout>

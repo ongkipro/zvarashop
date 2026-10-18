@@ -24,6 +24,6 @@ export const CMS_VERSION: CmsVersionInfo = {
   // mobile order button, deploy builds before upload (BUILD-LOG 2026-10-11).
   releaseTag: "2026.10-landing-hero-h1",
   coreEngine: "Astro 7 SSR + Cloudflare Workers",
-  schemaVersion: 69,
+  schemaVersion: 74,
   lastUpdated: "2026-10-18",
 };

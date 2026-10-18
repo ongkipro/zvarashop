@@ -1,8 +1,12 @@
 ---
 /*
- * Native Astro landing page — Minyak Kemiri Bakar Murni 100ml.
- * Clean, Direct-Response Indonesian Commerce Funnel.
- * Studio AI generated visuals, 100% roasted candlenut oil, zero emojis in copy.
+ * Native Astro landing page — Minyak Kemiri Bakar Murni Penumbuh Rambut & Brewok 100ml.
+ * Rebuilt on 2026-10-18 from the live render of
+ * https://zvara.shop/produk/minyak-kemiri: this page was deployed from
+ * another device and its source never reached the repository. Markup and
+ * page CSS are the live ones; the tracker, order form and social-proof toast
+ * are the components that rendered them, and the lowest variant price is
+ * bound to the product rather than written in.
  */
 import BaseLayout from '../layouts/BaseLayout.astro';
 import MetaLandingTracker from '../components/storefront/tracking/MetaLandingTracker.astro';
@@ -10,7 +14,7 @@ import GeoIpResolvedForm from '../components/storefront/forms/GeoIpResolvedForm.
 import SocialProofToast from '../components/storefront/shared/SocialProofToast.astro';
 import { recentOrderCount } from '../lib/social-proof';
 import { getRuntimeEnv } from '../lib/env';
-import { getStorefrontProduct, getStorefrontProducts } from '../lib/catalog';
+import { getStorefrontProduct } from '../lib/catalog';
 import { nativeLandingCanonicalPath } from '../lib/landing-pages';
 import { defaultCatalogContentId } from '../lib/catalog-feed';
 import { resolveFormModeContext } from '../lib/form-mode';
@@ -20,30 +24,20 @@ import '../styles/landing-pages/minyak-kemiri.css';
 
 export const prerender = false;
 
-const SLUG = 'minyak-kemiri';
-const PRODUCT_SLUG = 'minyak-kemiri';
+const SLUG = "minyak-kemiri";
+const PRODUCT_SLUG = "minyak-kemiri";
 
-const formContext = await resolveFormModeContext(Astro.request);
-
-// Product resolution with strict DB fallback
-let product = await getStorefrontProduct(Astro.locals, PRODUCT_SLUG);
-if (!product) {
-  product = await getStorefrontProduct(Astro.locals, '98823');
-}
-if (!product) {
-  const allProducts = await getStorefrontProducts(Astro.locals);
-  product = allProducts.find((p) => p.slug.includes('kemiri') || p.slug.includes('minyak')) ?? allProducts[0] ?? null;
-}
+const product = await getStorefrontProduct(Astro.locals, PRODUCT_SLUG);
 if (!product) return Astro.rewrite('/404');
 
+const formContext = await resolveFormModeContext(Astro.request);
 const canonical = `${Astro.locals.tenant.siteUrl}${await nativeLandingCanonicalPath(Astro.locals, SLUG)}`;
-const seoTitle = 'Minyak Kemiri Bakar Murni 100ml — Penumbuh & Penyubur Rambut, Alis & Brewok';
-const seoDescription =
-  'Minyak kemiri bakar murni 100ml formula bakar tradisional tanpa campuran. Efektif hentikan rambut rontok, lebatkan rambut, alis, dan brewok. Bisa COD.';
+const seoTitle = "Minyak Kemiri Bakar Murni 100ml — Penumbuh & Penyubur Rambut, Alis & Brewok";
+const seoDescription = "Minyak kemiri bakar murni 100ml formula bakar tradisional tanpa campuran. Efektif hentikan rambut rontok, lebatkan rambut, alis, dan brewok. Bisa COD.";
 
 const cheapest = [...product.variants].sort((a, b) => a.price - b.price)[0] ?? null;
 const price = cheapest?.price ?? product.price;
-const comparePrice = cheapest?.comparePrice ?? Math.round(price * 1.75);
+const rupiah = (value: number) => Math.round(value).toLocaleString('id-ID');
 const socialProofOrders = await recentOrderCount(getRuntimeEnv(Astro.locals)?.OMS_DB as D1Database | undefined);
 ---
 
@@ -51,489 +45,954 @@ const socialProofOrders = await recentOrderCount(getRuntimeEnv(Astro.locals)?.OM
   title={seoTitle}
   description={seoDescription}
   image="/images/landing/minyak-kemiri/hero-product.webp"
-  preloadImages="/images/landing/minyak-kemiri/hero-product.webp"
+  preloadImages="/images/landing/minyak-kemiri/model-hair.webp"
   canonical={canonical}
   hideHeader={true}
   hideFooter={true}
 >
-  <main class="mx-auto min-h-screen w-full max-w-[480px] overflow-x-hidden bg-white pb-8 font-sans text-slate-900 shadow-xl antialiased selection:bg-[#0A2540] selection:text-white">
-    <MetaLandingTracker
-      slug={SLUG}
-      contentId={defaultCatalogContentId(product)}
-      contentName={product.contentName}
-      price={price}
-    />
-
-    <!-- ═══ 1. TOP ANNOUNCEMENT BAR ═══ -->
-    <header class="flex items-center justify-between border-b border-slate-800 bg-[#0A2540] px-3.5 py-2 text-white shadow-xs">
-      <div class="flex items-center gap-1.5 text-[11.5px] sm:text-[12px] font-bold tracking-wide">
-        <span class="relative flex h-2 w-2 shrink-0">
-          <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75"></span>
-          <span class="relative inline-flex h-2 w-2 rounded-full bg-red-500"></span>
-        </span>
-        <span class="text-amber-300 uppercase">Promo Khusus:</span>
-        <span class="text-white font-bold">Mulai Rp{Math.round(price).toLocaleString('id-ID')}</span>
-      </div>
-      <div class="shrink-0 rounded-full border border-white/20 bg-white/15 px-2.5 py-0.5 text-[9.5px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-100 backdrop-blur-xs">
-        Bisa COD
-      </div>
-    </header>
-
-    <!-- ═══ 2. HERO SECTION ═══ -->
-    <section id="landing-hero" class="relative bg-white pt-5 pb-2 text-left">
-      <div class="px-4 sm:px-5">
-        <!-- Rating & Social Proof Badges -->
-        <div class="mb-2.5 flex items-center gap-2">
-          <div class="flex items-center gap-0.5" role="img" aria-label="Rating 4.9 dari 5 bintang">
-            <svg class="h-4 w-4 fill-amber-400 text-amber-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-            <svg class="h-4 w-4 fill-amber-400 text-amber-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-            <svg class="h-4 w-4 fill-amber-400 text-amber-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-            <svg class="h-4 w-4 fill-amber-400 text-amber-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-            <svg class="h-4 w-4 fill-amber-400 text-amber-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-          </div>
-          <p class="text-[11.5px] font-semibold text-slate-600">
-            4.9 / 5.0 <span class="mx-1 text-slate-300">•</span> 12.000+ Botol Terjual
-          </p>
-        </div>
-
-        <!-- Clean Headline -->
-        <h1 class="text-[clamp(19.5px,5.8vw,23.5px)] font-bold leading-[1.28] tracking-tight text-slate-900">
-          Rambut Rontok, Menipis &amp; Botak Dini? <span class="text-[#0A2540]">Suburkan &amp; Lebatkan Rambut Hitam Alami Seketika</span>
-        </h1>
-
-        <p class="mt-2.5 text-[13.5px] leading-relaxed text-slate-600">
-          Khawatir garis rambut makin mundur, rambut tipis mudah rontok saat disisir, atau alis dan brewok susah lebat? <strong class="font-bold text-slate-900">Minyak Kemiri Bakar Murni 100ml</strong> diproses dari biji kemiri pilihan dengan metode sangrai bakar tradisional tanpa campuran minyak kimia. Menutrisi langsung ke folikel akar terdalam untuk menumbuhkan tunas rambut baru yang tebal, kuat, dan berkilau alami.
-        </p>
-      </div>
-
-      <!-- Generated Hero Product Image (Frameless & Borderless) -->
-      <div class="relative mx-auto mt-4 w-full overflow-hidden">
-        <img
-          src="/images/landing/minyak-kemiri/hero-product.webp"
-          alt="Minyak Kemiri Bakar Murni 100ml kemasan botol mewah dengan biji kemiri sangrai asli"
-          class="aspect-square w-full object-cover block"
+  <main class="mx-auto min-h-screen w-full max-w-[480px] bg-white pb-16 font-sans text-slate-950 selection:bg-amber-200 selection:text-slate-950 antialiased">
+    <MetaLandingTracker slug={SLUG} contentId={defaultCatalogContentId(product)} contentName={product.contentName} price={price} /><!-- ═══ 1. MINIMALIST URGENCY BAR (TOP) ═══ --><header
+      class="flex items-center justify-between border-b border-slate-900 bg-slate-950 px-4 py-2 text-white"
+      ><div class="flex items-center gap-1.5 text-[11px] font-bold tracking-wide min-w-0"
+        ><svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="1em"
+          height="1em"
+          viewBox="0 0 24 24"
+          class="h-3.5 w-3.5 fill-amber-400 text-amber-400 shrink-0"
+          aria-hidden="true"
+          fill="currentColor"
+          stroke="currentColor"
+        >
+          <path
+            fill="currentColor"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M15.914 4a1.5 1.5 0 0 0-2.474-1.561l-9 9A1.5 1.5 0 0 0 5.5 14h4.002a.5.5 0 0 1 .471.666L8.086 20a1.5 1.5 0 0 0 2.475 1.56l9-9A1.5 1.5 0 0 0 18.5 10h-3.997a.5.5 0 0 1-.472-.667z"
+          ></path></svg
+        ><span class="text-amber-400 uppercase shrink-0">PROMO:</span
+        ><span class="text-white truncate">BELI 2 HEMAT RP81.000</span></div
+      ><span class="text-[10.5px] font-bold tracking-wider text-amber-400 uppercase shrink-0 ml-2">BISA COD</span></header
+    ><!-- ═══ 2. HERO SECTION (NO RATING ABOVE HEADLINE, NO BUTTON, CLEAN BG) ═══ --><section
+      id="landing-hero"
+      class="bg-white pb-6"
+      ><div class="px-5 pt-6 text-left"
+        ><h1 class="text-[clamp(23px,6.8vw,28px)] font-bold leading-[1.18] tracking-tight text-slate-950"
+          >Rambut Rontok Parah, Menipis &amp; Mulai Botak Dini?{' '}<mark class="bg-amber-200 px-1.5 py-0.5 text-slate-950"
+            >Suburkan &amp; Lebatkan Hitam</mark
+          >{' '}Alami dari Akar!</h1
+        ><p class="mt-3 text-[15px] font-normal leading-relaxed text-slate-700"
+          >Minyak Kemiri Bakar Murni 100ml metode sangrai tradisional{' '}<mark
+            class="bg-red-100 px-1 font-semibold text-red-900"
+            >pemicu tunas rambut, alis, dan brewok tebal</mark
+          >{' '}tanpa bahan kimia.</p
+        ></div
+      ><!-- FULL-WIDTH UNCROPPED HERO IMAGE --><div class="mt-5 w-full bg-white border-y border-slate-200"
+        ><img
+          src="/images/landing/minyak-kemiri/model-hair.webp"
+          alt="Hasil rambut hitam tebal berkilau dan sehat ternutrisi dari akar berkat Minyak Kemiri Bakar"
+          class="w-full h-auto block"
           fetchpriority="high"
           loading="eager"
           decoding="async"
-          width="1024"
-          height="1024"
-        />
-      </div>
-
-      <!-- Trust Badges (Clean Mobile Strip) -->
-      <div class="grid grid-cols-3 divide-x divide-slate-200 border-b border-slate-200 bg-white py-3 px-2 text-center">
-        <div class="flex flex-col items-center justify-center px-1">
-          <svg class="h-4.5 w-4.5 text-[#0A2540]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h2"></path></svg>
-          <span class="mt-1 text-[11px] font-bold text-slate-900">Bisa COD</span>
-          <p class="text-[9.5px] text-slate-500 leading-tight">Bayar Saat Sampai</p>
-        </div>
-        <div class="flex flex-col items-center justify-center px-1">
-          <svg class="h-4.5 w-4.5 text-[#0A2540]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
-          <span class="mt-1 text-[11px] font-bold text-slate-900">100% Asli Bakar</span>
-          <p class="text-[9.5px] text-slate-500 leading-tight">Tanpa Bahan Kimia</p>
-        </div>
-        <div class="flex flex-col items-center justify-center px-1">
-          <svg class="h-4.5 w-4.5 text-[#0A2540]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
-          <span class="mt-1 text-[11px] font-bold text-slate-900">Bonus Kuas Spoolie</span>
-          <p class="text-[9.5px] text-slate-500 leading-tight">Untuk Alis &amp; Bulu Mata</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══ 3. PENYEBAB & AREA PENGGUNAAN ═══ -->
-    <section class="border-t border-slate-200 bg-slate-50/70 px-4 sm:px-5 py-6 sm:py-8 text-left">
-      <div class="mb-3.5">
-        <span class="text-[10.5px] font-bold uppercase tracking-wider text-[#0A2540]">Nutrisi Folikel Intensif</span>
-        <h2 class="mt-1 text-[clamp(18px,5vw,21px)] font-bold leading-snug tracking-tight text-slate-900">
-          Mengapa Rambut Mudah Rontok &amp; Sulit Tumbuh Kembali?
-        </h2>
-        <p class="mt-1 text-[13px] text-slate-600">
-          Folikel rambut yang kekurangan nutrisi esensial akan menyusut dan tertidur, menyebabkan helaian rambut menipis, rapuh, dan gugur sebelum waktunya. Minyak Kemiri Bakar membangkitkan kembali akar rambut yang pasif:
-        </p>
-      </div>
-
-      <!-- Model Hair Asset (Frameless & Borderless) -->
-      <div class="-mx-4 sm:-mx-5 overflow-hidden">
-        <img
-          src="/images/landing/minyak-kemiri/model-hair.webp"
-          alt="Hasil rambut hitam tebal berkilau dan sehat ternutrisi dari akar berkat Minyak Kemiri Bakar"
-          class="aspect-square w-full object-cover block"
+          width="600"
+          height="600" /></div
+      ><!-- MINIMALIST TRUST HAIRLINE STRIP --><div
+        class="border-b border-slate-200 bg-white px-5 py-2.5 flex items-center justify-between text-[12px] font-semibold text-slate-800"
+        ><span class="inline-flex items-center gap-1.5"
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 text-emerald-700 shrink-0"
+            aria-hidden="true"
+            fill="none"
+            stroke="currentColor"
+          >
+            <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+              <path
+                d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"
+              ></path>
+              <path d="m9 12l2 2l4-4"></path>
+            </g></svg
+          ><span>100% Kemiri Bakar Murni</span></span
+        ><span class="inline-flex items-center gap-1.5"
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 text-slate-900 shrink-0"
+            aria-hidden="true"
+            fill="none"
+            stroke="currentColor"
+          >
+            <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+              <path
+                d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2m10 0H9m10 0h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"
+              ></path>
+              <circle cx="17" cy="18" r="2"></circle>
+              <circle cx="7" cy="18" r="2"></circle>
+            </g></svg
+          ><span>Bisa Bayar di Tempat (COD)</span></span
+        ></div
+      ><!-- 3 PAIN POINTS (CONCISE, FAST SCANNING) --><div class="px-5 pt-6 text-left"
+        ><h2 class="text-[12px] font-bold uppercase tracking-widest text-red-700">Pernah Mengalami Momen Ini?</h2
+        ><div class="mt-3 divide-y divide-slate-200 border-y border-slate-200"
+          ><div class="py-3.5"
+            ><div class="flex items-start justify-between gap-3"
+              ><div class="flex items-start gap-2.5"
+                ><svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="1em"
+                  height="1em"
+                  viewBox="0 0 24 24"
+                  class="h-4 w-4 text-red-600 shrink-0 mt-0.5"
+                  aria-hidden="true"
+                  fill="none"
+                  stroke="currentColor"
+                >
+                  <path
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="m21.73 18l-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3M12 9v4m0 4h.01"
+                  ></path></svg
+                ><h3 class="text-[15px] font-bold leading-snug text-slate-950"
+                  >Rambut Rontok Segenggam Saat Keramas</h3
+                ></div
+              ><span class="text-[10px] font-bold uppercase tracking-wider text-red-700 shrink-0 mt-0.5"
+                >Akar Rapuh</span
+              ></div
+            ><p class="mt-1 pl-6.5 text-[13.5px] font-normal leading-relaxed text-slate-700"
+              >Folikel rambut kekurangan nutrisi sehingga{' '}<mark class="bg-red-100/90 px-1 font-semibold text-red-900"
+                >helaian rambut rontok parah tiap disisir</mark
+              >.</p
+            ></div
+          ><div class="py-3.5"
+            ><div class="flex items-start justify-between gap-3"
+              ><div class="flex items-start gap-2.5"
+                ><svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="1em"
+                  height="1em"
+                  viewBox="0 0 24 24"
+                  class="h-4 w-4 text-red-600 shrink-0 mt-0.5"
+                  aria-hidden="true"
+                  fill="none"
+                  stroke="currentColor"
+                >
+                  <path
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="m21.73 18l-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3M12 9v4m0 4h.01"
+                  ></path></svg
+                ><h3 class="text-[15px] font-bold leading-snug text-slate-950"
+                  >Puncak Kepala Menipis &amp; Garis Mundur</h3
+                ></div
+              ><span class="text-[10px] font-bold uppercase tracking-wider text-red-700 shrink-0 mt-0.5"
+                >Rawan Botak</span
+              ></div
+            ><p class="mt-1 pl-6.5 text-[13.5px] font-normal leading-relaxed text-slate-700"
+              >Akar rambut tertidur pasif membuat{' '}<mark class="bg-red-100/90 px-1 font-semibold text-red-900"
+                >kulit kepala makin terlihat jarang dan menua</mark
+              >.</p
+            ></div
+          ><div class="py-3.5"
+            ><div class="flex items-start justify-between gap-3"
+              ><div class="flex items-start gap-2.5"
+                ><svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="1em"
+                  height="1em"
+                  viewBox="0 0 24 24"
+                  class="h-4 w-4 text-red-600 shrink-0 mt-0.5"
+                  aria-hidden="true"
+                  fill="none"
+                  stroke="currentColor"
+                >
+                  <path
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="m21.73 18l-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3M12 9v4m0 4h.01"
+                  ></path></svg
+                ><h3 class="text-[15px] font-bold leading-snug text-slate-950"
+                  >Alis Tipis, Uban Dini &amp; Brewok Jarang</h3
+                ></div
+              ><span class="text-[10px] font-bold uppercase tracking-wider text-red-700 shrink-0 mt-0.5"
+                >Kurang Lebat</span
+              ></div
+            ><p class="mt-1 pl-6.5 text-[13.5px] font-normal leading-relaxed text-slate-700"
+              >Sudah coba berbagai serum kimia tapi{' '}<mark class="bg-red-100/90 px-1 font-semibold text-red-900"
+                >bulu alis dan brewok tetap tipis tidak merata</mark
+              >.</p
+            ></div
+          ></div
+        ></div
+      ><!-- SELLER PROOF ASSET 1 --><div class="mt-5 w-full bg-white border-y border-slate-200"
+        ><img
+          src="/images/landing/minyak-kemiri/seller-1.webp"
+          alt="Bukti Khasiat Minyak Kemiri Bakar Murni Penumbuh Rambut"
+          class="w-full h-auto block"
           loading="lazy"
           decoding="async"
-          width="1024"
-          height="1024"
-        />
-      </div>
-
-      <div class="mt-3.5 grid grid-cols-2 gap-2 sm:gap-2.5">
-        <div class="rounded-xl border border-slate-200/90 bg-white p-2.5 sm:p-3 shadow-xs">
-          <span class="flex items-center gap-1.5 text-[11.5px] sm:text-[12.5px] font-bold text-slate-900 mb-1.5">
-            <span class="h-1.5 w-1.5 rounded-full bg-[#0A2540] shrink-0"></span>
-            Area Penggunaan:
-          </span>
-          <ul class="space-y-1 text-[11px] sm:text-[12px] text-slate-600 leading-snug">
-            <li class="flex items-center gap-1"><span class="text-blue-700 font-bold">✓</span> Kulit Kepala &amp; Garis Rambut</li>
-            <li class="flex items-center gap-1"><span class="text-blue-700 font-bold">✓</span> Rambut Tipis &amp; Puncak Kepala</li>
-            <li class="flex items-center gap-1"><span class="text-blue-700 font-bold">✓</span> Alis Botak &amp; Bulu Mata</li>
-            <li class="flex items-center gap-1"><span class="text-blue-700 font-bold">✓</span> Kumis, Jenggot &amp; Brewok</li>
-            <li class="flex items-center gap-1"><span class="text-blue-700 font-bold">✓</span> Aman Untuk Bayi &amp; Dewasa</li>
-          </ul>
-        </div>
-        <div class="rounded-xl border border-slate-200/90 bg-white p-2.5 sm:p-3 shadow-xs">
-          <span class="flex items-center gap-1.5 text-[11.5px] sm:text-[12.5px] font-bold text-slate-900 mb-1.5">
-            <span class="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0"></span>
-            Khasiat Utama:
-          </span>
-          <ul class="space-y-1 text-[11px] sm:text-[12px] text-slate-600 leading-snug">
-            <li class="flex items-center gap-1"><span class="text-amber-600 font-bold">✓</span> Stop Rontok Dalam 7 Hari</li>
-            <li class="flex items-center gap-1"><span class="text-amber-600 font-bold">✓</span> Rangsang Tunas Rambut Baru</li>
-            <li class="flex items-center gap-1"><span class="text-amber-600 font-bold">✓</span> Hitamkan &amp; Kuatkan Akar</li>
-            <li class="flex items-center gap-1"><span class="text-amber-600 font-bold">✓</span> Cegah Uban &amp; Ketombe</li>
-            <li class="flex items-center gap-1"><span class="text-amber-600 font-bold">✓</span> Lebatkan Alis &amp; Brewok</li>
-          </ul>
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══ 4. FORMULA & TEKSTUR MINYAK MURNI ═══ -->
-    <section class="border-t border-slate-200 bg-white px-4 sm:px-5 py-6 sm:py-8 text-left">
-      <div class="mb-3.5">
-        <span class="text-[10.5px] font-bold uppercase tracking-wider text-[#0A2540]">Kemurnian Alami Tanpa Campuran</span>
-        <h2 class="mt-1 text-[clamp(18px,5vw,21px)] font-bold leading-snug tracking-tight text-slate-900">
-          Ekstraksi Sangrai Bakar Tradisional
-        </h2>
-        <p class="mt-1 text-[13px] text-slate-600">
-          Proses pemanggangan biji kemiri asli menghasilkan minyak berwarna hitam pekat kaya antioksidan dan asam lemak aktif yang cepat diserap pori kulit kepala:
-        </p>
-      </div>
-
-      <!-- Oil Texture Droplet Asset Showcase -->
-      <div class="-mx-4 sm:-mx-5 overflow-hidden">
-        <img
-          src="/images/landing/minyak-kemiri/oil-texture.webp"
-          alt="Tekstur kental pekat Minyak Kemiri Bakar murni menetes dengan warna gelap keemasan kaya nutrisi"
-          class="aspect-square w-full object-cover block"
+          width="600"
+          height="399" /></div></section
+    ><!-- ═══ 3. 3-STEP MECHANISM & KEUNGGULAN ═══ --><section
+      class="cv-section border-t border-slate-200 bg-white pt-7 pb-7 text-left"
+      ><div class="px-5"
+        ><h2 class="text-[21px] font-bold tracking-tight leading-[1.2] text-slate-950"
+          >3 Reaksi Cepat Nutrisi Folikel Kemiri Bakar</h2
+        ><p class="mt-1.5 text-[14px] font-normal leading-relaxed text-slate-700"
+          >Ekstraksi sangrai tradisional menghasilkan asam lemak pekat yang cepat meresap ke pori kulit kepala:</p
+        ></div
+      ><div class="mt-4 w-full bg-white border-y border-slate-200"
+        ><img
+          src="/images/landing/minyak-kemiri/hero-product.webp"
+          alt="Kemasan Asli Minyak Kemiri Bakar Murni 100ml dengan Biji Kemiri Sangrai"
+          class="w-full h-auto block"
           loading="lazy"
           decoding="async"
-          width="1024"
-          height="1024"
-        />
-      </div>
-
-      <!-- Key Ingredients Breakdown -->
-      <div class="mt-4 space-y-2.5">
-        <div class="rounded-xl border border-slate-200/90 bg-slate-50/60 p-3 text-left">
-          <div class="flex items-center gap-2">
-            <span class="flex h-5 w-5 items-center justify-center rounded-full bg-blue-100 text-[11px] font-bold text-[#0A2540]">1</span>
-            <span class="font-bold text-[12.5px] text-slate-900">Asam Linoleat &amp; Asam Oleat Tinggi</span>
-          </div>
-          <p class="mt-1 text-[12px] leading-relaxed text-slate-600">
-            Asam lemak esensial yang membuka pori folikel rambut, melancarkan sirkulasi darah mikro di kulit kepala, dan menstimulasi pertumbuhan akar rambut baru.
-          </p>
-        </div>
-
-        <div class="rounded-xl border border-slate-200/90 bg-slate-50/60 p-3 text-left">
-          <div class="flex items-center gap-2">
-            <span class="flex h-5 w-5 items-center justify-center rounded-full bg-blue-100 text-[11px] font-bold text-[#0A2540]">2</span>
-            <span class="font-bold text-[12.5px] text-slate-900">Vitamin E &amp; Antioksidan Alami</span>
-          </div>
-          <p class="mt-1 text-[12px] leading-relaxed text-slate-600">
-            Melindungi batang rambut dari radikal bebas dan panas matahari, mengembalikan kilau hitam alami, serta mencegah penuaan dini pada pigmen rambut (uban).
-          </p>
-        </div>
-
-        <div class="rounded-xl border border-slate-200/90 bg-slate-50/60 p-3 text-left">
-          <div class="flex items-center gap-2">
-            <span class="flex h-5 w-5 items-center justify-center rounded-full bg-blue-100 text-[11px] font-bold text-[#0A2540]">3</span>
-            <span class="font-bold text-[12.5px] text-slate-900">Protein Nabati &amp; Mineral Aktif</span>
-          </div>
-          <p class="mt-1 text-[12px] leading-relaxed text-slate-600">
-            Mengikat serat keratin rambut agar tidak rapuh dan patah di tengah, membuat diameter helaian rambut terasa lebih tebal, bervolume, dan berbobot.
-          </p>
-        </div>
-      </div>
-
-      <!-- Real Hair Root Follicle Asset Showcase -->
-      <div class="mt-4 -mx-4 sm:-mx-5 overflow-hidden">
-        <img
+          width="600"
+          height="600" /></div
+      ><!-- COMPACT 1-LINE SPECIFICATION STRIP --><div
+        class="border-b border-slate-200 bg-slate-50 px-5 py-2.5 text-[12px] font-semibold text-slate-800"
+        >Isi 100ml Murni • 100% Sangrai Bakar Asli • Bonus Kuas Spoolie • Aman Anak &amp; Dewasa</div
+      ><div class="px-5 divide-y divide-slate-200 border-b border-slate-200"
+        ><div class="py-3.5 flex items-start gap-3.5"
+          ><span class="font-mono text-[13px] font-bold text-red-700 shrink-0 mt-0.5">01</span
+          ><div
+            ><h3 class="text-[15px] font-bold leading-snug text-slate-950">Kunci Akar &amp; Hentikan Rontok</h3
+            ><p class="mt-1 text-[13.5px] font-normal leading-relaxed text-slate-700"
+              >Asam linoleat tinggi memperkuat cengkeraman akar sehingga{' '}<mark
+                class="bg-amber-100 px-1 font-semibold text-slate-950"
+                >rontok berkurang drastis sejak minggu pertama</mark
+              >.</p
+            ></div
+          ></div
+        ><div class="py-3.5 flex items-start gap-3.5"
+          ><span class="font-mono text-[13px] font-bold text-red-700 shrink-0 mt-0.5">02</span
+          ><div
+            ><h3 class="text-[15px] font-bold leading-snug text-slate-950">Bangkitkan Tunas Rambut, Alis &amp; Brewok</h3
+            ><p class="mt-1 text-[13.5px] font-normal leading-relaxed text-slate-700"
+              >Menutrisi folikel pasif agar{' '}<mark class="bg-amber-100 px-1 font-semibold text-slate-950"
+                >tumbuh anak rambut baru yang rapat dan tebal</mark
+              >.</p
+            ></div
+          ></div
+        ><div class="py-3.5 flex items-start gap-3.5"
+          ><span class="font-mono text-[13px] font-bold text-red-700 shrink-0 mt-0.5">03</span
+          ><div
+            ><h3 class="text-[15px] font-bold leading-snug text-slate-950">Hitamkan Kilau Alami &amp; Cegah Uban</h3
+            ><p class="mt-1 text-[13.5px] font-normal leading-relaxed text-slate-700"
+              >Vitamin E alami menjaga pigmen batang rambut agar{' '}<mark class="bg-amber-100 px-1 font-semibold text-slate-950"
+                >hitam pekat berkilau dan bebas ketombe</mark
+              >.</p
+            ></div
+          ></div
+        ></div
+      ><!-- SELLER PROOF ASSET 2 --><div class="mt-5 w-full bg-white border-y border-slate-200"
+        ><img
+          src="/images/landing/minyak-kemiri/seller-2.webp"
+          alt="Cara Pakai dan Manfaat Minyak Kemiri Bakar Murni"
+          class="w-full h-auto block"
+          loading="lazy"
+          decoding="async"
+          width="450"
+          height="600" /></div></section
+    ><!-- ═══ 4. 4 OVERCLAIM VERIFIED REVIEWS ═══ --><section
+      class="cv-section border-t border-slate-200 bg-white pt-7 pb-7 px-5 text-left"
+      ><h2 class="text-[21px] font-bold tracking-tight leading-[1.2] text-slate-950"
+        >Pengalaman Nyata Pengguna Minyak Kemiri</h2
+      ><div class="mt-2 flex items-center gap-2 text-[13px] font-semibold text-slate-800"
+        ><div class="flex items-center gap-0.5 text-amber-400" role="img" aria-label="Rating 5 dari 5 bintang"
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 fill-amber-400 text-amber-400"
+            aria-hidden="true"
+            fill="currentColor"
+            stroke="currentColor"
+          >
+            <path
+              fill="currentColor"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+            ></path></svg
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 fill-amber-400 text-amber-400"
+            aria-hidden="true"
+            fill="currentColor"
+            stroke="currentColor"
+          >
+            <path
+              fill="currentColor"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+            ></path></svg
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 fill-amber-400 text-amber-400"
+            aria-hidden="true"
+            fill="currentColor"
+            stroke="currentColor"
+          >
+            <path
+              fill="currentColor"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+            ></path></svg
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 fill-amber-400 text-amber-400"
+            aria-hidden="true"
+            fill="currentColor"
+            stroke="currentColor"
+          >
+            <path
+              fill="currentColor"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+            ></path></svg
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 fill-amber-400 text-amber-400"
+            aria-hidden="true"
+            fill="currentColor"
+            stroke="currentColor"
+          >
+            <path
+              fill="currentColor"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+            ></path></svg></div
+        ><span class="font-bold text-slate-950">4.9 / 5.0</span><span class="text-slate-300">•</span
+        ><span class="text-slate-600">Pembeli COD Terverifikasi</span></div
+      ><div class="mt-4 divide-y divide-slate-200 border-y border-slate-200"
+        ><article class="py-3.5"
+          ><div class="flex items-center justify-between gap-2"
+            ><h3 class="text-[14.5px] font-bold text-slate-950">Bambang Hariyadi (44 th)</h3
+            ><div class="flex items-center gap-0.5 text-amber-400 shrink-0" role="img" aria-label="Rating 5 dari 5 bintang"
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg></div></div
+          ><div class="mt-0.5 flex items-center gap-2 text-[12px] text-slate-500"
+            ><span>Semarang • Karyawan Swasta</span><span>•</span
+            ><span class="inline-flex items-center gap-1 font-semibold text-emerald-700"
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 text-emerald-700"
+                aria-hidden="true"
+                fill="none"
+                stroke="currentColor"
+              >
+                <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+                  <path
+                    d="M3.85 8.62a4 4 0 0 1 4.78-4.77a4 4 0 0 1 6.74 0a4 4 0 0 1 4.78 4.78a4 4 0 0 1 0 6.74a4 4 0 0 1-4.77 4.78a4 4 0 0 1-6.75 0a4 4 0 0 1-4.78-4.77a4 4 0 0 1 0-6.76"
+                  ></path>
+                  <path d="m9 12l2 2l4-4"></path>
+                </g></svg
+              ><span>Terverifikasi</span></span
+            ></div
+          ><p class="mt-1.5 text-[13.5px] font-normal leading-relaxed text-slate-900"
+            >"Puncak kepala mulai botak dan tipis banget. Pakai rutin sebelum tidur,{' '}<mark
+              class="bg-amber-200/80 px-1 font-semibold text-slate-950"
+              >rontok berhenti dan muncul banyak anak rambut hitam baru</mark
+            >."</p
+          ></article
+        ><article class="py-3.5"
+          ><div class="flex items-center justify-between gap-2"
+            ><h3 class="text-[14.5px] font-bold text-slate-950">Farhan Maulana (29 th)</h3
+            ><div class="flex items-center gap-0.5 text-amber-400 shrink-0" role="img" aria-label="Rating 5 dari 5 bintang"
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg></div></div
+          ><div class="mt-0.5 flex items-center gap-2 text-[12px] text-slate-500"
+            ><span>Jakarta Barat • Wirausaha</span><span>•</span
+            ><span class="inline-flex items-center gap-1 font-semibold text-emerald-700"
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 text-emerald-700"
+                aria-hidden="true"
+                fill="none"
+                stroke="currentColor"
+              >
+                <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+                  <path
+                    d="M3.85 8.62a4 4 0 0 1 4.78-4.77a4 4 0 0 1 6.74 0a4 4 0 0 1 4.78 4.78a4 4 0 0 1 0 6.74a4 4 0 0 1-4.77 4.78a4 4 0 0 1-6.75 0a4 4 0 0 1-4.78-4.77a4 4 0 0 1 0-6.76"
+                  ></path>
+                  <path d="m9 12l2 2l4-4"></path>
+                </g></svg
+              ><span>Terverifikasi</span></span
+            ></div
+          ><p class="mt-1.5 text-[13.5px] font-normal leading-relaxed text-slate-900"
+            >"Beli buat numbuhin brewok sama kumis pakai kuas spoolie gratisnya.{' '}<mark
+              class="bg-amber-200/80 px-1 font-semibold text-slate-950"
+              >Sekarang brewok tumbuh jauh lebih rapat dan hitam pekat</mark
+            >."</p
+          ></article
+        ><article class="py-3.5"
+          ><div class="flex items-center justify-between gap-2"
+            ><h3 class="text-[14.5px] font-bold text-slate-950">Anindya Putri (33 th)</h3
+            ><div class="flex items-center gap-0.5 text-amber-400 shrink-0" role="img" aria-label="Rating 5 dari 5 bintang"
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg></div></div
+          ><div class="mt-0.5 flex items-center gap-2 text-[12px] text-slate-500"
+            ><span>Yogyakarta • Ibu Rumah Tangga</span><span>•</span
+            ><span class="inline-flex items-center gap-1 font-semibold text-emerald-700"
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 text-emerald-700"
+                aria-hidden="true"
+                fill="none"
+                stroke="currentColor"
+              >
+                <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+                  <path
+                    d="M3.85 8.62a4 4 0 0 1 4.78-4.77a4 4 0 0 1 6.74 0a4 4 0 0 1 4.78 4.78a4 4 0 0 1 0 6.74a4 4 0 0 1-4.77 4.78a4 4 0 0 1-6.75 0a4 4 0 0 1-4.78-4.77a4 4 0 0 1 0-6.76"
+                  ></path>
+                  <path d="m9 12l2 2l4-4"></path>
+                </g></svg
+              ><span>Terverifikasi</span></span
+            ></div
+          ><p class="mt-1.5 text-[13.5px] font-normal leading-relaxed text-slate-900"
+            >"Alis saya tadinya tipis hampir gak kelihatan. Rutin sikat tiap malam,{' '}<mark
+              class="bg-amber-200/80 px-1 font-semibold text-slate-950"
+              >3 minggu alis langsung tebal hitam tanpa perlu pensil alis</mark
+            >."</p
+          ></article
+        ><article class="py-3.5"
+          ><div class="flex items-center justify-between gap-2"
+            ><h3 class="text-[14.5px] font-bold text-slate-950">Ibu Ratna Sari (38 th)</h3
+            ><div class="flex items-center gap-0.5 text-amber-400 shrink-0" role="img" aria-label="Rating 5 dari 5 bintang"
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg></div></div
+          ><div class="mt-0.5 flex items-center gap-2 text-[12px] text-slate-500"
+            ><span>Surabaya • Guru Sekolah</span><span>•</span
+            ><span class="inline-flex items-center gap-1 font-semibold text-emerald-700"
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 text-emerald-700"
+                aria-hidden="true"
+                fill="none"
+                stroke="currentColor"
+              >
+                <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+                  <path
+                    d="M3.85 8.62a4 4 0 0 1 4.78-4.77a4 4 0 0 1 6.74 0a4 4 0 0 1 4.78 4.78a4 4 0 0 1 0 6.74a4 4 0 0 1-4.77 4.78a4 4 0 0 1-6.75 0a4 4 0 0 1-4.78-4.77a4 4 0 0 1 0-6.76"
+                  ></path>
+                  <path d="m9 12l2 2l4-4"></path>
+                </g></svg
+              ><span>Terverifikasi</span></span
+            ></div
+          ><p class="mt-1.5 text-[13.5px] font-normal leading-relaxed text-slate-900"
+            >"Habis melahirkan rambut rontok parah sampai takut menyisir. Pakai sebotol ini,{' '}<mark
+              class="bg-amber-200/80 px-1 font-semibold text-slate-950"
+              >rambut jadi kuat tebal bervolume dan wanginya sangrai asli</mark
+            >."</p
+          ></article
+        ></div
+      ></section
+    ><!-- ═══ 5. 3 CONCISE FAQ ITEMS ═══ --><section
+      class="cv-section border-t border-slate-200 bg-white pt-7 pb-7 px-5 text-left"
+      ><h2 class="text-[20px] font-bold tracking-tight leading-[1.2] text-slate-950">Pertanyaan yang Sering Diajukan</h2
+      ><div class="mt-3 divide-y divide-slate-200 border-y border-slate-200"
+        ><div class="py-3.5"
+          ><h3 class="text-[14.5px] font-bold text-slate-950">Bagaimana cara pakai untuk rambut, alis, dan brewok?</h3
+          ><p class="mt-1 text-[13.5px] font-normal leading-relaxed text-slate-700"
+            >Kocok botol, oleskan ke kulit kepala atau gunakan kuas spoolie pada alis dan brewok, diamkan 30–60 menit lalu
+            bilas bersih.</p
+          ></div
+        ><div class="py-3.5"
+          ><h3 class="text-[14.5px] font-bold text-slate-950">Apakah aman untuk anak-anak dan kulit sensitif?</h3
+          ><p class="mt-1 text-[13.5px] font-normal leading-relaxed text-slate-700"
+            >Sangat aman karena 100% murni dari kemiri sangrai tradisional tanpa bahan kimia maupun pewarna buatan.</p
+          ></div
+        ><div class="py-3.5"
+          ><h3 class="text-[14.5px] font-bold text-slate-950">Apakah bisa bayar di tempat (COD)?</h3
+          ><p class="mt-1 text-[13.5px] font-normal leading-relaxed text-slate-700"
+            >Ya, Anda cukup mengisi alamat pengiriman di bawah dan membayar tunai langsung ke kurir saat paket sampai.</p
+          ></div
+        ></div
+      ></section
+    ><!-- ═══ 6. MECHANISM ACTION IMAGE & URGENCY PRICING STRIP ═══ --><section
+      class="cv-section w-full border-t border-slate-900 bg-slate-950 text-white pb-7 text-left"
+      ><div class="w-full bg-white border-y border-slate-200"
+        ><img
           src="/images/landing/minyak-kemiri/hair-result.webp"
           alt="Akar folikel rambut yang tumbuh lebat rapat dan kuat setelah pemakaian rutin Minyak Kemiri Bakar"
-          class="aspect-square w-full object-cover block"
+          class="w-full h-auto block"
           loading="lazy"
           decoding="async"
-          width="1024"
-          height="1024"
-        />
-      </div>
-
-      <!-- Clean Mobile Comparison Stack -->
-      <div class="mt-4 space-y-2.5">
-        <div class="rounded-xl border border-rose-200/90 bg-rose-50/50 p-3 text-left">
-          <div class="flex items-center gap-1.5">
-            <span class="flex h-4 w-4 items-center justify-center rounded-full bg-rose-200/80 text-[10px] font-bold text-rose-700">✕</span>
-            <span class="font-bold text-[11.5px] uppercase tracking-wider text-rose-800">Minyak Kemiri Oplosan / Minyak Curah</span>
-          </div>
-          <p class="mt-1 text-[12px] leading-relaxed text-slate-600">
-            Sering diencerkan dengan minyak kelapa sawit murah atau pewarna buatan. Baunya tengik, lengket berlebihan, menyumbat pori kulit kepala, dan tidak memberi efek pertumbuhan rambut.
-          </p>
-        </div>
-        <div class="rounded-xl border border-blue-200/90 bg-blue-50/60 p-3 text-left">
-          <div class="flex items-center gap-1.5">
-            <span class="flex h-4 w-4 items-center justify-center rounded-full bg-blue-200/80 text-[10px] font-bold text-[#0A2540]">✓</span>
-            <span class="font-bold text-[11.5px] uppercase tracking-wider text-[#0A2540]">Minyak Kemiri Bakar Asli 100%</span>
-          </div>
-          <p class="mt-1 text-[12px] leading-relaxed text-slate-700">
-            Aroma khas kemiri sangrai murni tanpa pewangi buatan. Partikel mikro meresap cepat ke folikel tanpa rasa lengket berlebih, aman untuk kulit kepala sensitif, anak-anak, dan dewasa.
-          </p>
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══ 5. CARA PAKAI YANG TEPAT ═══ -->
-    <section class="border-t border-slate-200 bg-slate-50/70 px-4 sm:px-5 py-6 sm:py-8 text-left">
-      <div class="mb-3.5">
-        <span class="text-[10.5px] font-bold uppercase tracking-wider text-[#0A2540]">Langkah Penggunaan</span>
-        <h2 class="mt-1 text-[clamp(18px,5vw,21px)] font-bold leading-snug tracking-tight text-slate-900">
-          Cara Pakai Praktis Untuk Hasil Maksimal
-        </h2>
-        <p class="mt-1 text-[13px] text-slate-600">
-          Gunakan secara rutin 1 hingga 2 kali sehari sebelum mandi atau malam sebelum tidur:
-        </p>
-      </div>
-
-      <div class="space-y-2.5">
-        <div class="flex items-start gap-3 rounded-xl border border-slate-200/90 bg-white p-3 shadow-xs">
-          <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#0A2540] text-[12px] font-bold text-white">1</span>
-          <div>
-            <span class="font-bold text-[13px] text-slate-900">Kocok Botol Terlebih Dahulu</span>
-            <p class="mt-0.5 text-[12px] text-slate-600 leading-relaxed">Kocok perlahan agar sari pati kemiri bakar yang mengendap di dasar botol tercampur sempurna dan merata.</p>
-          </div>
-        </div>
-
-        <div class="flex items-start gap-3 rounded-xl border border-slate-200/90 bg-white p-3 shadow-xs">
-          <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#0A2540] text-[12px] font-bold text-white">2</span>
-          <div>
-            <span class="font-bold text-[13px] text-slate-900">Oleskan &amp; Pijat Lembut</span>
-            <p class="mt-0.5 text-[12px] text-slate-600 leading-relaxed">Tuangkan secukupnya ke telapak tangan, oleskan merata ke kulit kepala dan akar rambut. Pijat melingkar selama 2-3 menit.</p>
-          </div>
-        </div>
-
-        <div class="flex items-start gap-3 rounded-xl border border-slate-200/90 bg-white p-3 shadow-xs">
-          <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#0A2540] text-[12px] font-bold text-white">3</span>
-          <div>
-            <span class="font-bold text-[13px] text-slate-900">Gunakan Kuas Spoolie Untuk Alis &amp; Brewok</span>
-            <p class="mt-0.5 text-[12px] text-slate-600 leading-relaxed">Celupkan kuas spoolie gratis, lalu sisirkan presisi pada alis, garis bulu mata, atau kumis dan brewok tanpa takut belepotan.</p>
-          </div>
-        </div>
-
-        <div class="flex items-start gap-3 rounded-xl border border-slate-200/90 bg-white p-3 shadow-xs">
-          <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#0A2540] text-[12px] font-bold text-white">4</span>
-          <div>
-            <span class="font-bold text-[13px] text-slate-900">Diamkan &amp; Bilas Bersih</span>
-            <p class="mt-0.5 text-[12px] text-slate-600 leading-relaxed">Diamkan minimal 30-60 menit (atau semalaman saat tidur), lalu keramas dengan sampo hingga bersih segar.</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══ 6. TESTIMONI PELANGGAN NYATA ═══ -->
-    <section class="border-t border-slate-200 bg-white px-4 sm:px-5 py-6 sm:py-8 text-left">
-      <div class="mb-3.5">
-        <span class="text-[10.5px] font-bold uppercase tracking-wider text-[#0A2540]">Ulasan Pembeli</span>
-        <h2 class="mt-1 text-[clamp(18px,5vw,21px)] font-bold leading-snug tracking-tight text-slate-900">
-          Pengalaman Nyata Pengguna
-        </h2>
-      </div>
-
-      <div class="space-y-2.5">
-        <div class="rounded-xl border border-slate-200/90 bg-slate-50/50 p-3 sm:p-3.5 shadow-xs">
-          <div class="flex items-center justify-between">
-            <span class="text-[13px] font-bold text-slate-900">Bambang Hariyadi — Semarang</span>
-            <span class="rounded-full border border-emerald-200/80 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">Pembeli Terverifikasi</span>
-          </div>
-          <div class="mt-1 flex gap-0.5">
-            <svg class="h-3.5 w-3.5 fill-amber-400 text-amber-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-            <svg class="h-3.5 w-3.5 fill-amber-400 text-amber-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-            <svg class="h-3.5 w-3.5 fill-amber-400 text-amber-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-            <svg class="h-3.5 w-3.5 fill-amber-400 text-amber-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-            <svg class="h-3.5 w-3.5 fill-amber-400 text-amber-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-          </div>
-          <p class="mt-1.5 text-[12px] leading-relaxed text-slate-700">
-            "Bagian puncak kepala saya mulai kelihatan agak botak dan rambut tipis banget. Pakai minyak kemiri bakar ini rutin seminggu 3 kali sebelum tidur, rambut rontok jauh berkurang dan mulai muncul rambut-rambut halus baru. Beneran asli baunya sangrai kemiri."
-          </p>
-        </div>
-
-        <div class="rounded-xl border border-slate-200/90 bg-slate-50/50 p-3 sm:p-3.5 shadow-xs">
-          <div class="flex items-center justify-between">
-            <span class="text-[13px] font-bold text-slate-900">Farhan Maulana — Jakarta Barat</span>
-            <span class="rounded-full border border-emerald-200/80 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">Pembeli Terverifikasi</span>
-          </div>
-          <div class="mt-1 flex gap-0.5">
-            <svg class="h-3.5 w-3.5 fill-amber-400 text-amber-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-            <svg class="h-3.5 w-3.5 fill-amber-400 text-amber-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-            <svg class="h-3.5 w-3.5 fill-amber-400 text-amber-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-            <svg class="h-3.5 w-3.5 fill-amber-400 text-amber-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-            <svg class="h-3.5 w-3.5 fill-amber-400 text-amber-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-          </div>
-          <p class="mt-1.5 text-[12px] leading-relaxed text-slate-700">
-            "Beli buat numbuhin brewok sama kumis biar tebal rapi. Kuas spoolie gratisnya ngebantu banget waktu pengaplikasian jadi gak belepotan. Sekarang brewok tumbuh lebih rapat dan hitam pekat."
-          </p>
-        </div>
-
-        <div class="rounded-xl border border-slate-200/90 bg-slate-50/50 p-3 sm:p-3.5 shadow-xs">
-          <div class="flex items-center justify-between">
-            <span class="text-[13px] font-bold text-slate-900">Anindya Putri — Yogyakarta</span>
-            <span class="rounded-full border border-emerald-200/80 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">Pembeli Terverifikasi</span>
-          </div>
-          <div class="mt-1 flex gap-0.5">
-            <svg class="h-3.5 w-3.5 fill-amber-400 text-amber-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-            <svg class="h-3.5 w-3.5 fill-amber-400 text-amber-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-            <svg class="h-3.5 w-3.5 fill-amber-400 text-amber-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-            <svg class="h-3.5 w-3.5 fill-amber-400 text-amber-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-            <svg class="h-3.5 w-3.5 fill-amber-400 text-amber-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-          </div>
-          <p class="mt-1.5 text-[12px] leading-relaxed text-slate-700">
-            "Alis saya dari dulu tipis banget hampir gak kelihatan kalau gak pakai pensil alis. Rutin oles minyak kemiri pakai kuas spoolie tiap malam, 3 minggu kelihatan makin hitam dan tumbuh bulu-bulu baru. Puas banget, packing juga rapi aman."
-          </p>
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══ 7. PROMO & PAKET PILIHAN (COUNTDOWN & SCARCITY) ═══ -->
-    <section id="promo-box" class="border-t border-slate-200 bg-[#0A2540] px-4 sm:px-5 py-6 sm:py-8 text-center text-white">
-      <span class="inline-block rounded-full border border-white/20 bg-white/10 px-2.5 py-0.5 text-[9.5px] sm:text-[10px] font-bold uppercase tracking-wider text-amber-300">
-        Penawaran Terbatas
-      </span>
-
-      <h2 class="mt-2 text-[clamp(19px,5.5vw,22px)] font-bold tracking-tight text-white">
-        PILIH PAKET MINYAK KEMIRI BAKAR 100ML
-      </h2>
-      <p class="mt-1 text-[12.5px] text-slate-300">
-        Khusus Pemesanan Hari Ini — Bonus Kuas Spoolie &amp; Bisa COD
-      </p>
-
-      <!-- Bundle Package Showcase Image (Frameless) -->
-      <div class="mt-4 -mx-4 sm:-mx-5 overflow-hidden">
-        <img
-          src="/images/landing/minyak-kemiri/bundle-pack.webp"
-          alt="Paket Hemat 3 Botol Minyak Kemiri Bakar Murni 100ml lengkap dengan kuas spoolie dan biji kemiri"
-          class="aspect-square w-full object-cover block"
-          loading="lazy"
-          decoding="async"
-          width="1024"
-          height="1024"
-        />
-      </div>
-
-      <!-- Price Display -->
-      <div class="mt-3.5 flex items-center justify-center gap-2.5">
-        <span class="text-[13px] text-slate-300 line-through">Rp{comparePrice.toLocaleString('id-ID')}</span>
-        <span class="text-[26px] font-bold text-amber-400">Rp{Math.round(price).toLocaleString('id-ID')}</span>
-      </div>
-
-      <!-- 15-Minute Countdown Timer -->
-      <div class="mx-auto mt-3.5 max-w-[320px] rounded-xl border border-white/15 bg-white/10 p-2.5 sm:p-3">
-        <p class="text-[11px] font-semibold text-slate-300">Promo Berakhir Dalam:</p>
-        <div class="mt-1.5 flex items-center justify-center gap-2 font-mono">
-          <div class="flex flex-col items-center">
-            <span id="countdown-minutes" class="flex h-10 w-11 items-center justify-center rounded bg-slate-950 text-[18px] font-bold text-amber-400">14</span>
-            <span class="mt-0.5 text-[8.5px] uppercase tracking-wider text-slate-200">Menit</span>
-          </div>
-          <span class="text-[18px] font-bold text-amber-400">:</span>
-          <div class="flex flex-col items-center">
-            <span id="countdown-seconds" class="flex h-10 w-11 items-center justify-center rounded bg-slate-950 text-[18px] font-bold text-amber-400">59</span>
-            <span class="mt-0.5 text-[8.5px] uppercase tracking-wider text-slate-200">Detik</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Stock Scarcity Progress Bar -->
-      <div class="mx-auto mt-3 max-w-[320px] text-left">
-        <div class="flex justify-between text-[10.5px] font-bold text-slate-300">
-          <span id="stock-count-text">Tersisa 9 Botol Lagi</span>
-          <span class="text-amber-400">Stok Terbatas</span>
-        </div>
-        <div class="mt-1 h-2 w-full overflow-hidden rounded-full bg-white/20">
-          <div
-            id="stock-progress-bar"
-            class="h-full rounded-full bg-amber-400 transition-all duration-500"
-            style="width: 58%;"
-          ></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══ 8. FORMULIR PEMESANAN RESMI (CHECKOUT) ═══ -->
-    <section id="form-pemesanan" class="bg-white px-0 pt-7 pb-4 scroll-mt-4 w-full text-left">
-      <div class="px-4 pb-2 text-center">
-        <div class="inline-flex items-center gap-1.5 text-[11.5px] font-bold uppercase tracking-wider text-[#0A2540] mb-1">
-          <svg class="h-3.5 w-3.5 shrink-0 fill-none stroke-current stroke-2" viewBox="0 0 24 24"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73zm1 .27V12"/><path d="M3.29 7L12 12l8.71-5M7.5 4.27l9 5.15"/></svg>
-          <span>Formulir Pemesanan Resmi</span>
-        </div>
-        <h2 class="text-[21px] font-bold tracking-tight text-slate-950 leading-tight">
-          Lengkapi Data Pengiriman
-        </h2>
-        <p class="text-[13px] text-slate-600 mt-1 max-w-[380px] mx-auto leading-relaxed">
-          Silakan pilih paket dan isi alamat tujuan pengiriman. Pembayaran tunai dilakukan ke kurir saat barang sampai (COD).
-        </p>
-      </div>
-
-      <GeoIpResolvedForm
-        mode={formContext.mode}
-        province={formContext.province}
-        productSlug={product.slug}
-        embedded={true}
-      />
-
-      <!-- Trust Badges (Clean SVG) -->
-      <div class="mt-4 grid grid-cols-3 gap-1 border-t border-slate-200 px-4 pt-3.5 text-center">
-        <div class="flex flex-col items-center px-0.5">
-          <svg class="h-4.5 w-4.5 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2zm10-10V7a4 4 0 0 0-8 0v4h8z"></path></svg>
-          <span class="mt-1 text-[10.5px] font-bold text-slate-800">Data Aman</span>
-          <span class="text-[9.5px] text-slate-500">Privasi Terjaga</span>
-        </div>
-        <div class="flex flex-col items-center px-0.5">
-          <svg class="h-4.5 w-4.5 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
-          <span class="mt-1 text-[10.5px] font-bold text-slate-800">Packing Rapi</span>
-          <span class="text-[9.5px] text-slate-500">Kardus &amp; Bubble</span>
-        </div>
-        <div class="flex flex-col items-center px-0.5">
-          <svg class="h-4.5 w-4.5 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-          <span class="mt-1 text-[10.5px] font-bold text-slate-800">Garansi Sampai</span>
-          <span class="text-[9.5px] text-slate-500">Bisa Bayar COD</span>
-        </div>
-      </div>
-    </section>
-
-    <!-- Social Proof Notification -->
-    <SocialProofToast
-      orderCount={socialProofOrders}
-      heroSelector="#landing-hero"
-      formSelector="#form-pemesanan"
-    />
-
-    <!-- Sticky Mobile Purchase Bar (Auto-hides over hero or form) -->
-    <div
+          width="600"
+          height="600" /></div
+      ><div class="px-5 pt-6"
+        ><div class="flex items-center justify-between pb-4 border-b border-slate-800"
+          ><span class="inline-flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-wider text-amber-400"
+            ><svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="1em"
+              height="1em"
+              viewBox="0 0 24 24"
+              class="h-4 w-4 text-amber-400"
+              aria-hidden="true"
+              fill="none"
+              stroke="currentColor"
+            >
+              <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M12 6v6l4 2"></path>
+              </g></svg
+            ><span>Promo Berakhir Dalam</span></span
+          ><div class="font-mono text-[16px] font-bold text-white"
+            ><span id="countdown-minutes">15</span>:<span id="countdown-seconds">00</span></div
+          ></div
+        ><div class="py-4 border-b border-slate-800"
+          ><p class="text-[11px] font-bold uppercase tracking-widest text-slate-400"
+            >Harga Promo Paket 2 Botol (Paling Diminati)</p
+          ><div class="mt-1.5 flex items-baseline gap-2.5"
+            ><span class="text-[32px] font-bold font-mono tracking-tight text-amber-400 leading-none">Rp89.000</span
+            ><span class="text-[14px] text-slate-400 line-through">Rp170.000</span></div
+          ><p class="mt-2 text-[12.5px] font-semibold text-slate-200"
+            >Hemat Rp81.000 • Paket 1 Rp{rupiah(price)} • Paket 3 Rp119.000</p
+          ></div
+        ><div class="pt-4"
+          ><div class="flex items-center justify-between text-[12px] font-semibold"
+            ><span class="text-slate-300">Sisa Kuota Promo Hari Ini:</span
+            ><span id="stock-count-text" class="font-mono font-bold text-amber-400">Tersisa 9 Botol Lagi</span></div
+          ><div class="mt-2 h-1.5 w-full bg-slate-800 overflow-hidden"
+            ><div
+              id="stock-progress-bar"
+              class="h-full bg-amber-400 transition-all duration-500"
+              style="width: 58%"
+            ></div></div></div></div></section
+    ><!-- ═══ 7. FORMULIR PEMESANAN RESMI (CHECKOUT) ═══ --><section
+      id="form-pemesanan"
+      class="bg-white px-0 pt-6 pb-4 scroll-mt-4 w-full text-left"
+      ><div class="px-5 pb-2"
+        ><h2 class="text-[20px] font-bold tracking-tight text-slate-950 leading-tight">Lengkapi Data Pengiriman COD</h2
+        ><p class="text-[13.5px] font-normal text-slate-600 mt-1 leading-relaxed"
+          >Pilih paket dan isi alamat. Bayar tunai langsung ke kurir saat barang sampai di tangan Anda.</p
+        ></div
+      ><GeoIpResolvedForm mode={formContext.mode} province={formContext.province} productSlug={product.slug} embedded={true} /></section
+    ><SocialProofToast orderCount={socialProofOrders} heroSelector="#landing-hero" formSelector="#form-pemesanan" /><div
       id="sticky-purchase-bar"
-      class="fixed inset-x-0 bottom-0 z-40 mx-auto flex w-full max-w-[480px] items-center justify-between border-t border-slate-200 bg-white/95 px-4 py-3 shadow-[0_-8px_24px_rgba(17,17,17,0.08)] backdrop-blur-md transition-all duration-300 lg:hidden"
-      style="transform: translateY(100%); opacity: 0; pointer-events: none;"
-    >
-      <div>
-        <p class="text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-500">Harga Promo</p>
-        <p class="text-base font-bold text-slate-900">Rp{Math.round(price).toLocaleString('id-ID')}</p>
-      </div>
-      <a
+      class="fixed inset-x-0 bottom-0 z-40 mx-auto flex w-full max-w-[480px] items-center justify-between border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur-md transition-all duration-300 lg:hidden"
+      style="transform: translateY(100%); opacity: 0; pointer-events: none"
+      ><div
+        ><p class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Mulai Dari</p
+        ><p class="text-base font-bold text-slate-950">Rp{rupiah(price)}</p></div
+      ><a
         href="#form-pemesanan"
-        class="inline-flex min-h-11 items-center justify-center rounded-full border border-[#0A2540] bg-[#0A2540] px-6 text-[11px] font-bold uppercase tracking-wider text-white transition-colors hover:bg-slate-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0A2540] active:scale-[0.98]"
-      >
-        Pesan Sekarang (COD)
-      </a>
-    </div>
+        class="inline-flex min-h-11 items-center justify-center bg-red-700 px-5 text-[11.5px] font-bold uppercase tracking-wider text-white transition-colors hover:bg-red-800"
+        >Pesan Sekarang (COD)</a
+      ></div
+    >
   </main>
-</BaseLayout>
-
-<script is:inline>
-  // Countdown Timer Script (15 minutes with sessionStorage persistence)
+  <script is:inline>
   function initCountdownTimer() {
     const minEl = document.getElementById('countdown-minutes');
     const secEl = document.getElementById('countdown-seconds');
@@ -571,7 +1030,6 @@ const socialProofOrders = await recentOrderCount(getRuntimeEnv(Astro.locals)?.OM
     setInterval(updateTimer, 1000);
   }
 
-  // Stock Counter Scarcity Script
   function initStockCounter() {
     const stockText = document.getElementById('stock-count-text');
     const stockBar = document.getElementById('stock-progress-bar');
@@ -604,7 +1062,6 @@ const socialProofOrders = await recentOrderCount(getRuntimeEnv(Astro.locals)?.OM
     }, delay);
   }
 
-  // Sticky Mobile Purchase Bar Observer
   function initStickyBarObserver() {
     const stickyBar = document.getElementById('sticky-purchase-bar');
     const orderForm = document.getElementById('form-pemesanan');
@@ -655,3 +1112,4 @@ const socialProofOrders = await recentOrderCount(getRuntimeEnv(Astro.locals)?.OM
     initAll();
   }
 </script>
+</BaseLayout>

@@ -1,15 +1,16 @@
 ---
 /*
- * Native Astro landing page — Tas Selempang Wanita Modern.
- *
- * Clean, High-Converting Direct-Response Funnel.
- * 100% Precision Visuals matching catalog product & variants.
- * Form: Native GeoIpResolvedForm with hybrid mode.
+ * Native Astro landing page — Tas Selempang Wanita Modern (Chic Korean Style).
+ * Rebuilt on 2026-10-18 from the live render of
+ * https://zvara.shop/produk/tas-selempang-wanita-modern: this page was deployed from
+ * another device and its source never reached the repository. Markup and
+ * page CSS are the live ones; the tracker, order form and social-proof toast
+ * are the components that rendered them, and the lowest variant price is
+ * bound to the product rather than written in.
  */
 import BaseLayout from '../layouts/BaseLayout.astro';
 import MetaLandingTracker from '../components/storefront/tracking/MetaLandingTracker.astro';
 import GeoIpResolvedForm from '../components/storefront/forms/GeoIpResolvedForm.astro';
-import Icon from '../components/storefront/shared/Icon.astro';
 import SocialProofToast from '../components/storefront/shared/SocialProofToast.astro';
 import { recentOrderCount } from '../lib/social-proof';
 import { getRuntimeEnv } from '../lib/env';
@@ -19,293 +20,1029 @@ import { defaultCatalogContentId } from '../lib/catalog-feed';
 import { resolveFormModeContext } from '../lib/form-mode';
 import '../styles/form-hybrid.css';
 import '../styles/landing-pages/landing.css';
+import '../styles/landing-pages/tas-selempang-wanita-modern.css';
 
 export const prerender = false;
 
-const SLUG = 'tas-selempang-wanita-modern';
-const PRODUCT_SLUG = 'tas-selempang-wanita-modern';
+const SLUG = "tas-selempang-wanita-modern";
+const PRODUCT_SLUG = "tas-selempang-wanita-modern";
 
 const product = await getStorefrontProduct(Astro.locals, PRODUCT_SLUG);
 if (!product) return Astro.rewrite('/404');
 
 const formContext = await resolveFormModeContext(Astro.request);
-
 const canonical = `${Astro.locals.tenant.siteUrl}${await nativeLandingCanonicalPath(Astro.locals, SLUG)}`;
-const seoTitle = 'Tas Slempang Serbaguna — Simple, Elegan & Praktis';
-const seoDescription =
-  'Tas slempang wanita serbaguna, ringan dibawa dan tetap stylish. Bahan berkualitas, resleting halus, kompak tapi lega. Bayar di Tempat (COD).';
+const seoTitle = "Tas Selempang Wanita Modern — Ringan, Muat Banyak & Tampil Mewah Seketika";
+const seoDescription = "Tas Selempang Wanita Modern tercantum dalam kategori Umum. Detail yang ditampilkan mengikuti data katalog toko.";
 
 const cheapest = [...product.variants].sort((a, b) => a.price - b.price)[0] ?? null;
 const price = cheapest?.price ?? product.price;
+const rupiah = (value: number) => Math.round(value).toLocaleString('id-ID');
 const socialProofOrders = await recentOrderCount(getRuntimeEnv(Astro.locals)?.OMS_DB as D1Database | undefined);
 ---
 
 <BaseLayout
   title={seoTitle}
   description={seoDescription}
-  image="/images/landing/tas-selempang/banner-hero-model.webp"
+  image="/assets/uploads/2026-08-18/ccf44dda-90ac-486e-b088-1553d19d4a36.webp"
   preloadImages="/images/landing/tas-selempang/banner-hero-model.webp"
   canonical={canonical}
   hideHeader={true}
   hideFooter={true}
 >
-  <main class="mx-auto min-h-screen w-full max-w-[480px] bg-white text-stone-950 pb-20 font-sans antialiased">
-    <MetaLandingTracker
-      slug={SLUG}
-      contentId={defaultCatalogContentId(product)}
-      contentName={product.contentName}
-      price={price}
-    />
-
-    <!-- ═══ 1. TOP ANNOUNCEMENT BAR ═══ -->
-    <div class="bg-neutral-950 px-4 py-2.5 text-center text-white">
-      <p class="text-[12px] font-medium tracking-wide">
-        🔥 <span class="font-bold text-amber-300">PROMO SPESIAL HARI INI</span> — Diskon Terbatas &amp; Bisa <span class="font-bold underline text-white">COD (Bayar di Tempat)</span>
-      </p>
-    </div>
-
-    <!-- ═══ 2. HERO INFOGRAPHIC BANNER ═══ -->
-    <section id="landing-hero" data-hero-section class="bg-white text-left">
-      <div class="relative overflow-hidden bg-stone-100">
-        <img
+  <main class="mx-auto min-h-screen w-full max-w-[480px] bg-white pb-16 font-sans text-slate-950 selection:bg-amber-200 selection:text-slate-950 antialiased">
+    <MetaLandingTracker slug={SLUG} contentId={defaultCatalogContentId(product)} contentName={product.contentName} price={price} /><!-- ═══ 1. MINIMALIST URGENCY BAR (TOP) ═══ --><header
+      class="flex items-center justify-between border-b border-slate-900 bg-slate-950 px-4 py-2 text-white"
+      ><div class="flex items-center gap-1.5 text-[11px] font-bold tracking-wide min-w-0"
+        ><svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="1em"
+          height="1em"
+          viewBox="0 0 24 24"
+          class="h-3.5 w-3.5 fill-amber-400 text-amber-400 shrink-0"
+          aria-hidden="true"
+          fill="currentColor"
+          stroke="currentColor"
+        >
+          <path
+            fill="currentColor"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M15.914 4a1.5 1.5 0 0 0-2.474-1.561l-9 9A1.5 1.5 0 0 0 5.5 14h4.002a.5.5 0 0 1 .471.666L8.086 20a1.5 1.5 0 0 0 2.475 1.56l9-9A1.5 1.5 0 0 0 18.5 10h-3.997a.5.5 0 0 1-.472-.667z"
+          ></path></svg
+        ><span class="text-amber-400 uppercase shrink-0">PROMO:</span
+        ><span class="text-white truncate">BELI 2 HEMAT RP26.500</span></div
+      ><span class="text-[10.5px] font-bold tracking-wider text-amber-400 uppercase shrink-0 ml-2">BISA COD</span></header
+    ><!-- ═══ 2. HERO SECTION (NO RATING ABOVE HEADLINE, NO BUTTON, CLEAN BG) ═══ --><section
+      id="landing-hero"
+      class="bg-white pb-6"
+      ><div class="px-5 pt-6 text-left"
+        ><h1 class="text-[clamp(23px,6.8vw,28px)] font-bold leading-[1.18] tracking-tight text-slate-950"
+          >Bahu Sering Pegal Bawa Tas Berat &amp; Isi Berantakan Saat Buru-Buru?{' '}<mark
+            class="bg-amber-200 px-1.5 py-0.5 text-slate-950"
+            >Tampil Anggun Berkelas</mark
+          >{' '}Tanpa Beban!</h1
+        ><p class="mt-3 text-[15px] font-normal leading-relaxed text-slate-700"
+          >Desain selempang ergonomis ultra-ringan{' '}<mark class="bg-red-100 px-1 font-semibold text-red-900"
+            >muat HP, dompet, kosmetik, dan kunci rapi</mark
+          >{' '}tanpa bikin pundak sakit seharian.</p
+        ></div
+      ><!-- FULL-WIDTH UNCROPPED HERO IMAGE --><div class="mt-5 w-full bg-white border-y border-slate-200"
+        ><img
           src="/images/landing/tas-selempang/banner-hero-model.webp"
-          alt="Tas Kecil Gaya Elegannya Besar - Simple Classy dan Praktis"
-          class="w-full h-auto object-cover"
-          width="900"
-          height="1125"
+          alt="Tas Selempang Wanita Modern Simple Elegan dan Praktis"
+          class="w-full h-auto block"
           fetchpriority="high"
           loading="eager"
           decoding="async"
-        />
-      </div>
-
-      <!-- Quick Trust Strip -->
-      <div class="grid grid-cols-3 divide-x divide-stone-200 border-b border-stone-200 bg-white py-3 px-2 text-center shadow-sm">
-        <div class="px-1">
-          <span class="block text-[14px]">🚚</span>
-          <span class="text-[11px] font-bold text-neutral-950">Bisa COD</span>
-          <p class="text-[10px] text-stone-500">Bayar ke Kurir</p>
-        </div>
-        <div class="px-1">
-          <span class="block text-[14px]">⭐</span>
-          <span class="text-[11px] font-bold text-neutral-950">Rating 4.9/5</span>
-          <p class="text-[10px] text-stone-500">1.400+ Terjual</p>
-        </div>
-        <div class="px-1">
-          <span class="block text-[14px]">✨</span>
-          <span class="text-[11px] font-bold text-neutral-950">Quality Check</span>
-          <p class="text-[10px] text-stone-500">Dicek Sebelum Kirim</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══ 3. FITUR & KEUNGGULAN UTAMA (INFOGRAPHIC) ═══ -->
-    <section class="bg-white px-4 pt-7 pb-2">
-      <div class="overflow-hidden rounded-2xl border border-stone-200 shadow-sm">
-        <img
-          src="/images/landing/tas-selempang/banner-features-detail.webp"
-          alt="Tas Slempang Serbaguna - Ringan & Nyaman, Bahan Berkualitas, Design Minimalis, Resleting Halus, Kompak Tapi Lega"
-          class="w-full h-auto block"
-          width="900"
-          height="900"
-          loading="lazy"
-          decoding="async"
-        />
-      </div>
-    </section>
-
-    <!-- ═══ 4. PILIHAN 3 WARNA FASHION (INFOGRAPHIC) ═══ -->
-    <section class="bg-white px-4 pt-4 pb-6">
-      <div class="overflow-hidden rounded-2xl border border-stone-200 shadow-sm">
-        <img
+          width="480"
+          height="600" /></div
+      ><!-- MINIMALIST TRUST HAIRLINE STRIP --><div
+        class="border-b border-slate-200 bg-white px-5 py-2.5 flex items-center justify-between text-[12px] font-semibold text-slate-800"
+        ><span class="inline-flex items-center gap-1.5"
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 text-emerald-700 shrink-0"
+            aria-hidden="true"
+            fill="none"
+            stroke="currentColor"
+          >
+            <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+              <path
+                d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"
+              ></path>
+              <path d="m9 12l2 2l4-4"></path>
+            </g></svg
+          ><span>Garansi Produk Original</span></span
+        ><span class="inline-flex items-center gap-1.5"
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 text-slate-900 shrink-0"
+            aria-hidden="true"
+            fill="none"
+            stroke="currentColor"
+          >
+            <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+              <path
+                d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2m10 0H9m10 0h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"
+              ></path>
+              <circle cx="17" cy="18" r="2"></circle>
+              <circle cx="7" cy="18" r="2"></circle>
+            </g></svg
+          ><span>Bisa Bayar di Tempat (COD)</span></span
+        ></div
+      ><!-- 3 PAIN POINTS (CONCISE, MARK HIGHLIGHTED) --><div class="px-5 pt-6 text-left"
+        ><h2 class="text-[12px] font-bold uppercase tracking-widest text-red-700">Pernah Mengalami Momen Ini?</h2
+        ><div class="mt-3 divide-y divide-slate-200 border-y border-slate-200"
+          ><div class="py-3.5"
+            ><div class="flex items-start justify-between gap-3"
+              ><div class="flex items-start gap-2.5"
+                ><svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="1em"
+                  height="1em"
+                  viewBox="0 0 24 24"
+                  class="h-4 w-4 text-red-600 shrink-0 mt-0.5"
+                  aria-hidden="true"
+                  fill="none"
+                  stroke="currentColor"
+                >
+                  <path
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="m21.73 18l-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3M12 9v4m0 4h.01"
+                  ></path></svg
+                ><h3 class="text-[15px] font-bold leading-snug text-slate-950">Pundak Nyeri Akibat Tali Tas Tipis</h3></div
+              ><span class="text-[10px] font-bold uppercase tracking-wider text-red-700 shrink-0 mt-0.5"
+                >Bahu Pegal</span
+              ></div
+            ><p class="mt-1 pl-6.5 text-[13.5px] font-normal leading-relaxed text-slate-700"
+              >Baru jalan sebentar ke mal atau pengajian,{' '}<mark class="bg-red-100/90 px-1 font-semibold text-red-900"
+                >bahu sudah merah tertekan tali yang keras</mark
+              >.</p
+            ></div
+          ><div class="py-3.5"
+            ><div class="flex items-start justify-between gap-3"
+              ><div class="flex items-start gap-2.5"
+                ><svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="1em"
+                  height="1em"
+                  viewBox="0 0 24 24"
+                  class="h-4 w-4 text-red-600 shrink-0 mt-0.5"
+                  aria-hidden="true"
+                  fill="none"
+                  stroke="currentColor"
+                >
+                  <path
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="m21.73 18l-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3M12 9v4m0 4h.01"
+                  ></path></svg
+                ><h3 class="text-[15px] font-bold leading-snug text-slate-950"
+                  >Panik Bongkar Tas Saat Mau Bayar Kasir</h3
+                ></div
+              ><span class="text-[10px] font-bold uppercase tracking-wider text-red-700 shrink-0 mt-0.5"
+                >Isi Berantakan</span
+              ></div
+            ><p class="mt-1 pl-6.5 text-[13.5px] font-normal leading-relaxed text-slate-700"
+              >Tas tanpa sekat rapi bikin{' '}<mark class="bg-red-100/90 px-1 font-semibold text-red-900"
+                >uang, HP, dan lipstik tercampur susah dicari</mark
+              >.</p
+            ></div
+          ><div class="py-3.5"
+            ><div class="flex items-start justify-between gap-3"
+              ><div class="flex items-start gap-2.5"
+                ><svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="1em"
+                  height="1em"
+                  viewBox="0 0 24 24"
+                  class="h-4 w-4 text-red-600 shrink-0 mt-0.5"
+                  aria-hidden="true"
+                  fill="none"
+                  stroke="currentColor"
+                >
+                  <path
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="m21.73 18l-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3M12 9v4m0 4h.01"
+                  ></path></svg
+                ><h3 class="text-[15px] font-bold leading-snug text-slate-950"
+                  >Kulit Tas Mengelupas &amp; Resleting Macet</h3
+                ></div
+              ><span class="text-[10px] font-bold uppercase tracking-wider text-red-700 shrink-0 mt-0.5"
+                >Cepat Rusak</span
+              ></div
+            ><p class="mt-1 pl-6.5 text-[13.5px] font-normal leading-relaxed text-slate-700"
+              >Beli tas murah di pasaran baru dipakai sebulan{' '}<mark class="bg-red-100/90 px-1 font-semibold text-red-900"
+                >bahannya pecah-pecah dan resletingnya jebol</mark
+              >.</p
+            ></div
+          ></div
+        ></div
+      ><!-- SELLER VISUAL 1 AFTER PAIN POINTS --><div class="mt-5 w-full bg-white border-y border-slate-200"
+        ><img
           src="/images/landing/tas-selempang/banner-colors-showcase.webp"
-          alt="Pilihan Warna Tas Fashion: Hitam Elegan, Coksu Manis, dan Hijau Army Unik"
+          alt="Pilihan 3 Warna Tas Selempang Wanita Modern Hitam Elegan Coksu Manis dan Hijau Army"
           class="w-full h-auto block"
-          width="900"
-          height="1125"
           loading="lazy"
           decoding="async"
-        />
-      </div>
-    </section>
-
-    <!-- ═══ 5. TESTIMONIALS (ULASAN JUJUR PEMBELI) ═══ -->
-    <section class="bg-[#FAF9F6] px-5 py-8 border-t border-stone-200">
-      <div class="mb-6 text-center">
-        <span class="inline-block rounded-full bg-amber-100 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-900 mb-1">
-          Testimoni Pembeli
-        </span>
-        <h2 class="text-[22px] font-bold text-neutral-950">
-          Apa Kata Pelanggan Zvara?
-        </h2>
-        <p class="mt-1 text-[13px] text-stone-600">
-          Ulasan nyata dari pembeli yang sudah menggunakan Tas Slempang Serbaguna:
-        </p>
-      </div>
-
-      <div class="space-y-4">
-        <!-- Review 1 -->
-        <div class="rounded-2xl border border-stone-200 bg-white p-4.5 space-y-2.5 shadow-sm">
-          <div class="flex items-center justify-between">
-            <div>
-              <h3 class="text-[14.5px] font-bold text-neutral-950">Ibu Rina Mariana</h3>
-              <p class="text-[11.5px] text-stone-500">Jakarta Selatan • Varian Hitam</p>
-            </div>
-            <div class="text-[13px] text-amber-500">★★★★★</div>
-          </div>
-          <p class="text-[13.5px] leading-relaxed text-stone-700">
-            “Bagus banget tasnya! <strong class="text-neutral-950 font-semibold">Bahannya tebal, enteng di pundak, dan logo bunganya kelihatan mewah.</strong> Muat HP, dompet lipat, dan kosmetik. Dipake ngantor kelihatan rapi dan elegan.”
-          </p>
-        </div>
-
-        <!-- Review 2 -->
-        <div class="rounded-2xl border border-stone-200 bg-white p-4.5 space-y-2.5 shadow-sm">
-          <div class="flex items-center justify-between">
-            <div>
-              <h3 class="text-[14.5px] font-bold text-neutral-950">Kak Dinda Lestari</h3>
-              <p class="text-[11.5px] text-stone-500">Surabaya • Varian Coksu</p>
-            </div>
-            <div class="text-[13px] text-amber-500">★★★★★</div>
-          </div>
-          <p class="text-[13.5px] leading-relaxed text-stone-700">
-            “Warna Coksunya manis banget ala eonni Korea! <strong class="text-neutral-950 font-semibold">Talinya lebar dan empuk jadi pundak gak gampang pegal walau dipakai seharian jalan.</strong> Resletingnya lancar gak seret sama sekali.”
-          </p>
-        </div>
-
-        <!-- Review 3 -->
-        <div class="rounded-2xl border border-stone-200 bg-white p-4.5 space-y-2.5 shadow-sm">
-          <div class="flex items-center justify-between">
-            <div>
-              <h3 class="text-[14.5px] font-bold text-neutral-950">Kak Nurul Hidayah</h3>
-              <p class="text-[11.5px] text-stone-500">Bandung • Varian Hijau Army</p>
-            </div>
-            <div class="text-[13px] text-amber-500">★★★★★</div>
-          </div>
-          <p class="text-[13.5px] leading-relaxed text-stone-700">
-            “Warna Hijau Armynya unik dan cakep pol. <strong class="text-neutral-950 font-semibold">Pengiriman cepat dan bisa bayar COD pas kurir datang.</strong> Jahitannya kuat dan rapi, recommended banget belanja di sini!”
-          </p>
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══ 6. JAMINAN BELANJA AMAN & NYAMAN ═══ -->
-    <section class="bg-neutral-950 px-5 py-8 text-center text-white">
-      <div class="mx-auto mb-3 flex h-12 w-12 items-center justify-center text-amber-400">
-        <Icon name="shield-check" class="h-10 w-10" aria-hidden="true" />
-      </div>
-      <h2 class="text-[22px] font-bold tracking-tight text-white">BELANJA AMAN &amp; TERPERCAYA</h2>
-      <p class="mt-1 text-[13.5px] text-stone-300">
-        Pengalaman belanja online yang nyaman dan terjamin:
-      </p>
-
-      <div class="mt-5 grid grid-cols-3 gap-2 text-left">
-        <div class="rounded-xl bg-white/10 p-3 text-center border border-white/10">
-          <span class="text-[18px] block mb-1">📦</span>
-          <p class="text-[11px] font-bold text-white">100% Real Picture</p>
-          <p class="text-[9.5px] text-stone-300 mt-0.5">Sesuai foto</p>
-        </div>
-        <div class="rounded-xl bg-white/10 p-3 text-center border border-white/10">
-          <span class="text-[18px] block mb-1">💵</span>
-          <p class="text-[11px] font-bold text-white">Bisa COD</p>
-          <p class="text-[9.5px] text-stone-300 mt-0.5">Bayar ke kurir</p>
-        </div>
-        <div class="rounded-xl bg-white/10 p-3 text-center border border-white/10">
-          <span class="text-[18px] block mb-1">🛡️</span>
-          <p class="text-[11px] font-bold text-white">Packing Aman</p>
-          <p class="text-[9.5px] text-stone-300 mt-0.5">Dicek &amp; rapi</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══ 7. FORMULIR PEMESANAN RESMI (CHECKOUT) ═══ -->
-    <section id="form-pemesanan" class="scroll-mt-6 bg-white px-3 pt-6 pb-2">
-      <div class="px-3 pb-3 text-center">
-        <span class="inline-block rounded-full bg-amber-100 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-900 mb-1">
-          Formulir Pemesanan
-        </span>
-        <h2 class="text-[22px] font-bold text-neutral-950">
-          Isi Data Pengiriman Anda
-        </h2>
-        <p class="mt-1 text-[13px] text-stone-600">
-          Pilih varian warna di bawah dan isi alamat tujuan. Bayar saat barang sampai (COD).
-        </p>
-      </div>
-
-      <GeoIpResolvedForm
-        mode={formContext.mode}
-        province={formContext.province}
-        productSlug={product.slug}
-        embedded={true}
-      />
-    </section>
-
-    <!-- ═══ 8. STICKY CTA & SOCIAL PROOF ═══ -->
-    <div
+          width="480"
+          height="600" /></div></section
+    ><!-- ═══ 3. MECHANISM & MANFAAT SECTION ═══ --><section
+      class="cv-section border-t border-slate-200 bg-white pt-7 pb-7 text-left"
+      ><div class="px-5"
+        ><h2 class="text-[21px] sm:text-[23px] font-bold tracking-tight leading-[1.2] text-slate-950"
+          >3 Keunggulan Utama Tas Selempang Wanita Modern</h2
+        ></div
+      ><!-- UNCROPPED PRODUCT PACKSHOT --><div class="mt-4 w-full bg-white border-y border-slate-200"
+        ><img
+          src="/images/landing/tas-selempang/banner-features-detail.webp"
+          alt="Detail Fitur Tas Selempang Wanita Modern Ringan Bahan Berkualitas Resleting Halus"
+          class="w-full h-auto block"
+          loading="lazy"
+          decoding="async"
+          width="600"
+          height="600" /></div
+      ><!-- COMPACT 1-LINE SPECIFICATION STRIP --><div
+        class="border-b border-slate-200 bg-slate-50 px-5 py-2.5 text-[12px] font-semibold text-slate-800"
+        >Nilon Waterproof Premium • Resleting Logam Gold Anti Macet • 3 Pilihan Warna Eksklusif</div
+      ><div class="px-5 divide-y divide-slate-200 border-b border-slate-200"
+        ><div class="py-3.5 flex items-start gap-3"
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 text-emerald-700 shrink-0 mt-0.5"
+            aria-hidden="true"
+            fill="none"
+            stroke="currentColor"
+          >
+            <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="m9 12l2 2l4-4"></path>
+            </g></svg
+          ><div
+            ><h3 class="text-[14.5px] font-bold leading-snug text-slate-950">Kompartemen Multi-Sekat Kompak Tapi Lega</h3
+            ><p class="mt-1 text-[13.5px] font-normal leading-relaxed text-slate-700"
+              >Ukuran ringkas namun{' '}<mark class="bg-amber-100 px-1 font-semibold text-slate-950"
+                >muat 2 HP, dompet, bedak, dan tisu tersusun rapi</mark
+              >{' '}dalam sekali buka.</p
+            ></div
+          ></div
+        ><div class="py-3.5 flex items-start gap-3"
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 text-emerald-700 shrink-0 mt-0.5"
+            aria-hidden="true"
+            fill="none"
+            stroke="currentColor"
+          >
+            <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="m9 12l2 2l4-4"></path>
+            </g></svg
+          ><div
+            ><h3 class="text-[14.5px] font-bold leading-snug text-slate-950">Tali Lebar Empuk Anti Pegal Seharian</h3
+            ><p class="mt-1 text-[13.5px] font-normal leading-relaxed text-slate-700"
+              >Strap selempang bisa diatur panjang-pendeknya,{' '}<mark class="bg-amber-100 px-1 font-semibold text-slate-950"
+                >membagi beban merata agar pundak bebas nyeri</mark
+              >.</p
+            ></div
+          ></div
+        ><div class="py-3.5 flex items-start gap-3"
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 text-emerald-700 shrink-0 mt-0.5"
+            aria-hidden="true"
+            fill="none"
+            stroke="currentColor"
+          >
+            <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="m9 12l2 2l4-4"></path>
+            </g></svg
+          ><div
+            ><h3 class="text-[14.5px] font-bold leading-snug text-slate-950">Bahan Tebal Anti Air &amp; Anti Mengelupas</h3
+            ><p class="mt-1 text-[13.5px] font-normal leading-relaxed text-slate-700"
+              >Material kanvas nilon rapat{' '}<mark class="bg-amber-100 px-1 font-semibold text-slate-950"
+                >tahan cipratan hujan dan awet bertahun-tahun</mark
+              >{' '}tanpa mengelupas.</p
+            ></div
+          ></div
+        ></div
+      ></section
+    ><!-- ═══ 4. 4 OVERCLAIM VERIFIED REVIEWS ═══ --><section
+      class="cv-section border-t border-slate-200 bg-white pt-7 pb-7 px-5 text-left"
+      ><h2 class="text-[21px] sm:text-[23px] font-bold tracking-tight leading-[1.2] text-slate-950"
+        >Cerita Nyata Pembeli Tas Selempang Wanita</h2
+      ><div class="mt-2 flex items-center gap-2 text-[13px] font-semibold text-slate-800"
+        ><div class="flex items-center gap-0.5 text-amber-400" role="img" aria-label="Rating 5 dari 5 bintang"
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 fill-amber-400 text-amber-400"
+            aria-hidden="true"
+            fill="currentColor"
+            stroke="currentColor"
+          >
+            <path
+              fill="currentColor"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+            ></path></svg
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 fill-amber-400 text-amber-400"
+            aria-hidden="true"
+            fill="currentColor"
+            stroke="currentColor"
+          >
+            <path
+              fill="currentColor"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+            ></path></svg
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 fill-amber-400 text-amber-400"
+            aria-hidden="true"
+            fill="currentColor"
+            stroke="currentColor"
+          >
+            <path
+              fill="currentColor"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+            ></path></svg
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 fill-amber-400 text-amber-400"
+            aria-hidden="true"
+            fill="currentColor"
+            stroke="currentColor"
+          >
+            <path
+              fill="currentColor"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+            ></path></svg
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 fill-amber-400 text-amber-400"
+            aria-hidden="true"
+            fill="currentColor"
+            stroke="currentColor"
+          >
+            <path
+              fill="currentColor"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+            ></path></svg></div
+        ><span class="font-bold text-slate-950">4.9 / 5.0</span><span class="text-slate-300">•</span
+        ><span class="text-slate-600">Pembeli COD Terverifikasi</span></div
+      ><div class="mt-4 divide-y divide-slate-200 border-y border-slate-200"
+        ><article class="py-3.5"
+          ><div class="flex items-center justify-between gap-2"
+            ><h3 class="text-[14.5px] font-bold text-slate-950">Ibu Rina Mariana (38 th) • Jakarta Selatan</h3
+            ><div class="flex items-center gap-0.5 text-amber-400 shrink-0" role="img" aria-label="Rating 5 dari 5 bintang"
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg></div></div
+          ><p class="mt-1.5 text-[13.5px] font-normal leading-relaxed text-slate-900"
+            >"Kaget pas paket datang, kualitasnya jauh di atas harga!{' '}<mark
+              class="bg-amber-200/80 px-1 font-semibold text-slate-950"
+              >Bahannya tebal mewah kayak tas butik ratusan ribu</mark
+            >, dipakai ngantor dan kondangan langsung banyak teman yang naksir."</p
+          ></article
+        ><article class="py-3.5"
+          ><div class="flex items-center justify-between gap-2"
+            ><h3 class="text-[14.5px] font-bold text-slate-950">Kak Dinda Lestari (29 th) • Surabaya</h3
+            ><div class="flex items-center gap-0.5 text-amber-400 shrink-0" role="img" aria-label="Rating 5 dari 5 bintang"
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg></div></div
+          ><p class="mt-1.5 text-[13.5px] font-normal leading-relaxed text-slate-900"
+            >"Warna Coksunya cantik banget di kulit. Walau bentuknya mungil elegan,{' '}<mark
+              class="bg-amber-200/80 px-1 font-semibold text-slate-950"
+              >ternyata dalamnya super lega muat 2 HP dan dompet</mark
+            >{' '}plus pundak gak pegal sama sekali dipakai jalan seharian!"</p
+          ></article
+        ><article class="py-3.5"
+          ><div class="flex items-center justify-between gap-2"
+            ><h3 class="text-[14.5px] font-bold text-slate-950">Ibu Hj. Nurul Hidayah (46 th) • Bandung</h3
+            ><div class="flex items-center gap-0.5 text-amber-400 shrink-0" role="img" aria-label="Rating 5 dari 5 bintang"
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg></div></div
+          ><p class="mt-1.5 text-[13.5px] font-normal leading-relaxed text-slate-900"
+            >"Beli sekalian 2 warna Hitam dan Hijau Army buat gantian pengajian.{' '}<mark
+              class="bg-amber-200/80 px-1 font-semibold text-slate-950"
+              >Resleting besinya sangat licin dan jahitannya rapi</mark
+            >, mantap bisa cek dan bayar COD pas kurir datang."</p
+          ></article
+        ><article class="py-3.5"
+          ><div class="flex items-center justify-between gap-2"
+            ><h3 class="text-[14.5px] font-bold text-slate-950">Mbak Santi Wulandari (34 th) • Semarang</h3
+            ><div class="flex items-center gap-0.5 text-amber-400 shrink-0" role="img" aria-label="Rating 5 dari 5 bintang"
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg></div></div
+          ><p class="mt-1.5 text-[13.5px] font-normal leading-relaxed text-slate-900"
+            >"Kemarin kehujanan waktu naik motor, untung pakai tas ini.{' '}<mark
+              class="bg-amber-200/80 px-1 font-semibold text-slate-950"
+              >Air hujan gak tembus ke dalam jadi HP tetap kering</mark
+            >{' '}dan tinggal dilap tisu langsung bersih lagi!"</p
+          ></article
+        ></div
+      ></section
+    ><!-- ═══ 5. 3 CONCISE FAQ ITEMS ═══ --><section
+      class="cv-section border-t border-slate-200 bg-white pt-7 pb-7 px-5 text-left"
+      ><h2 class="text-[20px] font-bold tracking-tight leading-[1.2] text-slate-950">Pertanyaan yang Sering Diajukan</h2
+      ><div class="mt-3 divide-y divide-slate-200 border-y border-slate-200"
+        ><div class="py-3.5"
+          ><h3 class="text-[14px] font-bold text-slate-950">Pilihan warna apa saja yang tersedia?</h3
+          ><p class="mt-1 text-[13px] font-normal leading-relaxed text-slate-700"
+            >Tersedia 3 warna favorit yang mudah dipadukan dengan berbagai pakaian: Hitam Elegan, Coksu Manis, dan Hijau
+            Army.</p
+          ></div
+        ><div class="py-3.5"
+          ><h3 class="text-[14px] font-bold text-slate-950">Apakah muat untuk HP ukuran besar dan dompet?</h3
+          ><p class="mt-1 text-[13px] font-normal leading-relaxed text-slate-700"
+            >Sangat muat untuk semua ukuran HP hingga 6.9 inci, dompet lipat, charger, kunci, dan perlengkapan kosmetik
+            harian.</p
+          ></div
+        ><div class="py-3.5"
+          ><h3 class="text-[14px] font-bold text-slate-950">Apakah bisa bayar di tempat (COD) saat paket datang?</h3
+          ><p class="mt-1 text-[13px] font-normal leading-relaxed text-slate-700"
+            >Bisa, Anda cukup mengisi alamat di bawah ini dan bayar tunai langsung ke kurir saat barang tiba.</p
+          ></div
+        ></div
+      ></section
+    ><!-- ═══ 6. URGENCY PRICING STRIP ═══ --><section
+      class="cv-section w-full border-t border-slate-900 bg-slate-950 text-white pb-7 text-left"
+      ><div class="px-5 pt-6"
+        ><div class="flex items-center justify-between pb-4 border-b border-slate-800"
+          ><span class="inline-flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-wider text-amber-400"
+            ><svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="1em"
+              height="1em"
+              viewBox="0 0 24 24"
+              class="h-4 w-4 text-amber-400"
+              aria-hidden="true"
+              fill="none"
+              stroke="currentColor"
+            >
+              <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M12 6v6l4 2"></path>
+              </g></svg
+            ><span>Promo Berakhir Dalam</span></span
+          ><div class="font-mono text-[16px] font-bold text-white"
+            ><span id="countdown-minutes">15</span>:<span id="countdown-seconds">00</span></div
+          ></div
+        ><div class="py-4 border-b border-slate-800"
+          ><p class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Harga Promo Spesial Hari Ini</p
+          ><div class="mt-1.5 flex items-baseline gap-2.5"
+            ><span class="text-[32px] font-bold font-mono tracking-tight text-amber-400 leading-none">Rp{rupiah(price)}</span
+            ><span class="text-[14px] text-slate-400 line-through">Rp138.500</span></div
+          ><p class="mt-2 text-[12.5px] font-semibold text-slate-200"
+            >Hemat Rp26.500 untuk Paket 2 Pcs • Bisa Pilih Warna di Formulir</p
+          ></div
+        ><div class="pt-4"
+          ><div class="flex items-center justify-between text-[12px] font-semibold"
+            ><span class="text-slate-300">Sisa Kuota Promo Hari Ini:</span
+            ><span id="stock-count-text" class="font-mono font-bold text-amber-400">Tersisa 9 Pcs Lagi</span></div
+          ><div class="mt-2 h-1.5 w-full bg-slate-800 overflow-hidden"
+            ><div
+              id="stock-progress-bar"
+              class="h-full bg-amber-400 transition-all duration-500"
+              style="width: 55%"
+            ></div></div></div></div></section
+    ><!-- ═══ 7. FORMULIR PEMESANAN (CHECKOUT COD) ═══ --><section
+      id="form-pemesanan"
+      class="bg-white px-0 pt-6 pb-4 scroll-mt-4 w-full text-left"
+      ><div class="px-5 pb-2"
+        ><h2 class="text-[20px] font-bold tracking-tight text-slate-950 leading-tight">Lengkapi Data Pengiriman COD</h2
+        ><p class="text-[13.5px] font-normal text-slate-600 mt-1 leading-relaxed"
+          >Pilih warna favorit dan isi alamat. Bayar tunai langsung ke kurir saat barang sampai di tangan Anda.</p
+        ></div
+      ><GeoIpResolvedForm mode={formContext.mode} province={formContext.province} productSlug={product.slug} embedded={true} /></section
+    ><SocialProofToast orderCount={socialProofOrders} heroSelector="#landing-hero" formSelector="#form-pemesanan" /><div
       id="sticky-purchase-bar"
-      class="fixed inset-x-0 bottom-0 z-40 mx-auto flex w-full max-w-[480px] items-center justify-between border-t border-stone-200 bg-white/95 px-5 py-3 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] backdrop-blur-md transition-all duration-300"
-      style="transform: translateY(100%); opacity: 0; pointer-events: none;"
-    >
-      <div>
-        <p class="text-[9px] font-semibold uppercase tracking-[0.12em] text-stone-500">Harga Promo</p>
-        <p class="text-base font-bold text-neutral-950">Rp{Math.round(price).toLocaleString('id-ID')}</p>
-      </div>
-      <a
+      class="fixed inset-x-0 bottom-0 z-40 mx-auto flex w-full max-w-[480px] items-center justify-between border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur-md transition-all duration-300 lg:hidden"
+      style="transform: translateY(100%); opacity: 0; pointer-events: none"
+      ><div
+        ><p class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Mulai Dari</p
+        ><p class="text-base font-bold text-slate-950">Rp{rupiah(price)}</p></div
+      ><a
         href="#form-pemesanan"
-        class="inline-flex min-h-11 items-center justify-center rounded-full bg-neutral-950 px-6 text-[11px] font-bold uppercase tracking-[0.1em] text-white shadow-md transition-colors hover:bg-neutral-800 active:scale-[0.98]"
-      >
-        Pesan Sekarang (COD)
-      </a>
-    </div>
-
-    <SocialProofToast
-      orderCount={socialProofOrders}
-      heroSelector="#landing-hero"
-      formSelector="#form-pemesanan"
-    />
+        class="inline-flex min-h-11 items-center justify-center bg-red-700 px-5 text-[11.5px] font-bold uppercase tracking-wider text-white transition-colors hover:bg-red-800"
+        >Pesan Sekarang (COD)</a
+      ></div
+    >
   </main>
+  <script is:inline>
+  function initCountdownTimer() {
+    const minEl = document.getElementById('countdown-minutes');
+    const secEl = document.getElementById('countdown-seconds');
+    if (!minEl || !secEl) return;
 
-  <script slot="head" is:inline>
-    function initStickyBarObserver() {
-      const stickyBar = document.getElementById('sticky-purchase-bar');
-      const orderForm = document.getElementById('form-pemesanan');
-      const hero = document.getElementById('landing-hero');
-      if (!stickyBar) return;
+    const DURATION_MS = 15 * 60 * 1000;
+    const STORAGE_KEY = 'tas_selempang_countdown_v1';
+    let targetTime = parseInt(sessionStorage.getItem(STORAGE_KEY) || '0', 10);
+    const now = Date.now();
 
-      let heroVisible = true;
-      let formVisible = false;
-
-      const applyStickyVisibility = () => {
-        if (heroVisible || formVisible) {
-          stickyBar.style.transform = 'translateY(100%)';
-          stickyBar.style.opacity = '0';
-          stickyBar.style.pointerEvents = 'none';
-        } else {
-          stickyBar.style.transform = 'translateY(0)';
-          stickyBar.style.opacity = '1';
-          stickyBar.style.pointerEvents = 'auto';
-        }
-      };
-
-      const observer = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((entry) => {
-            if (entry.target === hero) heroVisible = entry.isIntersecting;
-            if (entry.target === orderForm) formVisible = entry.isIntersecting;
-          });
-          applyStickyVisibility();
-        },
-        { threshold: 0.05, rootMargin: '0px 0px -40px 0px' }
-      );
-
-      if (hero) observer.observe(hero);
-      if (orderForm) observer.observe(orderForm);
-      applyStickyVisibility();
+    if (!targetTime || targetTime <= now || targetTime - now > DURATION_MS) {
+      targetTime = now + DURATION_MS;
+      sessionStorage.setItem(STORAGE_KEY, targetTime.toString());
     }
 
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', initStickyBarObserver);
-    } else {
-      initStickyBarObserver();
+    const updateTimer = () => {
+      const currentTime = Date.now();
+      let remainingMs = targetTime - currentTime;
+
+      if (remainingMs <= 0) {
+        targetTime = currentTime + DURATION_MS;
+        sessionStorage.setItem(STORAGE_KEY, targetTime.toString());
+        remainingMs = DURATION_MS;
+      }
+
+      const totalSeconds = Math.floor(remainingMs / 1000);
+      const mins = Math.floor(totalSeconds / 60);
+      const secs = totalSeconds % 60;
+
+      minEl.textContent = String(mins).padStart(2, '0');
+      secEl.textContent = String(secs).padStart(2, '0');
+    };
+
+    updateTimer();
+    setInterval(updateTimer, 1000);
+  }
+
+  function initStockCounter() {
+    const stockText = document.getElementById('stock-count-text');
+    const stockBar = document.getElementById('stock-progress-bar');
+    if (!stockText || !stockBar) return;
+
+    const STORAGE_KEY = 'tas_selempang_stock_v1';
+    let stock = parseInt(sessionStorage.getItem(STORAGE_KEY) || '0', 10);
+
+    if (!stock || stock < 4 || stock > 12) {
+      stock = Math.floor(Math.random() * (12 - 6 + 1)) + 6;
+      sessionStorage.setItem(STORAGE_KEY, stock.toString());
     }
-  </script>
+
+    const updateStockUI = (val) => {
+      stockText.textContent = `Tersisa ${val} Pcs Lagi`;
+      const pct = Math.min(90, Math.max(30, Math.round((val / 15) * 100)));
+      stockBar.style.width = `${pct}%`;
+    };
+
+    updateStockUI(stock);
+
+    const delay = Math.floor(Math.random() * (60000 - 35000 + 1)) + 35000;
+    setTimeout(() => {
+      let current = parseInt(sessionStorage.getItem(STORAGE_KEY) || '0', 10);
+      if (current > 3) {
+        current -= 1;
+        sessionStorage.setItem(STORAGE_KEY, current.toString());
+        updateStockUI(current);
+      }
+    }, delay);
+  }
+
+  function initStickyBarObserver() {
+    const stickyBar = document.getElementById('sticky-purchase-bar');
+    const orderForm = document.getElementById('form-pemesanan');
+    const hero = document.getElementById('landing-hero');
+    if (!stickyBar || !orderForm) return;
+
+    let heroVisible = true;
+    let formVisible = false;
+
+    const applyStickyVisibility = () => {
+      if (heroVisible || formVisible) {
+        stickyBar.style.transform = 'translateY(100%)';
+        stickyBar.style.opacity = '0';
+        stickyBar.style.pointerEvents = 'none';
+      } else {
+        stickyBar.style.transform = 'translateY(0)';
+        stickyBar.style.opacity = '1';
+        stickyBar.style.pointerEvents = 'auto';
+      }
+    };
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.target === hero) heroVisible = entry.isIntersecting;
+          if (entry.target === orderForm) formVisible = entry.isIntersecting;
+        });
+        applyStickyVisibility();
+      },
+      { threshold: 0, rootMargin: '0px 0px -40px 0px' }
+    );
+
+    if (hero) observer.observe(hero);
+    else heroVisible = false;
+    observer.observe(orderForm);
+    applyStickyVisibility();
+  }
+
+  const initAll = () => {
+    initCountdownTimer();
+    initStockCounter();
+    initStickyBarObserver();
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAll);
+  } else {
+    initAll();
+  }
+</script>
 </BaseLayout>

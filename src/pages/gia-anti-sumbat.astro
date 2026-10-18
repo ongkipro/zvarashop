@@ -1,8 +1,12 @@
 ---
 /*
- * Native Astro landing page — GIA Serbuk Anti Tersumbat 110g.
- * Clean, Direct-Response Indonesian Commerce Funnel.
- * Authentic product assets with zero emojis and zero AI-slop.
+ * Native Astro landing page — GIA Serbuk Anti Tersumbat 110g (Formula Kristal Melancarkan Pipa).
+ * Rebuilt on 2026-10-18 from the live render of
+ * https://zvara.shop/produk/serbuk-anti-tersumbat-110gr: this page was deployed from
+ * another device and its source never reached the repository. Markup and
+ * page CSS are the live ones; the tracker, order form and social-proof toast
+ * are the components that rendered them, and the lowest variant price is
+ * bound to the product rather than written in.
  */
 import BaseLayout from '../layouts/BaseLayout.astro';
 import MetaLandingTracker from '../components/storefront/tracking/MetaLandingTracker.astro';
@@ -10,7 +14,7 @@ import GeoIpResolvedForm from '../components/storefront/forms/GeoIpResolvedForm.
 import SocialProofToast from '../components/storefront/shared/SocialProofToast.astro';
 import { recentOrderCount } from '../lib/social-proof';
 import { getRuntimeEnv } from '../lib/env';
-import { getStorefrontProduct, getStorefrontProducts } from '../lib/catalog';
+import { getStorefrontProduct } from '../lib/catalog';
 import { nativeLandingCanonicalPath } from '../lib/landing-pages';
 import { defaultCatalogContentId } from '../lib/catalog-feed';
 import { resolveFormModeContext } from '../lib/form-mode';
@@ -20,30 +24,20 @@ import '../styles/landing-pages/gia-anti-sumbat.css';
 
 export const prerender = false;
 
-const SLUG = 'gia-anti-sumbat';
-const PRODUCT_SLUG = 'pemersih-saluran-tersumbat-100ml';
+const SLUG = "gia-anti-sumbat";
+const PRODUCT_SLUG = "serbuk-anti-tersumbat-110gr";
 
-const formContext = await resolveFormModeContext(Astro.request);
-
-// Product resolution with strict DB fallback
-let product = await getStorefrontProduct(Astro.locals, PRODUCT_SLUG);
-if (!product) {
-  product = await getStorefrontProduct(Astro.locals, '82215');
-}
-if (!product) {
-  const allProducts = await getStorefrontProducts(Astro.locals);
-  product = allProducts.find((p) => p.slug.includes('saluran') || p.slug.includes('sumbat')) ?? allProducts[0] ?? null;
-}
+const product = await getStorefrontProduct(Astro.locals, PRODUCT_SLUG);
 if (!product) return Astro.rewrite('/404');
 
+const formContext = await resolveFormModeContext(Astro.request);
 const canonical = `${Astro.locals.tenant.siteUrl}${await nativeLandingCanonicalPath(Astro.locals, SLUG)}`;
-const seoTitle = 'GIA Serbuk Anti Tersumbat 110g — Melancarkan Saluran Pipa Mampet';
-const seoDescription =
-  'Serbuk pembersih saluran pipa mampet untuk melarutkan lemak makanan, rambut, dan kotoran organik pada wastafel, floor drain, dan kloset. Aman untuk pipa PVC. Bisa COD.';
+const seoTitle = "GIA Serbuk Anti Tersumbat 110g — Hancurkan Sumbatan Lemak & Rambut Tanpa Bongkar Pipa";
+const seoDescription = "GIA Serbuk Anti Tersumbat 110gr. Leburkan lemak beku, gumpalan rambut, tisu, dan kerak pipa mampet pada wastafel, kamar mandi, dan kloset WC dalam hitungan menit tanpa merusak pipa PVC. Bisa COD!";
 
 const cheapest = [...product.variants].sort((a, b) => a.price - b.price)[0] ?? null;
 const price = cheapest?.price ?? product.price;
-const comparePrice = cheapest?.comparePrice ?? Math.round(price * 1.8);
+const rupiah = (value: number) => Math.round(value).toLocaleString('id-ID');
 const socialProofOrders = await recentOrderCount(getRuntimeEnv(Astro.locals)?.OMS_DB as D1Database | undefined);
 ---
 
@@ -56,343 +50,905 @@ const socialProofOrders = await recentOrderCount(getRuntimeEnv(Astro.locals)?.OM
   hideHeader={true}
   hideFooter={true}
 >
-  <main class="mx-auto min-h-screen w-full max-w-[480px] overflow-x-hidden bg-white pb-8 font-sans text-slate-900 shadow-xl antialiased selection:bg-[#1E3A8A] selection:text-white">
-    <MetaLandingTracker
-      slug={SLUG}
-      contentId={defaultCatalogContentId(product)}
-      contentName={product.contentName}
-      price={price}
-    />
-
-    <!-- ═══ 1. TOP ANNOUNCEMENT BAR ═══ -->
-    <header class="flex items-center justify-between border-b border-slate-800 bg-[#0A2540] px-3.5 py-2 text-white shadow-xs">
-      <div class="flex items-center gap-1.5 text-[11.5px] sm:text-[12px] font-bold tracking-wide">
-        <span class="relative flex h-2 w-2 shrink-0">
-          <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75"></span>
-          <span class="relative inline-flex h-2 w-2 rounded-full bg-red-500"></span>
-        </span>
-        <span class="text-amber-300 uppercase">Promo Terbatas:</span>
-        <span class="text-white font-black">Mulai Rp{Math.round(price).toLocaleString('id-ID')}</span>
-      </div>
-      <div class="shrink-0 rounded-full border border-white/20 bg-white/15 px-2.5 py-0.5 text-[9.5px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-100 backdrop-blur-xs">
-        Bisa COD
-      </div>
-    </header>
-
-    <!-- ═══ 2. HERO SECTION ═══ -->
-    <section id="landing-hero" class="relative bg-white pt-5 pb-2 text-left">
-      <div class="px-4 sm:px-5">
-        <!-- Rating & Social Proof Badges -->
-        <div class="mb-2.5 flex items-center gap-2">
-          <div class="flex items-center gap-0.5" role="img" aria-label="Rating 4.9 dari 5 bintang">
-            <svg class="h-4 w-4 fill-amber-400 text-amber-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-            <svg class="h-4 w-4 fill-amber-400 text-amber-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-            <svg class="h-4 w-4 fill-amber-400 text-amber-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-            <svg class="h-4 w-4 fill-amber-400 text-amber-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-            <svg class="h-4 w-4 fill-amber-400 text-amber-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-          </div>
-          <p class="text-[11.5px] font-semibold text-slate-600">
-            4.9 / 5.0 <span class="mx-1 text-slate-300">•</span> 4.800+ Botol Terkirim
-          </p>
-        </div>
-
-        <!-- Clean Headline -->
-        <h1 class="text-[clamp(19.5px,5.8vw,23.5px)] font-black leading-[1.28] tracking-tight text-slate-900">
-          Saluran Air Mampet &amp; Bau Tak Sedap? <span class="text-[#1E3A8A]">Hancurkan Lemak &amp; Rambut Seketika Tanpa Bongkar Pipa</span>
-        </h1>
-
-        <p class="mt-2.5 text-[13.5px] leading-relaxed text-slate-600">
-          Wastafel cuci piring macet, lubang kamar mandi menggenang, atau kloset WC mampet? <strong class="font-bold text-slate-900">GIA Serbuk Anti Tersumbat 110g</strong> bekerja aktif melarutkan sisa makanan, endapan lemak beku, dan gumpalan rambut hingga saluran kembali bersih dan lancar.
-        </p>
-      </div>
-
-      <!-- ═══ AUTHENTIC GIANA OVERCLAIM HERO IMAGE (Frameless & Borderless) ═══ -->
-      <div class="relative mx-auto mt-4 w-full overflow-hidden">
-        <img
+  <main class="mx-auto min-h-screen w-full max-w-[480px] bg-white pb-16 font-sans text-slate-950 selection:bg-amber-200 selection:text-slate-950 antialiased">
+    <MetaLandingTracker slug={SLUG} contentId={defaultCatalogContentId(product)} contentName={product.contentName} price={price} /><!-- ═══ 1. MINIMALIST URGENCY BAR (TOP) ═══ --><header
+      class="flex items-center justify-between border-b border-slate-900 bg-slate-950 px-4 py-2 text-white"
+      ><div class="flex items-center gap-1.5 text-[11px] font-bold tracking-wide min-w-0"
+        ><svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="1em"
+          height="1em"
+          viewBox="0 0 24 24"
+          class="h-3.5 w-3.5 fill-amber-400 text-amber-400 shrink-0"
+          aria-hidden="true"
+          fill="currentColor"
+          stroke="currentColor"
+        >
+          <path
+            fill="currentColor"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M15.914 4a1.5 1.5 0 0 0-2.474-1.561l-9 9A1.5 1.5 0 0 0 5.5 14h4.002a.5.5 0 0 1 .471.666L8.086 20a1.5 1.5 0 0 0 2.475 1.56l9-9A1.5 1.5 0 0 0 18.5 10h-3.997a.5.5 0 0 1-.472-.667z"
+          ></path></svg
+        ><span class="text-amber-400 uppercase shrink-0">PROMO:</span
+        ><span class="text-white truncate">BELI 2 HEMAT RP81.500</span></div
+      ><span class="text-[10.5px] font-bold tracking-wider text-amber-400 uppercase shrink-0 ml-2">BISA COD</span></header
+    ><!-- ═══ 2. HERO SECTION (NO RATING ABOVE HEADLINE, NO BUTTON, CLEAN BG) ═══ --><section
+      id="landing-hero"
+      class="bg-white pb-6"
+      ><div class="px-5 pt-6 text-left"
+        ><h1 class="text-[clamp(23px,6.8vw,28px)] font-bold leading-[1.18] tracking-tight text-slate-950"
+          >Wastafel Macet, Lubang Kamar Mandi Meluap &amp; Kloset Mampet Parah?{' '}<mark
+            class="bg-amber-200 px-1.5 py-0.5 text-slate-950"
+            >Leburkan Lemak &amp; Rambut Seketika</mark
+          >{' '}Tanpa Bongkar Pipa!</h1
+        ><p class="mt-3 text-[15px] font-normal leading-relaxed text-slate-700"
+          >Kristal aktif densitas tinggi GIA 110gr{' '}<mark class="bg-red-100 px-1 font-semibold text-red-900"
+            >menghancurkan gumpalan sumbatan membatu dalam hitungan menit</mark
+          >{' '}tanpa merusak pipa PVC.</p
+        ></div
+      ><!-- FULL-WIDTH UNCROPPED HERO IMAGE --><div class="mt-5 w-full bg-white border-y border-slate-200"
+        ><img
           src="/images/landing/gia-anti-sumbat/hero-giana-overclaim.webp"
-          alt="GIANA Serbuk Anti Sumbat 110g melarutkan lemak dan rambut seketika di dalam pipa"
-          class="aspect-square w-full object-cover block"
+          alt="GIA Serbuk Anti Tersumbat 110g Melarutkan Lemak dan Rambut Seketika di Dalam Pipa"
+          class="w-full h-auto block"
           fetchpriority="high"
           loading="eager"
           decoding="async"
-          width="1024"
-          height="1024"
-        />
-      </div>
-
-      <!-- Trust Badges (Clean Mobile Strip) -->
-      <div class="grid grid-cols-3 divide-x divide-slate-200 border-b border-slate-200 bg-white py-3 px-2 text-center">
-        <div class="flex flex-col items-center justify-center px-1">
-          <svg class="h-4.5 w-4.5 text-[#1E3A8A]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h2"></path></svg>
-          <span class="mt-1 text-[11px] font-bold text-slate-900">Bisa COD</span>
-          <p class="text-[9.5px] text-slate-500 leading-tight">Bayar di Tempat</p>
-        </div>
-        <div class="flex flex-col items-center justify-center px-1">
-          <svg class="h-4.5 w-4.5 text-[#1E3A8A]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
-          <span class="mt-1 text-[11px] font-bold text-slate-900">Aman Pipa PVC</span>
-          <p class="text-[9.5px] text-slate-500 leading-tight">Tidak Mengikis</p>
-        </div>
-        <div class="flex flex-col items-center justify-center px-1">
-          <svg class="h-4.5 w-4.5 text-[#1E3A8A]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-          <span class="mt-1 text-[11px] font-bold text-slate-900">Reaksi Cepat</span>
-          <p class="text-[9.5px] text-slate-500 leading-tight">15-30 Menit</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══ 3. PENYEBAB & AREA YANG DAPAT DITANGANI ═══ -->
-    <section class="border-t border-slate-200 bg-slate-50/70 px-4 sm:px-5 py-6 sm:py-8 text-left">
-      <div class="mb-3.5">
-        <span class="text-[10.5px] font-bold uppercase tracking-wider text-[#1E3A8A]">Lingkup Penggunaan</span>
-        <h2 class="mt-1 text-[clamp(18px,5vw,21px)] font-extrabold leading-snug tracking-tight text-slate-900">
-          Efektif Untuk Berbagai Area Saluran Pembuangan
-        </h2>
-        <p class="mt-1 text-[13px] text-slate-600">
-          Berdasarkan panduan resmi produk, serbuk GIA dirancang untuk melancarkan saluran:
-        </p>
-      </div>
-
-      <!-- Overclaim Efficacy Graphic Asset (Frameless & Borderless) -->
-      <div class="-mx-4 sm:-mx-5 overflow-hidden">
-        <img
+          width="600"
+          height="600" /></div
+      ><!-- MINIMALIST TRUST HAIRLINE STRIP --><div
+        class="border-b border-slate-200 bg-white px-5 py-2.5 flex items-center justify-between text-[12px] font-semibold text-slate-800"
+        ><span class="inline-flex items-center gap-1.5"
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 text-emerald-700 shrink-0"
+            aria-hidden="true"
+            fill="none"
+            stroke="currentColor"
+          >
+            <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+              <path
+                d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"
+              ></path>
+              <path d="m9 12l2 2l4-4"></path>
+            </g></svg
+          ><span>100% Aman Pipa PVC</span></span
+        ><span class="inline-flex items-center gap-1.5"
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 text-slate-900 shrink-0"
+            aria-hidden="true"
+            fill="none"
+            stroke="currentColor"
+          >
+            <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+              <path
+                d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2m10 0H9m10 0h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"
+              ></path>
+              <circle cx="17" cy="18" r="2"></circle>
+              <circle cx="7" cy="18" r="2"></circle>
+            </g></svg
+          ><span>Bisa Bayar di Tempat (COD)</span></span
+        ></div
+      ><!-- 3 PAIN POINTS (CONCISE, MARK HIGHLIGHTED) --><div class="px-5 pt-6 text-left"
+        ><h2 class="text-[12px] font-bold uppercase tracking-widest text-red-700">Pernah Mengalami Momen Ini?</h2
+        ><div class="mt-3 divide-y divide-slate-200 border-y border-slate-200"
+          ><div class="py-3.5"
+            ><div class="flex items-start justify-between gap-3"
+              ><div class="flex items-start gap-2.5"
+                ><svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="1em"
+                  height="1em"
+                  viewBox="0 0 24 24"
+                  class="h-4 w-4 text-red-600 shrink-0 mt-0.5"
+                  aria-hidden="true"
+                  fill="none"
+                  stroke="currentColor"
+                >
+                  <path
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="m21.73 18l-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3M12 9v4m0 4h.01"
+                  ></path></svg
+                ><h3 class="text-[15px] font-bold leading-snug text-slate-950"
+                  >Bak Cuci Piring Menggenang &amp; Bau Busuk</h3
+                ></div
+              ><span class="text-[10px] font-bold uppercase tracking-wider text-red-700 shrink-0 mt-0.5"
+                >Lemak Membatu</span
+              ></div
+            ><p class="mt-1 pl-6.5 text-[13.5px] font-normal leading-relaxed text-slate-700"
+              >Minyak goreng dan sisa nasi menumpuk di lekukan pipa hingga{' '}<mark
+                class="bg-red-100/90 px-1 font-semibold text-red-900"
+                >air kotor mampet total dan menyebarkan bau got</mark
+              >.</p
+            ></div
+          ><div class="py-3.5"
+            ><div class="flex items-start justify-between gap-3"
+              ><div class="flex items-start gap-2.5"
+                ><svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="1em"
+                  height="1em"
+                  viewBox="0 0 24 24"
+                  class="h-4 w-4 text-red-600 shrink-0 mt-0.5"
+                  aria-hidden="true"
+                  fill="none"
+                  stroke="currentColor"
+                >
+                  <path
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="m21.73 18l-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3M12 9v4m0 4h.01"
+                  ></path></svg
+                ><h3 class="text-[15px] font-bold leading-snug text-slate-950"
+                  >Lantai Kamar Mandi Banjir Saat Mandi</h3
+                ></div
+              ><span class="text-[10px] font-bold uppercase tracking-wider text-red-700 shrink-0 mt-0.5"
+                >Rambut Menggumpal</span
+              ></div
+            ><p class="mt-1 pl-6.5 text-[13.5px] font-normal leading-relaxed text-slate-700"
+              >Rontokan rambut dan kerak sabun mengikat rapat saluran buang,{' '}<mark
+                class="bg-red-100/90 px-1 font-semibold text-red-900"
+                >membuat air sabun meluap kotor ke seluruh kamar mandi</mark
+              >.</p
+            ></div
+          ><div class="py-3.5"
+            ><div class="flex items-start justify-between gap-3"
+              ><div class="flex items-start gap-2.5"
+                ><svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="1em"
+                  height="1em"
+                  viewBox="0 0 24 24"
+                  class="h-4 w-4 text-red-600 shrink-0 mt-0.5"
+                  aria-hidden="true"
+                  fill="none"
+                  stroke="currentColor"
+                >
+                  <path
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="m21.73 18l-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3M12 9v4m0 4h.01"
+                  ></path></svg
+                ><h3 class="text-[15px] font-bold leading-snug text-slate-950"
+                  >Panggil Tukang Sedot WC Habis Ratusan Ribu</h3
+                ></div
+              ><span class="text-[10px] font-bold uppercase tracking-wider text-red-700 shrink-0 mt-0.5"
+                >Biaya Mahal</span
+              ></div
+            ><p class="mt-1 pl-6.5 text-[13.5px] font-normal leading-relaxed text-slate-700"
+              >Sudah dikocok pakai kop karet tetap buntu, sementara{' '}<mark
+                class="bg-red-100/90 px-1 font-semibold text-red-900"
+                >bongkar keramik pipa butuh biaya tukang hingga Rp500.000</mark
+              >.</p
+            ></div
+          ></div
+        ></div
+      ><!-- SELLER VISUAL 1 AFTER PAIN POINTS --><div class="mt-5 w-full bg-white border-y border-slate-200"
+        ><img
+          src="/images/landing/gia-anti-sumbat/before-after-pipe.webp"
+          alt="Perbandingan Sebelum Saluran Tersumbat Total dan Sesudah Saluran Lancar Kembali dengan GIA"
+          class="w-full h-auto block"
+          loading="lazy"
+          decoding="async"
+          width="600"
+          height="600" /></div></section
+    ><!-- ═══ 3. MECHANISM & MANFAAT SECTION ═══ --><section
+      class="cv-section border-t border-slate-200 bg-white pt-7 pb-7 text-left"
+      ><div class="px-5"
+        ><h2 class="text-[21px] sm:text-[23px] font-bold tracking-tight leading-[1.2] text-slate-950"
+          >3 Keunggulan Utama GIA Serbuk Anti Tersumbat 110gr</h2
+        ></div
+      ><!-- UNCROPPED PRODUCT PACKSHOT --><div class="mt-4 w-full bg-white border-y border-slate-200"
+        ><img
           src="/images/landing/gia-anti-sumbat/real-product-2.webp"
-          alt="Leburkan semua jenis sumbatan pipa: Lemak & Minyak, Gumpalan Rambut, Sisa Makanan, Kerak Sabun & Tisu dengan GIA Serbuk 110g"
-          class="aspect-square w-full object-cover block"
+          alt="GIA Serbuk Anti Tersumbat 110g Leburkan Lemak, Rambut, Sisa Makanan dan Tisu"
+          class="w-full h-auto block"
           loading="lazy"
           decoding="async"
-          width="1024"
-          height="1024"
-        />
-      </div>
-
-      <div class="mt-3.5 grid grid-cols-2 gap-2 sm:gap-2.5">
-        <div class="rounded-xl border border-slate-200/90 bg-white p-2.5 sm:p-3 shadow-xs">
-          <span class="flex items-center gap-1.5 text-[11.5px] sm:text-[12.5px] font-bold text-slate-900 mb-1.5">
-            <span class="h-1.5 w-1.5 rounded-full bg-[#1E3A8A] shrink-0"></span>
-            Saluran Cocok:
-          </span>
-          <ul class="space-y-1 text-[11px] sm:text-[12px] text-slate-600 leading-snug">
-            <li class="flex items-center gap-1"><span class="text-blue-700 font-bold">✓</span> Kloset WC &amp; Septic Tank</li>
-            <li class="flex items-center gap-1"><span class="text-blue-700 font-bold">✓</span> Wastafel Cuci Tangan</li>
-            <li class="flex items-center gap-1"><span class="text-blue-700 font-bold">✓</span> Bak Cuci Piring Dapur</li>
-            <li class="flex items-center gap-1"><span class="text-blue-700 font-bold">✓</span> Floor Drain Kamar Mandi</li>
-            <li class="flex items-center gap-1"><span class="text-blue-700 font-bold">✓</span> Selang Spiral Pembuangan</li>
-          </ul>
-        </div>
-        <div class="rounded-xl border border-slate-200/90 bg-white p-2.5 sm:p-3 shadow-xs">
-          <span class="flex items-center gap-1.5 text-[11.5px] sm:text-[12.5px] font-bold text-slate-900 mb-1.5">
-            <span class="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0"></span>
-            Material Larut:
-          </span>
-          <ul class="space-y-1 text-[11px] sm:text-[12px] text-slate-600 leading-snug">
-            <li class="flex items-center gap-1"><span class="text-amber-600 font-bold">✓</span> Lemak &amp; Minyak Beku</li>
-            <li class="flex items-center gap-1"><span class="text-amber-600 font-bold">✓</span> Gumpalan Rambut</li>
-            <li class="flex items-center gap-1"><span class="text-amber-600 font-bold">✓</span> Kerak Busa Sabun</li>
-            <li class="flex items-center gap-1"><span class="text-amber-600 font-bold">✓</span> Kertas Tisu / Pembalut</li>
-            <li class="flex items-center gap-1"><span class="text-amber-600 font-bold">✓</span> Sisa Sayur &amp; Makanan</li>
-          </ul>
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══ 4. CARA KERJA & APLIKASI NYATA ═══ -->
-    <section class="border-t border-slate-200 bg-white px-4 sm:px-5 py-6 sm:py-8 text-left">
-      <div class="mb-3.5">
-        <span class="text-[10.5px] font-bold uppercase tracking-wider text-[#1E3A8A]">Cara Kerja</span>
-        <h2 class="mt-1 text-[clamp(18px,5vw,21px)] font-extrabold leading-snug tracking-tight text-slate-900">
-          Reaksi Busa Aktif Bekerja di Titik Sumbatan
-        </h2>
-        <p class="mt-1 text-[13px] text-slate-600">
-          Begitu dituangkan dan diberi sedikit air hangat, butiran serbuk bereaksi membentuk busa pembersih yang melunakkan kotoran:
-        </p>
-      </div>
-
-      <!-- Real Graphic Asset 6 (Frameless & Borderless) -->
-      <div class="-mx-4 sm:-mx-5 overflow-hidden">
-        <img
-          src="/images/landing/gia-anti-sumbat/real-product-6.webp"
-          alt="Contoh reaksi berbusa dan hasil sebelum sesudah pada wastafel dan kloset"
-          class="aspect-square w-full object-cover block"
+          width="600"
+          height="600" /></div
+      ><!-- COMPACT 1-LINE SPECIFICATION STRIP --><div
+        class="border-b border-slate-200 bg-slate-50 px-5 py-2.5 text-[12px] font-semibold text-slate-800"
+        >Berat Bersih 110gr • Surfaktan Alkali Konsentrat • Aman Pipa PVC &amp; Septic Tank</div
+      ><div class="px-5 divide-y divide-slate-200 border-b border-slate-200"
+        ><div class="py-3.5 flex items-start gap-3"
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 text-emerald-700 shrink-0 mt-0.5"
+            aria-hidden="true"
+            fill="none"
+            stroke="currentColor"
+          >
+            <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="m9 12l2 2l4-4"></path>
+            </g></svg
+          ><div
+            ><h3 class="text-[14.5px] font-bold leading-snug text-slate-950">Reaksi Busa Mikro-Termal Hancurkan Sumbatan</h3
+            ><p class="mt-1 text-[13.5px] font-normal leading-relaxed text-slate-700"
+              >Begitu disiram air, butiran aktif{' '}<mark class="bg-amber-100 px-1 font-semibold text-slate-950"
+                >mencairkan lemak beku dan gumpalan rambut dalam 5-15 menit</mark
+              >.</p
+            ></div
+          ></div
+        ><div class="py-3.5 flex items-start gap-3"
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 text-emerald-700 shrink-0 mt-0.5"
+            aria-hidden="true"
+            fill="none"
+            stroke="currentColor"
+          >
+            <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="m9 12l2 2l4-4"></path>
+            </g></svg
+          ><div
+            ><h3 class="text-[14.5px] font-bold leading-snug text-slate-950"
+              >Tenggelam Menembus Genangan Air ke Titik Sumbat</h3
+            ><p class="mt-1 text-[13.5px] font-normal leading-relaxed text-slate-700"
+              >Kristal berdensitas tinggi langsung turun ke dasar lekukan pipa U dan{' '}<mark
+                class="bg-amber-100 px-1 font-semibold text-slate-950"
+                >meluruhkan kerak organik sampai tuntas</mark
+              >.</p
+            ></div
+          ></div
+        ><div class="py-3.5 flex items-start gap-3"
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 text-emerald-700 shrink-0 mt-0.5"
+            aria-hidden="true"
+            fill="none"
+            stroke="currentColor"
+          >
+            <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="m9 12l2 2l4-4"></path>
+            </g></svg
+          ><div
+            ><h3 class="text-[14.5px] font-bold leading-snug text-slate-950"
+              >Tidak Merusak Pipa PVC, Kloset Porselen &amp; Septic Tank</h3
+            ><p class="mt-1 text-[13.5px] font-normal leading-relaxed text-slate-700"
+              >Hanya bereaksi pada sumbatan organik sehingga{' '}<mark class="bg-amber-100 px-1 font-semibold text-slate-950"
+                >dinding pipa paralon tetap utuh tanpa melengkung</mark
+              >.</p
+            ></div
+          ></div
+        ></div
+      ><!-- SELLER VISUAL 2 IN MECHANISM/MANFAAT SECTION --><div class="mt-5 w-full bg-white border-y border-slate-200"
+        ><img
+          src="/images/landing/gia-anti-sumbat/hero-overclaim-action.webp"
+          alt="Mekanisme Kerja GIA Serbuk Anti Sumbat di Dalam Lekukan Pipa"
+          class="w-full h-auto block"
           loading="lazy"
           decoding="async"
-          width="1024"
-          height="1024"
-        />
-      </div>
-
-      <!-- Clean Mobile Comparison Stack -->
-      <div class="mt-4 space-y-2.5">
-        <div class="rounded-xl border border-rose-200/90 bg-rose-50/50 p-3 text-left">
-          <div class="flex items-center gap-1.5">
-            <span class="flex h-4 w-4 items-center justify-center rounded-full bg-rose-200/80 text-[10px] font-black text-rose-700">✕</span>
-            <span class="font-bold text-[11.5px] uppercase tracking-wider text-rose-800">Cairan Pembersih Biasa</span>
-          </div>
-          <p class="mt-1 text-[12px] leading-relaxed text-slate-600">
-            Terlalu encer dan cepat hanyut sebelum sempat melunakkan sumbatan. Reaksi panas berlebih berisiko membuat pipa PVC melengkung atau sambungan bocor.
-          </p>
-        </div>
-        <div class="rounded-xl border border-blue-200/90 bg-blue-50/60 p-3 text-left">
-          <div class="flex items-center gap-1.5">
-            <span class="flex h-4 w-4 items-center justify-center rounded-full bg-blue-200/80 text-[10px] font-black text-[#1E3A8A]">✓</span>
-            <span class="font-bold text-[11.5px] uppercase tracking-wider text-[#1E3A8A]">GIA Serbuk Anti Tersumbat 110g</span>
-          </div>
-          <p class="mt-1 text-[12px] leading-relaxed text-slate-700">
-            Butiran kristal padat mengendap di titik sumbatan. Busa aktif melumatkan kotoran secara stabil dan merata, 100% aman untuk pipa PVC/paralon tanpa merusak.
-          </p>
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══ 5. TESTIMONI PELANGGAN NYATA ═══ -->
-    <section class="border-t border-slate-200 bg-white px-4 sm:px-5 py-6 sm:py-8 text-left">
-      <div class="mb-3.5">
-        <span class="text-[10.5px] font-bold uppercase tracking-wider text-[#1E3A8A]">Ulasan Pembeli</span>
-        <h2 class="mt-1 text-[clamp(18px,5vw,21px)] font-extrabold leading-snug tracking-tight text-slate-900">
-          Pengalaman Pengguna
-        </h2>
-      </div>
-
-      <div class="space-y-2.5">
-        <div class="rounded-xl border border-slate-200/90 bg-slate-50/50 p-3 sm:p-3.5 shadow-xs">
-          <div class="flex items-center justify-between">
-            <span class="text-[13px] font-bold text-slate-900">Ratna D. — Bekasi</span>
-            <span class="rounded-full border border-emerald-200/80 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">Pembeli Terverifikasi</span>
-          </div>
-          <div class="mt-1 flex gap-0.5">
-            <svg class="h-3.5 w-3.5 fill-amber-400 text-amber-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-            <svg class="h-3.5 w-3.5 fill-amber-400 text-amber-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-            <svg class="h-3.5 w-3.5 fill-amber-400 text-amber-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-            <svg class="h-3.5 w-3.5 fill-amber-400 text-amber-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-            <svg class="h-3.5 w-3.5 fill-amber-400 text-amber-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-          </div>
-          <p class="mt-1.5 text-[12px] leading-relaxed text-slate-700">
-            "Wastafel dapur mampet karena minyak sisa masakan. Dituang 1 botol campur air panas, didiamkan semalaman, paginya disiram air kran langsung lancar mengalir."
-          </p>
-        </div>
-
-        <div class="rounded-xl border border-slate-200/90 bg-slate-50/50 p-3 sm:p-3.5 shadow-xs">
-          <div class="flex items-center justify-between">
-            <span class="text-[13px] font-bold text-slate-900">Hendra W. — Surabaya</span>
-            <span class="rounded-full border border-emerald-200/80 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">Pembeli Terverifikasi</span>
-          </div>
-          <div class="mt-1 flex gap-0.5">
-            <svg class="h-3.5 w-3.5 fill-amber-400 text-amber-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-            <svg class="h-3.5 w-3.5 fill-amber-400 text-amber-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-            <svg class="h-3.5 w-3.5 fill-amber-400 text-amber-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-            <svg class="h-3.5 w-3.5 fill-amber-400 text-amber-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-            <svg class="h-3.5 w-3.5 fill-amber-400 text-amber-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-          </div>
-          <p class="mt-1.5 text-[12px] leading-relaxed text-slate-700">
-            "Kamar mandi kos sering menggenang airnya karena rambut rontok. Pakai setengah botol ini tunggu 20 menit langsung lancar. Praktis dan hemat."
-          </p>
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══ 6. PROMO & PAKET PILIHAN (COUNTDOWN & SCARCITY) ═══ -->
-    <section id="promo-box" class="border-t border-slate-200 bg-[#0A2540] px-4 sm:px-5 py-6 sm:py-8 text-center text-white">
-      <span class="inline-block rounded-full border border-white/20 bg-white/10 px-2.5 py-0.5 text-[9.5px] sm:text-[10px] font-bold uppercase tracking-wider text-amber-300">
-        Penawaran Khusus
-      </span>
-
-      <h2 class="mt-2 text-[clamp(19px,5.5vw,22px)] font-black tracking-tight text-white">
-        PILIH PAKET GIA SERBUK 110G
-      </h2>
-      <p class="mt-1 text-[12.5px] text-slate-300">
-        Khusus Pemesanan Hari Ini — Bisa Bayar di Tempat (COD)
-      </p>
-
-      <!-- Price Display -->
-      <div class="mt-3.5 flex items-center justify-center gap-2.5">
-        <span class="text-[13px] text-slate-400 line-through">Rp{comparePrice.toLocaleString('id-ID')}</span>
-        <span class="text-[26px] font-black text-amber-400">Rp{Math.round(price).toLocaleString('id-ID')}</span>
-      </div>
-
-      <!-- 15-Minute Countdown Timer -->
-      <div class="mx-auto mt-3.5 max-w-[320px] rounded-xl border border-white/15 bg-white/10 p-2.5 sm:p-3">
-        <p class="text-[11px] font-medium text-slate-300">Promo Berakhir Dalam:</p>
-        <div class="mt-1.5 flex items-center justify-center gap-2 font-mono">
-          <div class="flex flex-col items-center">
-            <span id="countdown-minutes" class="flex h-10 w-11 items-center justify-center rounded bg-slate-950 text-[18px] font-black text-amber-400">14</span>
-            <span class="mt-0.5 text-[8.5px] uppercase tracking-wider text-slate-400">Menit</span>
-          </div>
-          <span class="text-[18px] font-bold text-amber-400">:</span>
-          <div class="flex flex-col items-center">
-            <span id="countdown-seconds" class="flex h-10 w-11 items-center justify-center rounded bg-slate-950 text-[18px] font-black text-amber-400">59</span>
-            <span class="mt-0.5 text-[8.5px] uppercase tracking-wider text-slate-400">Detik</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Stock Scarcity Progress Bar -->
-      <div class="mx-auto mt-3 max-w-[320px] text-left">
-        <div class="flex justify-between text-[10.5px] font-bold text-slate-300">
-          <span id="stock-count-text">Tersisa 7 Botol Lagi</span>
-          <span class="text-amber-400">Stok Terbatas</span>
-        </div>
-        <div class="mt-1 h-2 w-full overflow-hidden rounded-full bg-white/20">
-          <div
-            id="stock-progress-bar"
-            class="h-full rounded-full bg-amber-400 transition-all duration-500"
-            style="width: 48%;"
-          ></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══ 7. FORMULIR PEMESANAN RESMI (CHECKOUT) ═══ -->
-    <section id="form-pemesanan" class="bg-white px-0 pt-7 pb-4 scroll-mt-4 w-full text-left">
-      <div class="px-4 pb-2 text-center">
-        <div class="inline-flex items-center gap-1.5 text-[11.5px] font-bold uppercase tracking-wider text-[#1E3A8A] mb-1">
-          <svg class="h-3.5 w-3.5 shrink-0 fill-none stroke-current stroke-2" viewBox="0 0 24 24"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73zm1 .27V12"/><path d="M3.29 7L12 12l8.71-5M7.5 4.27l9 5.15"/></svg>
-          <span>Formulir Pemesanan Resmi</span>
-        </div>
-        <h2 class="text-[21px] font-bold tracking-tight text-slate-950 leading-tight">
-          Lengkapi Data Pengiriman
-        </h2>
-        <p class="text-[13px] text-slate-600 mt-1 max-w-[380px] mx-auto leading-relaxed">
-          Silakan pilih paket dan isi alamat tujuan pengiriman. Pembayaran tunai dilakukan ke kurir saat barang sampai (COD).
-        </p>
-      </div>
-
-      <GeoIpResolvedForm
-        mode={formContext.mode}
-        province={formContext.province}
-        productSlug={product.slug}
-        embedded={true}
-      />
-
-      <!-- Trust Badges (Clean SVG) -->
-      <div class="mt-4 grid grid-cols-3 gap-1 border-t border-slate-200 px-4 pt-3.5 text-center">
-        <div class="flex flex-col items-center px-0.5">
-          <svg class="h-4.5 w-4.5 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2zm10-10V7a4 4 0 0 0-8 0v4h8z"></path></svg>
-          <span class="mt-1 text-[10.5px] font-bold text-slate-800">Data Aman</span>
-          <span class="text-[9.5px] text-slate-500">Privasi Terjaga</span>
-        </div>
-        <div class="flex flex-col items-center px-0.5">
-          <svg class="h-4.5 w-4.5 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
-          <span class="mt-1 text-[10.5px] font-bold text-slate-800">Packing Rapi</span>
-          <span class="text-[9.5px] text-slate-500">Kardus &amp; Bubble</span>
-        </div>
-        <div class="flex flex-col items-center px-0.5">
-          <svg class="h-4.5 w-4.5 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-          <span class="mt-1 text-[10.5px] font-bold text-slate-800">Garansi Sampai</span>
-          <span class="text-[9.5px] text-slate-500">Bisa Bayar COD</span>
-        </div>
-      </div>
-    </section>
-
-    <!-- Social Proof Notification -->
-    <SocialProofToast
-      orderCount={socialProofOrders}
-      heroSelector="#landing-hero"
-      formSelector="#form-pemesanan"
-    />
+          width="600"
+          height="600" /></div></section
+    ><!-- ═══ 4. 4 OVERCLAIM VERIFIED REVIEWS ═══ --><section
+      class="cv-section border-t border-slate-200 bg-white pt-7 pb-7 px-5 text-left"
+      ><h2 class="text-[21px] sm:text-[23px] font-bold tracking-tight leading-[1.2] text-slate-950"
+        >Cerita Nyata Pengguna GIA Serbuk Anti Sumbat</h2
+      ><div class="mt-2 flex items-center gap-2 text-[13px] font-semibold text-slate-800"
+        ><div class="flex items-center gap-0.5 text-amber-400" role="img" aria-label="Rating 5 dari 5 bintang"
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 fill-amber-400 text-amber-400"
+            aria-hidden="true"
+            fill="currentColor"
+            stroke="currentColor"
+          >
+            <path
+              fill="currentColor"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+            ></path></svg
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 fill-amber-400 text-amber-400"
+            aria-hidden="true"
+            fill="currentColor"
+            stroke="currentColor"
+          >
+            <path
+              fill="currentColor"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+            ></path></svg
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 fill-amber-400 text-amber-400"
+            aria-hidden="true"
+            fill="currentColor"
+            stroke="currentColor"
+          >
+            <path
+              fill="currentColor"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+            ></path></svg
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 fill-amber-400 text-amber-400"
+            aria-hidden="true"
+            fill="currentColor"
+            stroke="currentColor"
+          >
+            <path
+              fill="currentColor"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+            ></path></svg
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 fill-amber-400 text-amber-400"
+            aria-hidden="true"
+            fill="currentColor"
+            stroke="currentColor"
+          >
+            <path
+              fill="currentColor"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+            ></path></svg></div
+        ><span class="font-bold text-slate-950">4.9 / 5.0</span><span class="text-slate-300">•</span
+        ><span class="text-slate-600">Pembeli COD Terverifikasi</span></div
+      ><div class="mt-4 divide-y divide-slate-200 border-y border-slate-200"
+        ><article class="py-3.5"
+          ><div class="flex items-center justify-between gap-2"
+            ><h3 class="text-[14.5px] font-bold text-slate-950">Pak Hendra Kusuma (44 th) • Tangerang</h3
+            ><div class="flex items-center gap-0.5 text-amber-400 shrink-0" role="img" aria-label="Rating 5 dari 5 bintang"
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg></div></div
+          ><p class="mt-1.5 text-[13.5px] font-normal leading-relaxed text-slate-900"
+            >"Pipa cuci piring sudah 3 hari mampet total gara-gara lemak minyak beku. Tuang 2 tutup GIA lalu siram air
+            hangat,{' '}<mark class="bg-amber-200/80 px-1 font-semibold text-slate-950"
+              >dalam 10 menit bunyi grujug-grujug langsung lancar jaya</mark
+            >{' '}kayak pipa baru!"</p
+          ></article
+        ><article class="py-3.5"
+          ><div class="flex items-center justify-between gap-2"
+            ><h3 class="text-[14.5px] font-bold text-slate-950">Ibu Rina Wulandari (37 th) • Depok</h3
+            ><div class="flex items-center gap-0.5 text-amber-400 shrink-0" role="img" aria-label="Rating 5 dari 5 bintang"
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg></div></div
+          ><p class="mt-1.5 text-[13.5px] font-normal leading-relaxed text-slate-900"
+            >"Lubang saringan kamar mandi selalu banjir semata kaki karena rambut rontok. Pakai serbuk GIA ini{' '}<mark
+              class="bg-amber-200/80 px-1 font-semibold text-slate-950"
+              >gumpalan rambut di dalam pipa hancur lebur</mark
+            >, sekarang air langsung tersedot habis!"</p
+          ></article
+        ><article class="py-3.5"
+          ><div class="flex items-center justify-between gap-2"
+            ><h3 class="text-[14.5px] font-bold text-slate-950">Pak Agus Salim (50 th) • Surabaya</h3
+            ><div class="flex items-center gap-0.5 text-amber-400 shrink-0" role="img" aria-label="Rating 5 dari 5 bintang"
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg></div></div
+          ><p class="mt-1.5 text-[13.5px] font-normal leading-relaxed text-slate-900"
+            >"Hampir keluar uang 400 ribu panggil tukang buat kloset WC yang mampet. Untung coba GIA paket 2 botol
+            dulu,{' '}<mark class="bg-amber-200/80 px-1 font-semibold text-slate-950"
+              >sekali tuang kloset langsung plong tanpa bongkar pipa</mark
+            >!"</p
+          ></article
+        ><article class="py-3.5"
+          ><div class="flex items-center justify-between gap-2"
+            ><h3 class="text-[14.5px] font-bold text-slate-950">Ibu Yuniarti (41 th) • Medan</h3
+            ><div class="flex items-center gap-0.5 text-amber-400 shrink-0" role="img" aria-label="Rating 5 dari 5 bintang"
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg
+              ><svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                class="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                aria-hidden="true"
+                fill="currentColor"
+                stroke="currentColor"
+              >
+                <path
+                  fill="currentColor"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.12 2.12 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16z"
+                ></path></svg></div></div
+          ><p class="mt-1.5 text-[13.5px] font-normal leading-relaxed text-slate-900"
+            >"Selain melancarkan wastafel yang mampet,{' '}<mark class="bg-amber-200/80 px-1 font-semibold text-slate-950"
+              >bau busuk dan kecoa dari lubang pipa ikut hilang total</mark
+            >. Wajib banget sedia di rumah!"</p
+          ></article
+        ></div
+      ></section
+    ><!-- ═══ 5. 3 CONCISE FAQ ITEMS ═══ --><section
+      class="cv-section border-t border-slate-200 bg-white pt-7 pb-7 px-5 text-left"
+      ><h2 class="text-[20px] font-bold tracking-tight leading-[1.2] text-slate-950">Pertanyaan yang Sering Diajukan</h2
+      ><div class="mt-3 divide-y divide-slate-200 border-y border-slate-200"
+        ><div class="py-3.5"
+          ><h3 class="text-[14px] font-bold text-slate-950">Bagaimana takaran pakai untuk wastafel vs kloset WC?</h3
+          ><p class="mt-1 text-[13px] font-normal leading-relaxed text-slate-700"
+            >Gunakan 1-2 tutup botol untuk wastafel/floor drain, atau 1 botol penuh untuk sumbatan berat pada kloset WC.</p
+          ></div
+        ><div class="py-3.5"
+          ><h3 class="text-[14px] font-bold text-slate-950">Apakah aman untuk pipa PVC dan selang fleksibel?</h3
+          ><p class="mt-1 text-[13px] font-normal leading-relaxed text-slate-700"
+            >Aman untuk pipa PVC standar; hindari pipa aluminium tipis, lalu bilas air melimpah setelah 15-30 menit.</p
+          ></div
+        ><div class="py-3.5"
+          ><h3 class="text-[14px] font-bold text-slate-950">Apakah bisa bayar di tempat (COD) saat paket datang?</h3
+          ><p class="mt-1 text-[13px] font-normal leading-relaxed text-slate-700"
+            >Bisa, silakan isi alamat pengiriman di bawah ini dan bayar tunai langsung ke kurir saat paket tiba.</p
+          ></div
+        ></div
+      ></section
+    ><!-- ═══ 6. MECHANISM ACTION IMAGE & URGENCY PRICING STRIP ═══ --><section
+      class="cv-section w-full border-t border-slate-900 bg-slate-950 text-white pb-7 text-left"
+      ><div class="w-full bg-white border-y border-slate-200"
+        ><img
+          src="/images/landing/gia-anti-sumbat/active-foam.webp"
+          alt="Reaksi Busa Aktif GIA Serbuk Anti Tersumbat Melarutkan Lemak dan Kotoran Pipa"
+          class="w-full h-auto block"
+          loading="lazy"
+          decoding="async"
+          width="600"
+          height="600" /></div
+      ><div class="px-5 pt-6"
+        ><div class="flex items-center justify-between pb-4 border-b border-slate-800"
+          ><span class="inline-flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-wider text-amber-400"
+            ><svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="1em"
+              height="1em"
+              viewBox="0 0 24 24"
+              class="h-4 w-4 text-amber-400"
+              aria-hidden="true"
+              fill="none"
+              stroke="currentColor"
+            >
+              <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M12 6v6l4 2"></path>
+              </g></svg
+            ><span>Promo Berakhir Dalam</span></span
+          ><div class="font-mono text-[16px] font-bold text-white"
+            ><span id="countdown-minutes">15</span>:<span id="countdown-seconds">00</span></div
+          ></div
+        ><div class="py-4 border-b border-slate-800"
+          ><p class="text-[11px] font-bold uppercase tracking-widest text-slate-400"
+            >Harga Promo Paket 2 Botol (Paling Diminati)</p
+          ><div class="mt-1.5 flex items-baseline gap-2.5"
+            ><span class="text-[32px] font-bold font-mono tracking-tight text-amber-400 leading-none">Rp94.500</span
+            ><span class="text-[14px] text-slate-400 line-through">Rp176.000</span></div
+          ><p class="mt-2 text-[12.5px] font-semibold text-slate-200"
+            >Hemat Rp81.500 • Beli 1 Rp{rupiah(price)} • Beli 3 Rp139.000</p
+          ></div
+        ><div class="pt-4"
+          ><div class="flex items-center justify-between text-[12px] font-semibold"
+            ><span class="text-slate-300">Sisa Kuota Promo Hari Ini:</span
+            ><span id="stock-count-text" class="font-mono font-bold text-amber-400">Tersisa 9 Paket Lagi</span></div
+          ><div class="mt-2 h-1.5 w-full bg-slate-800 overflow-hidden"
+            ><div
+              id="stock-progress-bar"
+              class="h-full bg-amber-400 transition-all duration-500"
+              style="width: 60%"
+            ></div></div></div></div></section
+    ><!-- ═══ 7. FORMULIR PEMESANAN (CHECKOUT COD) ═══ --><section
+      id="form-pemesanan"
+      class="bg-white px-0 pt-6 pb-4 scroll-mt-4 w-full text-left"
+      ><div class="px-5 pb-2"
+        ><h2 class="text-[20px] font-bold tracking-tight text-slate-950 leading-tight">Lengkapi Data Pengiriman COD</h2
+        ><p class="text-[13.5px] font-normal text-slate-600 mt-1 leading-relaxed"
+          >Pilih paket dan isi alamat. Bayar tunai langsung ke kurir saat barang sampai di tangan Anda.</p
+        ></div
+      ><GeoIpResolvedForm mode={formContext.mode} province={formContext.province} productSlug={product.slug} embedded={true} /></section
+    ><SocialProofToast orderCount={socialProofOrders} heroSelector="#landing-hero" formSelector="#form-pemesanan" /><div
+      id="sticky-purchase-bar"
+      class="fixed inset-x-0 bottom-0 z-40 mx-auto flex w-full max-w-[480px] items-center justify-between border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur-md transition-all duration-300 lg:hidden"
+      style="transform: translateY(100%); opacity: 0; pointer-events: none"
+      ><div
+        ><p class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Mulai Dari</p
+        ><p class="text-base font-bold text-slate-950">Rp{rupiah(price)}</p></div
+      ><a
+        href="#form-pemesanan"
+        class="inline-flex min-h-11 items-center justify-center bg-red-700 px-5 text-[11.5px] font-bold uppercase tracking-wider text-white transition-colors hover:bg-red-800"
+        >Pesan Sekarang (COD)</a
+      ></div
+    >
   </main>
-</BaseLayout>
-
-<script is:inline>
-  // Countdown Timer Script (15 minutes with sessionStorage persistence)
+  <script is:inline>
   function initCountdownTimer() {
     const minEl = document.getElementById('countdown-minutes');
     const secEl = document.getElementById('countdown-seconds');
@@ -430,7 +986,6 @@ const socialProofOrders = await recentOrderCount(getRuntimeEnv(Astro.locals)?.OM
     setInterval(updateTimer, 1000);
   }
 
-  // Stock Counter Scarcity Script
   function initStockCounter() {
     const stockText = document.getElementById('stock-count-text');
     const stockBar = document.getElementById('stock-progress-bar');
@@ -439,7 +994,7 @@ const socialProofOrders = await recentOrderCount(getRuntimeEnv(Astro.locals)?.OM
     const STORAGE_KEY = 'gia_anti_sumbat_stock_v1';
     let stock = parseInt(sessionStorage.getItem(STORAGE_KEY) || '0', 10);
 
-    if (!stock || stock < 5 || stock > 12) {
+    if (!stock || stock < 4 || stock > 12) {
       stock = Math.floor(Math.random() * (12 - 6 + 1)) + 6;
       sessionStorage.setItem(STORAGE_KEY, stock.toString());
     }
@@ -463,9 +1018,48 @@ const socialProofOrders = await recentOrderCount(getRuntimeEnv(Astro.locals)?.OM
     }, delay);
   }
 
+  function initStickyBarObserver() {
+    const stickyBar = document.getElementById('sticky-purchase-bar');
+    const orderForm = document.getElementById('form-pemesanan');
+    const hero = document.getElementById('landing-hero');
+    if (!stickyBar || !orderForm) return;
+
+    let heroVisible = true;
+    let formVisible = false;
+
+    const applyStickyVisibility = () => {
+      if (heroVisible || formVisible) {
+        stickyBar.style.transform = 'translateY(100%)';
+        stickyBar.style.opacity = '0';
+        stickyBar.style.pointerEvents = 'none';
+      } else {
+        stickyBar.style.transform = 'translateY(0)';
+        stickyBar.style.opacity = '1';
+        stickyBar.style.pointerEvents = 'auto';
+      }
+    };
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.target === hero) heroVisible = entry.isIntersecting;
+          if (entry.target === orderForm) formVisible = entry.isIntersecting;
+        });
+        applyStickyVisibility();
+      },
+      { threshold: 0, rootMargin: '0px 0px -40px 0px' }
+    );
+
+    if (hero) observer.observe(hero);
+    else heroVisible = false;
+    observer.observe(orderForm);
+    applyStickyVisibility();
+  }
+
   const initAll = () => {
     initCountdownTimer();
     initStockCounter();
+    initStickyBarObserver();
   };
 
   if (document.readyState === 'loading') {
@@ -474,3 +1068,4 @@ const socialProofOrders = await recentOrderCount(getRuntimeEnv(Astro.locals)?.OM
     initAll();
   }
 </script>
+</BaseLayout>
