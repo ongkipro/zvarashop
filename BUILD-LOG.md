@@ -1,6 +1,6 @@
 # BUILD LOG: ZvaraShop
 
-> Verified against disk: 2026-10-12 @ `b827004` + 1.5.4 working tree
+> Verified against disk: 2026-10-16 @ `fd652b4`
 
 Author & Curator: **[ongki.pro](https://ongki.pro)**
 
@@ -6827,3 +6827,157 @@ summary ("Skor Mengantar A", 100%, at 390px); an order set to the refused state
 showed the whitelist notice in its detail and the `receiver-score` signal read
 "Bermasalah" with one refused order. Not observed: a whitelisted account's
 live response.
+
+## 2026-10-15 — 1.5.6: deploy preflight reads the D1 ledger; receiver-score review fixes
+
+Rolling 1.5.5 out took zvara.shop down for about two minutes: its production
+D1 had `0069`–`0073` applied and deployed on 2026-10-13/14 from another
+device, never pushed, so the bundle from the pushed branch met an ahead
+history and answered 503 on every database route. Rolled back with
+`wrangler rollback`; zvarashop stays on its 2026-10-14 version until those
+files are committed.
+
+- **Preflight, third refusal.** `findUnbundledMigrations` (tested) compares
+  production `d1_migrations` (read with `wrangler d1 execute --remote`) with
+  `src/db/migrations`. Not overridable. Run against the real zvarashop config
+  it named all five files and refused; against taniniaga it passed with
+  "62 applied, all in this tree".
+- **Review of 1.5.5** (independent subagent, read-only):
+  - `summary.average_number` that is not a 0–10 number (`""`, `false`, `85`)
+    falls back to the counts; `Number("")` had made a no-history receiver
+    HIGH and stamped it checked.
+  - Admin list and detail views skip an order refused within the last hour
+    (`isRecentReceiverRefusal`); the list re-asked for ten rows per load.
+  - Backfill stops after two non-refusal failures in a row or 30 seconds, so
+    a slow Mengantar cannot delay the health check and alerts by minutes; it
+    also skips cancelled orders and NULL statuses no longer drop out.
+  - Order detail no longer prints "Skor Mengantar -".
+
+Verified: `astro check` 0 errors; 833 passing; build.
+
+## 2026-10-15 — 1.5.5 and 1.5.6 rolled out; two installs join the line
+
+- **Rollout.** Ten installs merged the product, passed `check` (0 errors) and
+  `test` (0 failing; 833–836 by install), deployed and answered 200 on `/` and
+  `/produk`: agritani-shop, beranda-tani, carukesi, klikinaja,
+  numaskin-adbook, permatamall, revenleather, skincarebpom, taniniaga,
+  zanobyshop. `fleet:status`: 1.5.6, 0 behind, schema 62/62 on each. The 1.5.6
+  preflight reported "62 applied, all in this tree" on the eight installs
+  deployed by hand.
+- **Actions installs.** permatamall and zanobyshop deploy on push to `main`
+  with a bare `wrangler deploy`, which skips the preflight; their production
+  ledgers were compared by hand first (nothing missing). Moving those workflows
+  onto `npm run deploy` is open.
+- **Merges.** Generated route-map files were regenerated rather than resolved
+  by hand. Install-owned `RELEASE.md` kept its install side on zvarashop and
+  permatamall; zvarashop's `version.ts` keeps `schemaVersion: 69`.
+- **zvarashop held** (see the 1.5.6 entry): `6006be7` is pushed but not
+  deployed; the preflight names `0069`–`0073` and refuses.
+- **agritani.shop installed.** New Worker `agritani-shop` with its own D1
+  (`agritani-shop-d1`), KV (`agritani-shop-session`) and R2
+  (`agritani-shop-assets`); `agritani.shop` and `www` as custom domains,
+  `workers_dev` off; install token held in the owner's secrets store. The
+  owner completed `/install` ("Agritani Store"). Store configuration and
+  catalogue are still empty. Unrelated to the separate `agritani.com` site and
+  its resources, which were not touched.
+- **numaskin-adbook** (`page.numaskin.id`), set up by another session the same
+  day, taken from 1.5.4 to 1.5.6 with the rest.
+- **In production.** After deploy the hourly backfill on taniniaga and carukesi
+  recorded one Receiver Score refusal each and stopped, as designed. Scores
+  return only once Mengantar CS whitelists each account.
+
+## 2026-10-15 — 1.5.7: a CMS landing page opens with an eager hero and its own h1
+
+Found building the first numaskin-adbook landing page (`/treatment-lotion`,
+since claimed as `/produk/deep-sea-water-treatment-lotion`), whose first section
+is an `image` and whose first headline was its title.
+
+- **Hero image.** `[slug].astro` rendered every typed `image` section
+  `loading="lazy"`, so the page's opening image — its LCP on a paid click —
+  waited for layout. The first section now loads `eager` with
+  `fetchpriority="high"`, the same rule `deferOffscreenImages` already applies to
+  an `html` section; later images stay lazy.
+- **h1.** Every `headline` section rendered as `<h2>` and the layout renders no
+  `<h1>` on a landing page, so the page had none — including when it takes over
+  a product page, whose own template has one. The first headline section now
+  renders as `<h1>`; `landing.css` already styles `.lp-section h1`, and the
+  measured size, weight and alignment did not change (24px / 700 / center).
+- Checked: `npm test` (834, one new in `landing-pages.test.ts`), `npm run check`;
+  rendered locally against a copy of the numaskin D1 at 390px — one `h1`, hero
+  `eager`/`fetchpriority=high`, the next image `lazy`, no horizontal scroll, no
+  console errors.
+
+## 2026-10-15 — 1.5.8: the landing h1 is never a second one
+
+Review of 1.5.7 found two edges in promoting the first headline section to
+`<h1>`:
+
+- a page whose legacy `html` section already writes an `<h1>` would get a
+  second one from its first typed headline. The route now promotes nothing when
+  any `html` section carries `<h1`;
+- a headline whose stored config does not parse renders nothing, yet was still
+  chosen, leaving the page with no `<h1>`. Only a headline with text is chosen.
+
+Checked: `npm test` (834), `npm run check`.
+
+## 2026-10-16 — 1.5.9: one h1 per landing page, including merchant html
+
+A scan of every active CMS landing page across the fleet after 1.5.8 found two
+cases its rule did not reach: taniniaga `/saratoga` rendered two `<h1>`, both
+inside one merchant-authored html section, and five zanobyshop landings
+(`/bibit`, `/lem-jaysuing`, …), built only from html sections with no `<h1>`
+and no headline section, rendered none.
+
+- **`demoteExtraH1`** (tested): within and across html sections, every `<h1>`
+  after the page's first becomes an `<h2>` with its attributes, so inline
+  styling carries over. One that relied on the stylesheet instead drops from
+  the landing `h1` size (24px) to the `h2` size (20px).
+- **Hidden title.** A page with no `<h1>` in its html and no headline section
+  renders its title as an `sr-only` `<h1>`.
+
+Verified on `dev:local` with two seeded landings: a page whose html wrote three
+`<h1>` across two sections rendered one `<h1>` and two `<h2>` (inline styles
+kept); an html-only page rendered `<h1 class="sr-only">` with its title.
+
+Revenleather's landings that answered 0 in the same scan are product-page
+hand-offs (`301` to `/produk/<slug>`, one `<h1>` there), not a defect.
+
+## 2026-10-16 — 1.5.10: the deploy preflight guards native landing pages
+
+zvarashop's production D1 lists 55 native landing pages that its repository's
+register does not. They were added and deployed from another device. A deploy
+from the repository would pass every existing preflight check once the
+missing migrations were restored, and then the hourly
+`reconcileNativeLandingPages` would delete those rows and any product page
+they had claimed.
+
+- **Fourth refusal.** `preflight:deploy` reads
+  `SELECT slug FROM landing_pages WHERE source = 'native'` from production and
+  refuses when any slug is missing from the active register
+  (`findUnregisteredNativeLandings`, tested). A fresh database passes. If the
+  rows cannot be read, the preflight says so and skips the comparison.
+  `ALLOW_NATIVE_LANDING_REMOVAL=1` allows an intended removal.
+- Verified read-only against production. A copy of taniniaga passed ("14,
+  all registered"). A copy of zvarashop, given placeholder `0069`–`0073` files
+  so it got past the ledger check, refused with 55 slugs and exit 1. Nothing
+  was deployed.
+
+Checked: `npm test` (836), `npm run check`.
+
+## 2026-10-18 — beranda-tani on 1.5.10; every selling page audited
+
+- **Deploy.** `ac887b0`, deployed with `npm run deploy`, which ran the 1.5.10
+  preflight on a real install for the first time: ledger 62 applied, 6
+  native landings, all registered. `check` 0 errors, `test` 0 failing.
+- **Audit, live, 390 px headless Chromium.** The six native landings and the
+  four `/produk/<slug>` pages each rendered one `<h1>` and one form, with no
+  horizontal overflow and no console errors. Each form's variant ids, labels,
+  prices and compare prices match the store's D1 `product_variants` exactly.
+  Every landing resolves its product by slug and passes `product.slug` to
+  the form and the sticky CTA, so no price is hard-coded in a route file.
+- **Checkout path.** `/api/locations` and `/api/shipping-rates` answered live
+  for COD and prepaid (SAP Rp6.300 for 500 ml, Rp7.000 for 1 L to Bekasi
+  Barat). The Mengantar key is a Worker secret, not the `stores` column.
+  Payment methods offered: COD, QRIS and five VAs through AutoLaris.
+  `seller_bank_accounts` is empty, so manual transfer is not offered. No order
+  was placed.

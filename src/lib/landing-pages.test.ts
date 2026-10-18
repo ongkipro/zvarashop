@@ -17,6 +17,7 @@ import {
   changesHtmlSections,
   isReservedLandingSlug,
   deferOffscreenImages,
+  demoteExtraH1,
   setLandingPageAsProductPage,
   updateLandingPage,
   validateLandingPageSlug,
@@ -690,6 +691,19 @@ test("CMS images below the first are deferred, and script-bearing images are lef
   assert.match(deferOffscreenImages('<img src="/a.jpg">', false), /^<img loading="lazy" decoding="async"/);
 });
 
+test("merchant html keeps one <h1>: later ones become <h2> with their attributes", () => {
+  const html = '<h1 style="color:#fff">Hero</h1><p>x</p><H1 class="offer">Offer <b>now</b></H1><h1x>not a heading</h1x>';
+  const first = demoteExtraH1(html, false);
+  assert.equal(
+    first.html,
+    '<h1 style="color:#fff">Hero</h1><p>x</p><h2 class="offer">Offer <b>now</b></h2><h1x>not a heading</h1x>',
+  );
+  assert.equal(first.pageHasH1, true);
+  // A later section never adds a second one.
+  assert.deepEqual(demoteExtraH1("<h1>Again</h1>", true), { html: "<h2>Again</h2>", pageHasH1: true });
+  assert.deepEqual(demoteExtraH1("<h2>None</h2>", false), { html: "<h2>None</h2>", pageHasH1: false });
+});
+
 test("a landing page is listed with its own first image, else its product's photo", async () => {
   const { landingThumbnail } = await import("./landing-pages.ts");
   const image = (src: string) => ({ type: "image" as const, content_html: null, content_config: { src, alt: "" } });
@@ -703,4 +717,16 @@ test("a landing page is listed with its own first image, else its product's phot
   assert.equal(landingThumbnail({ sections: [], nativeImage: "/n.webp", productImage: "/p.webp" }), "/n.webp");
   assert.equal(landingThumbnail({ sections: [image("  ")], productImage: "/p.webp" }), "/p.webp");
   assert.equal(landingThumbnail({}), null);
+});
+
+test("a CMS landing page opens with an eager hero image and its own h1", () => {
+  const route = readFileSync("src/pages/[slug].astro", "utf8");
+  // The layout renders no <h1> on a landing page; the first headline section is it.
+  assert.match(route, /section\.id === firstHeadlineSectionId \? 'h1' : 'h2'/);
+  // Never a second h1 beside one an html section already wrote, and never the
+  // id of a headline whose config does not render.
+  assert.match(route, /const firstHeadlineSectionId = htmlCarriesH1\s*\?\s*undefined/);
+  assert.match(route, /section\.type === 'headline' &&\s*section\.content_config !== null &&\s*'text' in section\.content_config/);
+  // An image section that opens the page is the LCP and must not wait for the scroll.
+  assert.match(route, /index === 0\s*\?\s*<section class="lp-section"><img[^>]*loading="eager" fetchpriority="high"/);
 });

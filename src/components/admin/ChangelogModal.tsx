@@ -29,10 +29,90 @@ interface ChangelogRelease {
 // changelog.test.ts fails when version.ts moves without a matching entry here.
 const CHANGELOG_RELEASES: ChangelogRelease[] = [
   {
+    version: "1.5.10",
+    date: "16 Oktober 2026",
+    releaseTag: "2026.10-landing-hero-h1",
+    isLatest: true,
+    highlight: "Deploy ditolak bila akan menghapus landing page native yang sedang tayang.",
+    changes: [
+      {
+        title: "Landing native dijaga saat deploy",
+        description:
+          "Sebelum deploy, preflight membandingkan landing page native di database produksi dengan daftar di kode. Bila ada yang tidak terdaftar, deploy ditolak karena sinkronisasi per jam akan menghapusnya.",
+      },
+    ],
+  },
+  {
+    version: "1.5.9",
+    date: "16 Oktober 2026",
+    releaseTag: "2026.10-landing-hero-h1",
+    highlight: "Setiap landing page punya tepat satu judul utama.",
+    changes: [
+      {
+        title: "H1 dobel di HTML dijadikan H2",
+        description:
+          "Bila HTML landing page memuat lebih dari satu H1, hanya yang pertama tetap H1; sisanya menjadi H2 dengan tampilan yang sama.",
+      },
+      {
+        title: "Landing tanpa judul tetap punya H1",
+        description:
+          "Landing page yang seluruhnya HTML tanpa H1 dan tanpa section headline kini memuat judul halamannya sebagai H1 tersembunyi untuk mesin pencari dan pembaca layar.",
+      },
+    ],
+  },
+  {
+    version: "1.5.8",
+    date: "15 Oktober 2026",
+    releaseTag: "2026.10-landing-hero-h1",
+    highlight: "Judul utama landing page tidak pernah dobel.",
+    changes: [
+      {
+        title: "Satu H1 per landing page",
+        description:
+          "Bila section HTML sudah memuat judul H1, section headline tidak lagi ikut menjadi H1. Headline yang datanya rusak dan tidak tampil juga tidak dipilih sebagai judul utama.",
+      },
+    ],
+  },
+  {
+    version: "1.5.7",
+    date: "15 Oktober 2026",
+    releaseTag: "2026.10-landing-hero-h1",
+    highlight: "Gambar pembuka landing page tampil lebih cepat, dan judul pertamanya menjadi judul utama halaman.",
+    changes: [
+      {
+        title: "Gambar pertama tidak lagi menunggu scroll",
+        description:
+          "Bila section pertama landing page adalah gambar, gambar itu dimuat langsung dengan prioritas tinggi. Gambar berikutnya tetap dimuat saat discroll.",
+      },
+      {
+        title: "Landing page punya judul utama (H1)",
+        description:
+          "Section headline pertama kini dirender sebagai H1, jadi halaman — termasuk landing yang menjadi halaman produk — punya satu judul utama untuk mesin pencari. Tampilannya tidak berubah.",
+      },
+    ],
+  },
+  {
+    version: "1.5.6",
+    date: "15 Oktober 2026",
+    releaseTag: "2026.10-fleet-status",
+    highlight: "Deploy menolak bila database produksi punya migrasi yang tidak ada di kode.",
+    changes: [
+      {
+        title: "Deploy tidak lagi bisa mematikan toko",
+        description:
+          "Sebelum upload, pemeriksaan deploy membandingkan migrasi yang sudah dijalankan di database produksi dengan file di kode. Bila ada yang hilang, deploy dihentikan dan nama migrasinya disebutkan.",
+      },
+      {
+        title: "Skor penerima lebih hemat dan tahan salah",
+        description:
+          "Order yang baru ditolak Mengantar tidak dicek ulang setiap kali halaman dibuka, pengecekan per jam berhenti saat Mengantar lambat, dan ringkasan skor yang tidak wajar tidak lagi terbaca sebagai risiko tinggi.",
+      },
+    ],
+  },
+  {
     version: "1.5.5",
     date: "15 Oktober 2026",
     releaseTag: "2026.10-fleet-status",
-    isLatest: true,
     highlight: "Risiko RTS memberi tahu saat Mengantar menolak akses, dan menyusul sendiri setelah dibuka.",
     changes: [
       {

@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
+  findUnbundledMigrations,
+  findUnregisteredNativeLandings,
   checkDeployTarget,
   evaluateDeployPreflight,
   parseWranglerConfig,
@@ -223,3 +225,24 @@ test("npm run deploy cannot skip the preflight", () => {
   assert.match(pkg.scripts["preflight:deploy"], /scripts\/preflight-deploy\.ts/);
 });
 
+
+test("a migration production applied but this tree lacks is named, so the deploy stops", () => {
+  const bundled = ["0000_init.sql", "0068_foam.sql"];
+  assert.deepEqual(
+    findUnbundledMigrations(["0000_init.sql", "0068_foam.sql", "0069_alat_cukur.sql"], bundled),
+    ["0069_alat_cukur.sql"],
+  );
+  // Behind is normal: the Worker applies the bundled suffix itself.
+  assert.deepEqual(findUnbundledMigrations(["0000_init.sql"], bundled), []);
+  assert.deepEqual(findUnbundledMigrations([], bundled), []);
+});
+
+test("a native landing live in D1 but missing from the register is named", () => {
+  assert.deepEqual(
+    findUnregisteredNativeLandings(["promo-a", "promo-b", "promo-c"], ["promo-a", "promo-c"]),
+    ["promo-b"],
+  );
+  // A registered page not yet synced to D1 is the reconcile's job, not a refusal.
+  assert.deepEqual(findUnregisteredNativeLandings(["promo-a"], ["promo-a", "promo-new"]), []);
+  assert.deepEqual(findUnregisteredNativeLandings([], []), []);
+});
