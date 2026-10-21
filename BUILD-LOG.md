@@ -6,7 +6,7 @@ Author & Curator: **[ongki.pro](https://ongki.pro)**
 
 ---
 
-## 2026-10-21 — Back on the product line: 1.7.2, then 1.7.3
+## 2026-10-21 — Back on the product line: 1.7.2, 1.7.3, then 1.7.4
 
 - **The collision.** This install's catalogue migrations held `0062`-`0073`;
   the product shipped its own `0062`-`0066` (order source page, Kelola,
@@ -77,7 +77,15 @@ ALTER TABLE `orders` DROP COLUMN `source_page_path`;
   answered 503 for about 13 seconds between the two. After: D1 79/79, 69 native
   rows, 0 plugin rows, orders intact, 73 routes 200 and 69 redirects 301 as
   before. 1.7.3 (uploads kept a day in the Workers cache) followed as
-  `4070cd45`.
+  `4070cd45`, and 1.7.4 (province-keyed edge cache for `/produk/<slug>` and
+  `/<slug>` + schema-check bypass on cache hits) followed as `0c428689`.
+  Measured on `zvara.shop` after 1.7.4: HTTP/2 `X-Edge-Cache: HIT` TTFB
+  0.218-0.274 s on `/produk/<slug>`; Lighthouse 13.5 mobile scores 80-87 across
+  product pages (`/produk/wamena-oil` 59 → 84, LCP 5.96 s → 2.44 s, TTFB 100 ms;
+  `/produk/4g-lucky-spray-herbal-pria-dewasa` 74 → 87, LCP 3.37 s → 2.18 s;
+  `/produk/dragon-blood-cream` 77 → 83, LCP 3.10 s → 2.54 s;
+  `/produk/foam-pembersih-toilet-500ml` 71 → 80, LCP 3.71 s → 2.07 s; `/` 59 →
+  78, CLS 0.118 → 0.000; `/produk` 71 → 79, CLS 0.036 → 0.000).
 - **Tests.** Three product fixtures replay the whole chain into an empty store
   and fail here with `FOREIGN KEY constraint failed`, because `0067` onwards
   inserts catalogue rows for store 1. They stop before `0067` on this install
