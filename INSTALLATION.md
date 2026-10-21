@@ -133,6 +133,7 @@ rebuild. Keep them accurate, because they are what an uninstalled Worker shows:
 | --- | --- |
 | `PUBLIC_SITE_NAME` | every `<title>`, header, footer, JSON-LD publisher, OG site name |
 | `PUBLIC_SITE_URL` | canonical origin — must be `https:`, no path, no query, or it silently falls back |
+| `PUBLIC_ALIAS_HOSTS` | optional, comma separated older domains (`www.` implied). Each one 301s to `PUBLIC_SITE_URL` with path and query kept, and every `http:` request goes to `https:`. `/api/*` is never redirected (`src/lib/host-redirect.ts`). Read at runtime, so a deploy without a rebuild applies it. Attach each host as a custom domain too. `stores.site_url` must match the new canonical origin. |
 | `PUBLIC_SITE_DESCRIPTION` | default meta description |
 | `PUBLIC_SITE_LOGO` | storefront and admin logo path |
 | `PUBLIC_SITE_TAGLINE` | brand line, also used to compose the default title |
@@ -165,6 +166,8 @@ npx wrangler secret put AUTH_SECRET            # 32+ chars; otherwise generated 
 npx wrangler secret put BOOTSTRAP_ADMIN_PASSWORD
 ```
 
+The Kelola CRM push is off until a webhook URL and secret from Kelola are saved under `/admin/profile` (or set as `KELOLA_ORDER_WEBHOOK_URL` / `KELOLA_ORDER_WEBHOOK_SECRET`; the saved pair wins). It sends each new order to Kelola as a sale and each order still abandoned after 30 minutes as a follow-up lead.
+
 Provider credentials — `MENGANTAR_API_KEY`, `AUTOLARIS_API_KEY`, `META_CAPI_ACCESS_TOKEN`, and their base URLs — can be set either as secrets or, preferably, saved later from `/admin/profile` and `/admin/ads`. The database value wins over the deployed secret, and `/admin` reports which source is active.
 
 `INSTALL_TOKEN` is the one-time capability requested by the fresh-install wizard;
@@ -179,7 +182,7 @@ For local development the same keys go in `.dev.vars`, which is never committed.
 
 ## 7. Verify the schema path
 
-The Worker bundles all 62 checked-in migrations (`0000`–`0061`) and applies a valid missing suffix
+The Worker bundles all 67 checked-in migrations (`0000`–`0066`) and applies a valid missing suffix
 automatically before serving a database-backed request. No terminal migration step
 is required for first run. Invalid, unknown, or ahead migration history returns a
 labelled 503 instead of running the application against an indeterminate schema.

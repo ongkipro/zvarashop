@@ -12,6 +12,7 @@ import { readClickIdCookie, hasClickId, serializeClickIds } from '../../../lib/c
 import { isShippingQuoteFailure, resolveTrustedHeadlessShipping } from '../../../lib/headless-checkout';
 import { createAutoLarisPaymentForOrder, recordFailedPaymentAttempt, type AutoLarisPaymentRecord } from '../../../lib/autolaris-payment';
 import { getProviderConfig } from '../../../lib/provider-config';
+import { scheduleOrderCreated } from '../../../plugins/registry';
 
 export const prerender = false;
 
@@ -111,7 +112,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
       courierService: shipping.courierService,
       adClickIds: storedClickIds,
       metaRequestContext,
+      sourcePagePath: String(body.source_page_path || "").slice(0, 500) || undefined,
     });
+    scheduleOrderCreated(database, order.id, locals);
 
     // Same contract as storefront checkout: a provider failure leaves the
     // order pending with a failed transaction row the buyer can retry from.

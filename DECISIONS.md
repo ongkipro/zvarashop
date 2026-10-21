@@ -883,3 +883,147 @@ provisioning* — the button documentation asks for default ids, and in an
 install the same omission would silently point a live store at a new empty
 database. *Generating `INSTALL_TOKEN` too* — nothing but the operator can hold
 a secret that exists before the operator does.
+
+## ADR-027 — Optional integrations ship dormant; enabling one is install data, never install code
+
+**Date:** 2026-10-20 · **Status:** Amended by ADR-028 the same day. Points 1, 2,
+4, 5 and 6 stand. Point 3 is replaced: a plugin's schema is no longer part of
+the core chain. First instance: Kelola CRM push (1.5.12, migrations
+`0062`–`0065`).
+
+**Context.** The owner wants Kelola to stay optional. Most installs will never
+pair it, and a product update must not change how those stores behave. Removing
+the module from the installs that do not use it would make those installs differ
+from the product in code, and every later `git merge product/main` would then
+conflict on those files (ADR-012, ADR-020).
+
+**Decision.** An optional integration (Kelola, and any later one of the same
+kind) is part of the product, and every install carries it. It stays inert
+until the install configures it:
+
+1. **Off until paired.** The integration acts only when its configuration
+   exists. For Kelola that is the `stores.kelola_webhook_*` pair saved at
+   `/admin/profile`, or the `KELOLA_ORDER_WEBHOOK_URL` / `_SECRET` env pair. No
+   release ships a default value, and no migration ships one, that turns it on.
+2. **Dormant means zero effect.** With no configuration, the integration
+   sends no outbound request, writes no rows, changes no buyer-facing page, and
+   adds no checkout step. The only cost allowed is one configuration read inside
+   the existing cron or post-order hook (`getKelolaConfig` returns `null`).
+3. **Schema is additive and nullable.** The migrations land on every install,
+   because the chain is one chain (ADR-024). They add only nullable columns, or
+   columns with a default, so an install that does not use the integration
+   holds unused columns and nothing else.
+4. **Configuration is install data.** The URL and secret live in that install's
+   D1 or Worker secrets, not in product-owned files. An update never copies one
+   store's configuration into another.
+5. **Turning it off is configuration, too.** To turn the integration off, an
+   operator uses the dashboard's disconnect control, not a code deletion. An
+   install must not delete or edit the module's files to "uninstall" it; that is
+   the divergence this ADR exists to prevent.
+6. **Checks.** `kelola-order-sync.test.ts` covers the dormant path ("config
+   needs both URL and secret"; dashboard pair over env). A new optional
+   integration lands with the same kind of test before release.
+
+**Consequences.** Rolling a release out to the fleet never requires a decision
+about the optional integration on each store. A store that wants Kelola pairs it
+in the admin, with no deploy. The cost is unused columns and a few kilobytes of
+dormant code on stores that never pair it. That cost is accepted, because
+avoiding it would bring back per-install code forks.
+
+## ADR-028 — First-party plugins: in the product, installed per store on activation
+
+**Date:** 2026-10-20 · **Status:** Accepted. 1.6.0, migration `0066`. Amends
+ADR-027.
+
+**Context.** The owner put it this way: Kelola CRM is a plugin. It should not
+be installed on every store, only on a store that adopts it, and it still
+follows the AdsBookCMS standard. ADR-027 kept the code out of the way, but its
+columns were still created on every store's `orders` and `stores`.
+`PRD.md` lists "customer-authored code or a plugin runtime" as a non-goal,
+and that stays true. What this ADR describes is first-party plugins, compiled
+in, and not uploaded by anyone.
+
+**Decision.**
+
+1. **Location.** A plugin lives in `src/plugins/<id>/`, with `index.ts` as its
+   manifest and its own tests beside it. The manifest gives the id, name,
+   description, settings page, ordered schema steps, uninstall statements and
+   hooks. `src/plugins/registry.ts` lists the plugins compiled into the
+   product. The folder is product-owned (UPDATE-PATH-OWNERSHIP), so every
+   install carries it and an update never conflicts on it.
+2. **Installed means activated.** A store "installs" a plugin by activating it
+   at **Pengaturan → Plugin** (`/admin/settings/plugins`, owner only).
+   Activation writes its `plugins` row and runs the plugin's own schema steps.
+   The steps are idempotent `CREATE … IF NOT EXISTS`, and their tables are
+   prefixed `plugin_<id>_`. A store that never activates a plugin has no row,
+   no table, no menu entry and no hook calls for it.
+3. **The core calls plugins through two hooks only.** `scheduleOrderCreated`
+   runs after checkout, in `waitUntil`, and never delays the buyer.
+   `runPluginCron` runs in the hourly cron. Each plugin's failure is isolated
+   and logged; it never fails the order or the cron. With no active plugin, the
+   cost is one `SELECT` on `plugins`.
+4. **Schema.** The core chain (ADR-024) carries only the `plugins` table. A
+   plugin's own schema version lives in `plugins.schema_version`, and an
+   update that adds a step is applied the next time the plugin runs.
+   Deactivating keeps its tables and settings. **Hapus data** (uninstall) drops
+   them and deletes the row, after a `useConfirm` dialog.
+5. **Settings** live in `plugins.settings` (JSON, this store's D1). Secrets in
+   there are never returned to the browser, the same as provider keys.
+6. **Admin surfaces** appear only while the plugin is active: its settings
+   page redirects to the list otherwise, and its order-detail panel and
+   actions answer as absent or 409.
+
+**Migration `0066`.** It creates `plugins`. It turns a Kelola pair already
+saved on `stores` into an active `kelola` plugin row, so no store loses a
+connection. It then drops the six `kelola_*` columns that `0063`–`0065` added
+to `orders` and `stores`. On 2026-10-20 no store had paired Kelola, so the
+dropped columns held no data. Push history, had there been any, would not
+carry over; that is accepted.
+
+**Consequences.** Kelola is the first plugin and the template for the next
+one. A new optional integration is built as a plugin by default, not as core
+columns behind a flag. The cost is a small registry, and a plugin cannot add
+storefront routes without a core change. That is deliberate: the storefront
+stays one product.
+
+## ADR-029 — A two-minute edge cache for anonymous storefront HTML
+
+**Date:** 2026-10-20 · **Status:** Accepted. 1.7.0, `src/lib/edge-cache.ts`.
+
+**Context.** Every public page is server-rendered. Each request paid the store
+lookup, the page's D1 reads and the render, 0.5 to 2 seconds before the first
+byte on a mobile network. On beranda-tani that was the largest term in Lighthouse's
+LCP (TTFB 1.2 s of a 4.6 s home page) and it varied by a factor of four between
+identical requests. The HTML of the home page, the product list and a landing
+page is the same for every visitor.
+
+**Decision.**
+
+1. The middleware keeps a copy of a rendered page in the Workers Cache API for
+   120 seconds (`EDGE_CACHE_SECONDS`) and serves it to the next anonymous
+   visitor, before the store lookup.
+2. **Eligible:** `GET` of `/`, `/produk`, and single-segment slugs (landing and
+   legal pages). **Not eligible:** product pages (the server picks the checkout
+   form from the visitor's geo-IP), the geo and test form pages, `/thanks`,
+   `/payment`, `/hello`, `/install`, `/api`, `/admin`, `/embed`, uploads, and any
+   request with an admin session cookie, an `Authorization` header or
+   `?preview=1`.
+3. **Stored only** a 200 `text/html` answer with no `Set-Cookie` and no
+   `no-store` or `private`.
+4. **The key** drops ad parameters (`CLICK_ID_KEYS`, `ttclid`, `msclkid`,
+   `gad_*`, `utm_id`), so ad traffic shares one entry. Every other parameter
+   stays in the key.
+5. **What a hit still does:** security headers and the ad click id cookie, both
+   computed from the request, never from the cached HTML. Nothing visitor
+   specific may be written into HTML that this cache can store; the Pixel
+   `event_id` is made in the browser for that reason.
+6. **Freshness.** An admin edit shows within two minutes. Prices are not read
+   from the cache for money: checkout validates them again.
+7. **Observable:** `X-Edge-Cache: HIT` or `MISS`; absent where the cache is
+   not consulted.
+
+**Consequences.** A page that must differ per visitor and is rendered from a
+single-segment path must set `Cache-Control: no-store` or `private`, or set a
+cookie: the way `/[slug]` already does for a preview. Adding a page to the
+denylist in `edge-cache.ts` is the other option. Misses cost what they did
+before, and a store with very little traffic sees fewer hits.

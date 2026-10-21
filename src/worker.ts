@@ -6,7 +6,7 @@ import {
   alertsFromOperationalHealth,
   evaluateOperationalAlerts,
 } from "./lib/operational-alerts.ts";
-import { collectOperationalHealth } from "./lib/operational-health.ts";
+import { collectOperationalHealth, recordSchedulerRun } from "./lib/operational-health.ts";
 import { backfillReceiverScores } from "./lib/rts-scoring.ts";
 import { ensureSchemaUpgraded } from "./lib/schema-version.ts";
 import { purgeExpiredRateLimits } from "./lib/rate-limit.ts";
@@ -21,6 +21,7 @@ import { enqueuePurchaseForPaidOrder } from "./lib/paid-order-purchase.ts";
 import { envTenantConfig } from "./lib/tenant.ts";
 import { drainCapiOutbox, purgeExpiredCapiOutboxEvents } from "./lib/capi-outbox.ts";
 import { getStoreAdsConfig } from "./lib/store-ads.ts";
+import { runPluginCron } from "./plugins/registry.ts";
 import {
   drainGoogleAdsConversionOutbox,
   purgeExpiredGoogleAdsConversions,
@@ -35,6 +36,8 @@ async function runScheduledMaintenance(
   context: ExecutionContext,
 ) {
   await ensureSchemaUpgraded(env.OMS_DB);
+  // The panel's "Tugas terjadwal" signal: proof this clock still runs at all.
+  await recordSchedulerRun(env.SESSION, new Date(scheduledTime));
   // No step takes the ones after it down: payment reconciliation, both outbox
   // drains and the health evaluation each run even when an earlier step hit a
   // transient D1 or provider error. The failure is logged and reads as -1.
@@ -142,6 +145,12 @@ async function runScheduledMaintenance(
         drainGoogleAdsConversionOutbox(env.OMS_DB, googleAdsOffline),
       )
     : 0;
+  // Active plugins only (ADR-028); a store with none does one cheap read.
+  // runPluginCron isolates each plugin's failure; this catch is for the read.
+  const pluginCron = await runPluginCron(env.OMS_DB, env, new Date(scheduledTime)).catch((error) => {
+    console.error("scheduled-plugin-cron-failed", error);
+    return {};
+  });
 
   // Receiver Score is whitelisted per Mengantar account; orders taken while it
   // was refused (or never opened in /admin) score themselves here.
@@ -186,6 +195,7 @@ async function runScheduledMaintenance(
     drainedCapiEvents,
     queuedGoogleAdsConversions,
     drainedGoogleAdsConversions,
+    pluginCron,
     alerts: alerts.map(({ id, state, reason, transition, notification }) => ({
       id,
       state,

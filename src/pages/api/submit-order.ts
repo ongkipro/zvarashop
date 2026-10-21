@@ -20,6 +20,7 @@ import {
   rateLimitHeaders,
 } from "../../lib/rate-limit";
 import { scheduleReceiverPerformanceRefresh } from "../../lib/rts-scoring";
+import { scheduleOrderCreated } from "../../plugins/registry";
 import {
   DuplicateSubmissionError,
   OrderInputError,
@@ -330,6 +331,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       courierService: selectedRate.courier_service,
       adClickIds: storedClickIds,
       metaRequestContext,
+      sourcePagePath: String(body.source_page_path || "").slice(0, 500) || undefined,
     });
 
     let payment: AutoLarisPaymentRecord | undefined;
@@ -366,6 +368,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       customerPhone,
       locals,
     );
+    scheduleOrderCreated(database, order.id, locals);
     const paymentStatus =
       data.payment_method === "cod" ? "unpaid" : payment?.status || "pending";
     const paymentUrl = payment?.providerPaymentUrl || "";

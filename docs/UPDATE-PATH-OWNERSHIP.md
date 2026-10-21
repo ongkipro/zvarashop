@@ -17,6 +17,11 @@ from the release:
 
 - `src/**` — all source, scripts, styles, and `src/db/migrations/**` (the sole
   ordered schema source; the install applies only the missing suffix).
+- `src/plugins/**`: first-party plugins such as Kelola. Every install carries
+  their code. A plugin is installed on a store only when the store activates it
+  at Pengaturan → Plugin, which writes D1 rows and plugin tables, not files. An
+  install that does not use a plugin keeps its files as they are and does not
+  delete them (ADR-027, ADR-028).
 - `public/**` **except** merchant brand assets (see install-owned) — shared
   static files, and the favicons until a store replaces them.
 - `package.json`, `package-lock.json` — product dependencies and scripts.

@@ -12,6 +12,7 @@ import {
   LayoutDashboard,
   Megaphone,
   Package,
+  Puzzle,
   Settings,
   ShoppingBag,
   Truck,
@@ -143,13 +144,14 @@ export const adminNavGroups: AdminNavGroup[] = [
         label: "Pengaturan",
         description: "Toko, gudang, dan akses",
         icon: Settings,
-        keywords: "settings system store warehouse crm access headless developer api",
+        keywords: "settings system store warehouse crm access headless developer api plugin kelola",
         children: [
           { href: "/admin/settings/store", label: "Toko & CS", icon: ShoppingBag },
           { href: "/admin/settings/developer", label: "Headless API", icon: CodeXml },
           { href: "/admin/settings/warehouse", label: "Gudang", icon: Warehouse },
           { href: "/admin/settings/crm", label: "Template CRM", icon: FilePenLine },
           { href: "/admin/settings/access", label: "Akses Pengguna", icon: CircleUserRound },
+          { href: "/admin/settings/plugins", label: "Plugin", icon: Puzzle },
         ],
       },
     ],
@@ -166,10 +168,15 @@ export const profileNavItem: AdminNavItem = {
   keywords: "profile akun password mengantar autolaris api domain",
 };
 
+/** Menu items whose sub-pages are the item itself: each plugin's settings page
+ *  lives under the plugin list (ADR-028). Every other item matches exactly. */
+const NESTED_NAV_HREFS = new Set(["/admin/settings/plugins"]);
+
 export function isAdminNavHrefActive(currentPath: string, href: string) {
   const base = "https://admin.local";
   const current = new URL(currentPath, base);
   const target = new URL(href, base);
+  if (NESTED_NAV_HREFS.has(target.pathname) && current.pathname.startsWith(`${target.pathname}/`)) return true;
   if (current.pathname !== target.pathname) return false;
   for (const [key, value] of target.searchParams) {
     if (current.searchParams.get(key) !== value) return false;
