@@ -6,6 +6,91 @@ Author & Curator: **[ongki.pro](https://ongki.pro)**
 
 ---
 
+## 2026-10-21 — Back on the product line: 1.7.2, then 1.7.3
+
+- **The collision.** This install's catalogue migrations held `0062`-`0073`;
+  the product shipped its own `0062`-`0066` (order source page, Kelola,
+  plugins). Merged as they were, `validateMigrationChain` would refuse two
+  `0062`s and every database route would answer 503. ADR-024 applies: the
+  product owns the numbers, so the twelve catalogue files moved unchanged to
+  `0067`-`0078` (`git mv`, SQL untouched) and `schemaVersion` became 79.
+- **Why the ledger was renamed and not replayed.** The catalogue migrations
+  upsert products and update rows (`0071_remove_cuka_apel` deletes). Running
+  them again would overwrite every edit the operator made since. So production
+  `d1_migrations` was rewritten in one batch, after a backup
+  (`~/backups/zvarashop/zvarashop-d1-2026-10-21-pre-1.7.2.sql`), and the
+  product's five were applied as their net DDL: `0063`-`0065` add the
+  `kelola_*` columns and `0066` drops them, and this database never had them.
+
+```sql
+-- zvarashop ledger repair for product 1.7.2 (ADR-024: the product owns migration numbers).
+-- Before: ids 66-77 hold install catalogue migrations 0062-0073.
+-- After:  ids 66-70 hold product 0062-0066; ids 71-82 hold the catalogue renumbered to 0067-0078.
+-- Schema: the net effect of product 0062-0066 on a store that never had the kelola_* columns
+-- (0063-0065 add them, 0066 drops them again; no webhook pair could exist, so no plugins row).
+-- Not idempotent: run once, only after confirming the ledger is in the "before" state.
+
+ALTER TABLE `orders` ADD `source_page_path` text;
+CREATE TABLE `plugins` (
+  `id` text PRIMARY KEY NOT NULL,
+  `enabled` integer DEFAULT 0 NOT NULL,
+  `schema_version` integer DEFAULT 0 NOT NULL,
+  `settings` text DEFAULT '{}' NOT NULL,
+  `activated_at` text,
+  `updated_at` text NOT NULL
+);
+
+UPDATE d1_migrations SET id = id + 1000 WHERE id BETWEEN 66 AND 77;
+UPDATE d1_migrations
+   SET id = id - 995,
+       name = printf('%04d', CAST(substr(name, 1, 4) AS INTEGER) + 5) || substr(name, 5)
+ WHERE id BETWEEN 1066 AND 1077;
+INSERT INTO d1_migrations (id, name, applied_at) VALUES
+  (66, '0062_order_source_page.sql', CURRENT_TIMESTAMP),
+  (67, '0063_kelola_order_sync.sql', CURRENT_TIMESTAMP),
+  (68, '0064_kelola_dashboard_config.sql', CURRENT_TIMESTAMP),
+  (69, '0065_kelola_lead_sync.sql', CURRENT_TIMESTAMP),
+  (70, '0066_plugins.sql', CURRENT_TIMESTAMP);
+```
+
+- **Rehearsed before production.** The backup was loaded into a local D1, the
+  batch run, and the merged Worker served from it. Its schema equals a fresh
+  product chain to `0066` (77 tables, every column, index and trigger), and 72
+  pages matched live on title, H1, prices, image count and variant ids. The
+  revert below was run against the same copy and back again. It only makes sense
+  together with a rollback to Worker `3428bdbf` (1.5.11):
+
+```sql
+-- Revert of zvarashop-ledger-repair.sql, only together with a rollback to Worker 3428bdbf (1.5.11).
+DELETE FROM d1_migrations WHERE id BETWEEN 66 AND 70;
+UPDATE d1_migrations SET id = id + 1000 WHERE id BETWEEN 71 AND 82;
+UPDATE d1_migrations
+   SET id = id - 1005,
+       name = printf('%04d', CAST(substr(name, 1, 4) AS INTEGER) - 5) || substr(name, 5)
+ WHERE id BETWEEN 1071 AND 1082;
+DROP TABLE `plugins`;
+ALTER TABLE `orders` DROP COLUMN `source_page_path`;
+```
+
+- **Deployed.** Ledger batch, then `npm run deploy` (preflight: ledger 79, all
+  in the tree; 69 native pages registered): Worker `4532afc2`. `/produk`
+  answered 503 for about 13 seconds between the two. After: D1 79/79, 69 native
+  rows, 0 plugin rows, orders intact, 73 routes 200 and 69 redirects 301 as
+  before. 1.7.3 (uploads kept a day in the Workers cache) followed as
+  `4070cd45`.
+- **Tests.** Three product fixtures replay the whole chain into an empty store
+  and fail here with `FOREIGN KEY constraint failed`, because `0067` onwards
+  inserts catalogue rows for store 1. They stop before `0067` on this install
+  (`rts-scoring.test.ts`, `plugins/registry.test.ts`,
+  `plugins/kelola/sync.test.ts`). When the product's chain passes `0066`, the
+  catalogue renumbers again and the cut moves with it. 868 pass, 0 fail.
+- **Local Worker note.** `wrangler dev` rewrites the request URL to the routed
+  custom domain over `http:`, so the 1.6.5 http→https redirect answers every
+  local request with a 301 to itself. `--local-upstream 127.0.0.1:8799` keeps
+  the local host.
+
+---
+
 ## 2026-09-08 — Form logic screening: a honeypot that named itself
 
 - The three public checkout endpoints — `submit-order`, `submit-middle-order`,
