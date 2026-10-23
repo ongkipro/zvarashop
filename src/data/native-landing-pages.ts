@@ -582,6 +582,14 @@ export const nativeLandingPages: NativeLandingPage[] = [
     image: '/assets/uploads/2026-08-18/a2791c69-b5d7-491d-802d-4bc8a30317ba.webp',
     isActive: true,
   },
+  {
+    slug: 'celana-knit-jumbo',
+    title: 'Celana Knit Jumbo Kulot Rib Adem Melar BB 55-85 Kg',
+    productSlug: 'celana-knit-jumbo',
+    description: 'Celana Knit Jumbo model kulot longgar tanpa saku berbahan Knit Rib adem dan melar dengan pinggang full karet elastis.',
+    image: '/images/landing/celana-knit-jumbo/hero-product.webp',
+    isActive: true,
+  },
 ];
 
 /**

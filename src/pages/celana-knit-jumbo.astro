@@ -1,0 +1,711 @@
+---
+/*
+ * Native Astro landing page — Celana Knit Jumbo (Celana Panjang Knit Rib).
+ * Product ID: 39270 | Variants: 20183 (BUY 1 GET 2) & 20184 (BUY 2 GET 4).
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import MetaLandingTracker from '../components/storefront/tracking/MetaLandingTracker.astro';
+import GeoIpResolvedForm from '../components/storefront/forms/GeoIpResolvedForm.astro';
+import SocialProofToast from '../components/storefront/shared/SocialProofToast.astro';
+import { recentOrderCount } from '../lib/social-proof';
+import { getRuntimeEnv } from '../lib/env';
+import { getStorefrontProduct } from '../lib/catalog';
+import { nativeLandingCanonicalPath } from '../lib/landing-pages';
+import { defaultCatalogContentId } from '../lib/catalog-feed';
+import { resolveFormModeContext } from '../lib/form-mode';
+import '../styles/form-hybrid.css';
+import '../styles/landing-pages/landing.css';
+import '../styles/landing-pages/celana-knit-jumbo.css';
+
+export const prerender = false;
+
+const SLUG = 'celana-knit-jumbo';
+const PRODUCT_SLUG = 'celana-knit-jumbo';
+
+let product = await getStorefrontProduct(Astro.locals, PRODUCT_SLUG);
+if (!product) {
+  product = await getStorefrontProduct(Astro.locals, '39270');
+}
+if (!product) return Astro.rewrite('/404');
+
+const formContext = await resolveFormModeContext(Astro.request);
+const canonical = `${Astro.locals.tenant.siteUrl}${await nativeLandingCanonicalPath(Astro.locals, SLUG)}`;
+const seoTitle = 'Celana Knit Jumbo Kulot Rib Adem Melar BB 55-85 Kg - Zvara Shop';
+const seoDescription =
+  'Celana Knit Jumbo model kulot longgar berbahan knit rib lembut, adem, dan melar dengan pinggang full karet elastis untuk ukuran BB 55 hingga 85 kg.';
+
+const sortedVariants = [...product.variants].sort((a, b) => a.price - b.price);
+const cheapest = sortedVariants[0] ?? null;
+const bundleVariant =
+  product.variants.find((v) => v.id === '20184' || v.label.toUpperCase().includes('BUY 2')) ??
+  sortedVariants[1] ??
+  cheapest;
+
+const price = cheapest?.price ?? product.price ?? 99000;
+const comparePrice = cheapest?.comparePrice ?? 130000;
+
+const bundlePrice = bundleVariant?.price ?? 195000;
+const bundleCompare = bundleVariant?.comparePrice ?? 260000;
+
+const rupiah = (value: number) => Math.round(value).toLocaleString('id-ID');
+const socialProofOrders = await recentOrderCount(getRuntimeEnv(Astro.locals)?.OMS_DB as D1Database | undefined);
+---
+
+<BaseLayout
+  title={seoTitle}
+  description={seoDescription}
+  image="/images/landing/celana-knit-jumbo/hero-product.webp"
+  preloadImages="/images/landing/celana-knit-jumbo/hero-scene.webp"
+  canonical={canonical}
+  hideHeader={true}
+  hideFooter={true}
+>
+  <main class="mx-auto min-h-screen w-full max-w-[480px] bg-white pb-16 font-sans text-slate-950 selection:bg-amber-200 selection:text-slate-950 antialiased">
+    <MetaLandingTracker
+      slug={SLUG}
+      contentId={defaultCatalogContentId(product)}
+      contentName={product.contentName}
+      price={price}
+    />
+
+    <!-- ═══ 1. TOP BAR ═══ -->
+    <header class="flex items-center justify-between border-b border-stone-800 bg-stone-950 px-4 py-2 text-white">
+      <div class="flex items-center gap-1.5 text-[11px] font-bold tracking-wide min-w-0">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="1em"
+          height="1em"
+          viewBox="0 0 24 24"
+          class="h-3.5 w-3.5 text-amber-400 shrink-0"
+          aria-hidden="true"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+          <line x1="7" y1="7" x2="7.01" y2="7"></line>
+        </svg>
+        <span class="text-amber-400 uppercase shrink-0">PROMO:</span>
+        <span class="text-stone-100 truncate">BUY 1 GET 2 RP{rupiah(price)}</span>
+      </div>
+      <span class="text-[10.5px] font-bold tracking-wider text-amber-400 uppercase shrink-0 ml-2">
+        BISA COD
+      </span>
+    </header>
+
+    <!-- ═══ 2. HERO SECTION ═══ -->
+    <section id="landing-hero" class="bg-white pb-6">
+      <div class="px-5 pt-6 text-left">
+        <h1 class="text-[clamp(23px,6.6vw,28px)] font-bold leading-[1.18] tracking-tight text-slate-950">
+          Celana Sering Sesak di Perut &amp; Nyeplak di Paha?{' '}
+          <mark class="bg-amber-200 px-1.5 py-0.5 text-slate-950">Tampil Jenjang &amp; Leluasa</mark>{' '}
+          Seharian!
+        </h1>
+        <p class="mt-3 text-[15px] font-normal leading-relaxed text-slate-700">
+          Kulot longgar tanpa saku berbahan{' '}
+          <mark class="bg-red-100 px-1 font-semibold text-red-900">Knit Rib lembut, adem, dan melar</mark>{' '}
+          untuk ukuran BB 55 hingga 85 kg.
+        </p>
+      </div>
+
+      <!-- HERO PHOTO -->
+      <div class="mt-5 w-full bg-stone-100 border-y border-stone-200">
+        <img
+          src="/images/landing/celana-knit-jumbo/hero-scene.webp"
+          alt="Model mengenakan Celana Knit Jumbo kulot rib warna ivory potongan longgar"
+          class="w-full h-auto block"
+          fetchpriority="high"
+          loading="eager"
+          decoding="async"
+          width="720"
+          height="960"
+        />
+      </div>
+
+      <!-- TRUST STRIP -->
+      <div class="border-b border-stone-200 bg-white px-5 py-2.5 flex items-center justify-between text-[12px] font-semibold text-slate-800">
+        <span class="inline-flex items-center gap-1.5">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 text-emerald-700 shrink-0"
+            aria-hidden="true"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path>
+            <path d="m9 12 2 2 4-4"></path>
+          </svg>
+          <span>Bahan Knit Rib Tebal &amp; Adem</span>
+        </span>
+        <span class="inline-flex items-center gap-1.5">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 text-slate-900 shrink-0"
+            aria-hidden="true"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2m10 0H9m10 0h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"></path>
+            <circle cx="17" cy="18" r="2"></circle>
+            <circle cx="7" cy="18" r="2"></circle>
+          </svg>
+          <span>Bisa Bayar di Tempat (COD)</span>
+        </span>
+      </div>
+
+      <!-- 3 PAIN POINTS -->
+      <div class="px-5 pt-6 text-left">
+        <h2 class="text-[12px] font-bold uppercase tracking-widest text-red-700">
+          Sering Mengalami Masalah Ini?
+        </h2>
+        <div class="mt-3 divide-y divide-stone-200 border-y border-stone-200">
+          <div class="py-3.5">
+            <div class="flex items-start justify-between gap-3">
+              <div class="flex items-start gap-2.5">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="1em"
+                  height="1em"
+                  viewBox="0 0 24 24"
+                  class="h-4 w-4 text-red-600 shrink-0 mt-0.5"
+                  aria-hidden="true"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3M12 9v4m0 4h.01"></path>
+                </svg>
+                <h3 class="text-[15px] font-bold leading-snug text-slate-950">
+                  Karet Pinggang Kaku &amp; Menekan Perut
+                </h3>
+              </div>
+              <span class="text-[10px] font-bold uppercase tracking-wider text-red-700 shrink-0 mt-0.5">
+                Bikin Begah
+              </span>
+            </div>
+            <p class="mt-1 pl-6.5 text-[13.5px] font-normal leading-relaxed text-slate-700">
+              Karet tipis{' '}
+              <mark class="bg-red-100/90 px-1 font-semibold text-red-900">mengikat kencang dan berbekas merah</mark>{' '}
+              saat duduk lama.
+            </p>
+          </div>
+
+          <div class="py-3.5">
+            <div class="flex items-start justify-between gap-3">
+              <div class="flex items-start gap-2.5">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="1em"
+                  height="1em"
+                  viewBox="0 0 24 24"
+                  class="h-4 w-4 text-red-600 shrink-0 mt-0.5"
+                  aria-hidden="true"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3M12 9v4m0 4h.01"></path>
+                </svg>
+                <h3 class="text-[15px] font-bold leading-snug text-slate-950">
+                  Saku Samping Menganga di Pinggul
+                </h3>
+              </div>
+              <span class="text-[10px] font-bold uppercase tracking-wider text-red-700 shrink-0 mt-0.5">
+                Kurang Rapi
+              </span>
+            </div>
+            <p class="mt-1 pl-6.5 text-[13.5px] font-normal leading-relaxed text-slate-700">
+              Jahitan saku membuat{' '}
+              <mark class="bg-red-100/90 px-1 font-semibold text-red-900">bagian pinggul terlihat menggembung</mark>{' '}
+              saat melangkah.
+            </p>
+          </div>
+
+          <div class="py-3.5">
+            <div class="flex items-start justify-between gap-3">
+              <div class="flex items-start gap-2.5">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="1em"
+                  height="1em"
+                  viewBox="0 0 24 24"
+                  class="h-4 w-4 text-red-600 shrink-0 mt-0.5"
+                  aria-hidden="true"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3M12 9v4m0 4h.01"></path>
+                </svg>
+                <h3 class="text-[15px] font-bold leading-snug text-slate-950">
+                  Bahan Kasar, Panas &amp; Cepat Melar
+                </h3>
+              </div>
+              <span class="text-[10px] font-bold uppercase tracking-wider text-red-700 shrink-0 mt-0.5">
+                Gerah Dipakai
+              </span>
+            </div>
+            <p class="mt-1 pl-6.5 text-[13.5px] font-normal leading-relaxed text-slate-700">
+              Kain rajut tipis{' '}
+              <mark class="bg-red-100/90 px-1 font-semibold text-red-900">tidak menyerap keringat</mark>{' '}
+              dan bagian lutut cepat kendor.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- MERCHANT SPECIFICATION INFOGRAPHIC -->
+      <div class="mt-5 w-full bg-white border-y border-stone-200">
+        <img
+          src="/images/landing/celana-knit-jumbo/hero-product.webp"
+          alt="Spesifikasi Celana Panjang Knit Rib Jumbo dan Super Jumbo BB 55-85 kg"
+          class="w-full h-auto block"
+          loading="lazy"
+          decoding="async"
+          width="720"
+          height="720"
+        />
+      </div>
+    </section>
+
+    <!-- ═══ 3. 3 KEUNGGULAN UTAMA ═══ -->
+    <section class="border-t border-stone-200 bg-white pt-6 pb-6 text-left">
+      <div class="px-5">
+        <h2 class="text-[20px] sm:text-[22px] font-bold tracking-tight leading-[1.2] text-slate-950">
+          3 Keunggulan Celana Knit Jumbo
+        </h2>
+      </div>
+
+      <!-- MACRO KNIT TEXTURE PHOTO -->
+      <div class="mt-4 w-full bg-stone-100 border-y border-stone-200">
+        <img
+          src="/images/landing/celana-knit-jumbo/detail-knit-rib.webp"
+          alt="Detail tekstur garis Bahan Knit Rib Premium yang elastis dan pinggang full karet"
+          class="w-full h-auto block"
+          loading="lazy"
+          decoding="async"
+          width="720"
+          height="540"
+        />
+      </div>
+
+      <div class="border-b border-stone-200 bg-stone-50 px-5 py-2.5 text-[12px] font-semibold text-slate-800">
+        Tekstur Garis Rib • Adem di Kulit • Melar Mengikuti Gerak
+      </div>
+
+      <div class="px-5 divide-y divide-stone-200 border-b border-stone-200">
+        <div class="py-3.5 flex items-start gap-3">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 text-emerald-700 shrink-0 mt-0.5"
+            aria-hidden="true"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="m9 12 2 2 4-4"></path>
+          </svg>
+          <div>
+            <h3 class="text-[14.5px] font-bold leading-snug text-slate-950">
+              Bahan Knit Rib Lembut &amp; Stretchy
+            </h3>
+            <p class="mt-1 text-[13.5px] font-normal leading-relaxed text-slate-700">
+              Serat rajut vertikal memberi{' '}
+              <mark class="bg-amber-100 px-1 font-semibold text-slate-950">efek kaki tampak jenjang</mark>{' '}
+              dan adem dipakai seharian.
+            </p>
+          </div>
+        </div>
+
+        <div class="py-3.5 flex items-start gap-3">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 text-emerald-700 shrink-0 mt-0.5"
+            aria-hidden="true"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="m9 12 2 2 4-4"></path>
+          </svg>
+          <div>
+            <h3 class="text-[14.5px] font-bold leading-snug text-slate-950">
+              Potongan Loose Tanpa Saku
+            </h3>
+            <p class="mt-1 text-[13.5px] font-normal leading-relaxed text-slate-700">
+              Jatuh lurus tanpa kantong samping sehingga{' '}
+              <mark class="bg-amber-100 px-1 font-semibold text-slate-950">pinggul dan paha terlihat rapi</mark>.
+            </p>
+          </div>
+        </div>
+
+        <div class="py-3.5 flex items-start gap-3">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1em"
+            height="1em"
+            viewBox="0 0 24 24"
+            class="h-4 w-4 text-emerald-700 shrink-0 mt-0.5"
+            aria-hidden="true"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="m9 12 2 2 4-4"></path>
+          </svg>
+          <div>
+            <h3 class="text-[14.5px] font-bold leading-snug text-slate-950">
+              Pinggang Full Karet Elastis
+            </h3>
+            <p class="mt-1 text-[13.5px] font-normal leading-relaxed text-slate-700">
+              Karet lebar lentur yang{' '}
+              <mark class="bg-amber-100 px-1 font-semibold text-slate-950">nyaman di perut tanpa melintir</mark>{' '}
+              untuk BB 55–85 kg.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- LIFESTYLE SILHOUETTE PHOTO -->
+      <div class="mt-5 w-full bg-stone-100 border-y border-stone-200">
+        <img
+          src="/images/landing/celana-knit-jumbo/fit-siluet-longgar.webp"
+          alt="Potongan kulot longgar Celana Knit Jumbo saat dikenakan aktivitas santai"
+          class="w-full h-auto block"
+          loading="lazy"
+          decoding="async"
+          width="720"
+          height="540"
+        />
+      </div>
+    </section>
+
+    <!-- ═══ 4. PERBANDINGAN & UKURAN ═══ -->
+    <section class="border-t border-stone-200 bg-stone-50/70 pt-6 pb-6 px-5 text-left">
+      <h2 class="text-[19px] font-bold tracking-tight leading-[1.2] text-slate-950">
+        Bedanya dengan Kulot Biasa
+      </h2>
+      <div class="mt-3.5 grid grid-cols-2 border border-stone-200 divide-x divide-stone-200 bg-white">
+        <div class="p-3.5">
+          <p class="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-red-700 pb-2 border-b border-stone-200">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="1em"
+              height="1em"
+              viewBox="0 0 24 24"
+              class="h-3.5 w-3.5 text-red-600 shrink-0"
+              aria-hidden="true"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M18 6 6 18M6 6l12 12"></path>
+            </svg>
+            <span>Kulot Biasa</span>
+          </p>
+          <ul class="mt-2.5 space-y-2 text-[13px] font-normal text-slate-700">
+            <li class="flex items-start gap-1.5 leading-snug">
+              <span class="text-red-600 font-bold shrink-0">×</span>
+              <span>Sempit di paha &amp; betis</span>
+            </li>
+            <li class="flex items-start gap-1.5 leading-snug">
+              <span class="text-red-600 font-bold shrink-0">×</span>
+              <span>Saku samping menganga</span>
+            </li>
+            <li class="flex items-start gap-1.5 leading-snug">
+              <span class="text-red-600 font-bold shrink-0">×</span>
+              <span>Karet keras &amp; melintir</span>
+            </li>
+            <li class="flex items-start gap-1.5 leading-snug">
+              <span class="text-red-600 font-bold shrink-0">×</span>
+              <span>Kain tipis menerawang</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="p-3.5 bg-amber-50/30">
+          <p class="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-emerald-800 pb-2 border-b border-stone-200">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="1em"
+              height="1em"
+              viewBox="0 0 24 24"
+              class="h-3.5 w-3.5 text-emerald-700 shrink-0"
+              aria-hidden="true"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M20 6 9 17l-5-5"></path>
+            </svg>
+            <span>Celana Knit Jumbo</span>
+          </p>
+          <ul class="mt-2.5 space-y-2 text-[13px] font-semibold text-slate-900">
+            <li class="flex items-start gap-1.5 leading-snug">
+              <span class="text-emerald-700 font-bold shrink-0">✓</span>
+              <span>Leluasa s/d BB 85 kg</span>
+            </li>
+            <li class="flex items-start gap-1.5 leading-snug">
+              <span class="text-emerald-700 font-bold shrink-0">✓</span>
+              <span>Tanpa saku, jatuh rapi</span>
+            </li>
+            <li class="flex items-start gap-1.5 leading-snug">
+              <span class="text-emerald-700 font-bold shrink-0">✓</span>
+              <span>Full karet elastis empuk</span>
+            </li>
+            <li class="flex items-start gap-1.5 leading-snug">
+              <span class="text-emerald-700 font-bold shrink-0">✓</span>
+              <span>Knit Rib tebal &amp; adem</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- PANDUAN UKURAN -->
+      <div class="mt-4 bg-white border border-stone-200 p-4">
+        <div class="flex items-center justify-between border-b border-stone-200 pb-2.5">
+          <h3 class="text-[14px] font-bold text-slate-950">
+            Panduan Ukuran
+          </h3>
+          <span class="text-[11px] font-semibold text-amber-900 bg-amber-100 px-2 py-0.5 rounded">
+            Bahan Stretchy
+          </span>
+        </div>
+        <div class="mt-2 divide-y divide-stone-200 text-[13px]">
+          <div class="py-2 flex items-center justify-between gap-2">
+            <span class="font-semibold text-slate-900">Ukuran Jumbo</span>
+            <span class="font-bold text-slate-950 bg-stone-100 px-2.5 py-1 rounded">
+              BB 55 – 70 kg
+            </span>
+          </div>
+          <div class="py-2 flex items-center justify-between gap-2">
+            <span class="font-semibold text-slate-900">Ukuran Super Jumbo</span>
+            <span class="font-bold text-slate-950 bg-stone-100 px-2.5 py-1 rounded">
+              BB 70 – 85 kg
+            </span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 5. PAKET BUNDLE HEMAT ═══ -->
+    <section class="w-full border-t border-stone-900 bg-stone-950 text-white pb-6 text-left">
+      <div class="w-full bg-stone-100 border-b border-stone-800">
+        <img
+          src="/images/landing/celana-knit-jumbo/bundle-hemat-packshot.webp"
+          alt="Pilihan paket hemat Buy 1 Get 2 dan Buy 2 Get 4 Celana Knit Jumbo"
+          class="w-full h-auto block"
+          loading="lazy"
+          decoding="async"
+          width="720"
+          height="720"
+        />
+      </div>
+
+      <div class="px-5 pt-5">
+        <h2 class="text-[19px] font-bold tracking-tight text-white leading-tight">
+          Pilih Paket Promo Hari Ini
+        </h2>
+
+        <div class="mt-3.5 space-y-2.5">
+          <!-- Paket 1: BUY 1 GET 2 -->
+          <a
+            href="#form-pemesanan"
+            data-select-variant={cheapest?.id ?? '20183'}
+            class="flex items-center justify-between border border-stone-700 bg-stone-900/90 px-4 py-3.5 rounded-lg transition-colors hover:border-amber-400/70"
+          >
+            <div>
+              <span class="text-[11px] font-semibold text-stone-300">
+                Dapat 2 Pcs Celana
+              </span>
+              <p class="text-[15px] font-bold text-white">
+                {cheapest?.label ?? 'BUY 1 GET 2'}
+              </p>
+            </div>
+            <div class="text-right">
+              <span class="text-[22px] font-bold font-mono text-amber-400 leading-none block">
+                Rp{rupiah(price)}
+              </span>
+              <span class="text-[11.5px] text-stone-400 line-through">
+                Rp{rupiah(comparePrice)}
+              </span>
+            </div>
+          </a>
+
+          <!-- Paket 2: BUY 2 GET 4 -->
+          <a
+            href="#form-pemesanan"
+            data-select-variant={bundleVariant?.id ?? '20184'}
+            class="flex items-center justify-between border-2 border-amber-400 bg-stone-900 px-4 py-3.5 rounded-lg transition-colors hover:bg-stone-900/80"
+          >
+            <div>
+              <span class="inline-block text-[10px] font-bold uppercase tracking-wider text-slate-950 bg-amber-400 px-1.5 py-0.5 rounded mb-1">
+                Paling Hemat • Dapat 4 Pcs
+              </span>
+              <p class="text-[15px] font-bold text-white">
+                {bundleVariant?.label ?? 'BUY 2 GET 4'}
+              </p>
+            </div>
+            <div class="text-right">
+              <span class="text-[22px] font-bold font-mono text-amber-400 leading-none block">
+                Rp{rupiah(bundlePrice)}
+              </span>
+              <span class="text-[11.5px] text-stone-400 line-through">
+                Rp{rupiah(bundleCompare)}
+              </span>
+            </div>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 6. FORMULIR PEMESANAN (CHECKOUT COD) ═══ -->
+    <section
+      id="form-pemesanan"
+      class="bg-white px-0 pt-6 pb-4 scroll-mt-4 w-full text-left border-t border-stone-200"
+    >
+      <div class="px-5 pb-2">
+        <h2 class="text-[20px] font-bold tracking-tight text-slate-950 leading-tight">
+          Lengkapi Data Pengiriman COD
+        </h2>
+        <p class="text-[13.5px] font-normal text-slate-600 mt-1 leading-relaxed">
+          Pilih paket dan isi alamat lengkap. Bayar tunai ke kurir saat barang sampai.
+        </p>
+      </div>
+      <GeoIpResolvedForm
+        mode={formContext.mode}
+        province={formContext.province}
+        productSlug={product.slug}
+        embedded={true}
+      />
+    </section>
+
+    <SocialProofToast
+      orderCount={socialProofOrders}
+      heroSelector="#landing-hero"
+      formSelector="#form-pemesanan"
+    />
+
+    <!-- ═══ 7. STICKY MOBILE PURCHASE BAR ═══ -->
+    <div
+      id="sticky-purchase-bar"
+      class="fixed inset-x-0 bottom-0 z-40 mx-auto flex w-full max-w-[480px] items-center justify-between border-t border-stone-200 bg-white/95 px-4 py-3 backdrop-blur-md transition-all duration-300 lg:hidden"
+      style="transform: translateY(100%); opacity: 0; pointer-events: none"
+    >
+      <div>
+        <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+          Buy 1 Get 2
+        </p>
+        <div class="flex items-baseline gap-1.5">
+          <p class="text-base font-bold text-slate-950">Rp{rupiah(price)}</p>
+          <span class="text-[11px] text-slate-400 line-through">Rp{rupiah(comparePrice)}</span>
+        </div>
+      </div>
+      <a
+        href="#form-pemesanan"
+        class="inline-flex min-h-11 items-center justify-center rounded-lg bg-stone-950 px-5 text-[11px] font-bold uppercase tracking-wider text-amber-300 transition-colors hover:bg-stone-800"
+      >
+        Pesan Sekarang (COD)
+      </a>
+    </div>
+  </main>
+
+  <script is:inline>
+    function initStickyBarObserver() {
+      const stickyBar = document.getElementById('sticky-purchase-bar');
+      const orderForm = document.getElementById('form-pemesanan');
+      const hero = document.getElementById('landing-hero');
+      if (!stickyBar || !orderForm) return;
+
+      let heroVisible = true;
+      let formVisible = false;
+
+      const applyStickyVisibility = () => {
+        if (heroVisible || formVisible) {
+          stickyBar.style.transform = 'translateY(100%)';
+          stickyBar.style.opacity = '0';
+          stickyBar.style.pointerEvents = 'none';
+        } else {
+          stickyBar.style.transform = 'translateY(0)';
+          stickyBar.style.opacity = '1';
+          stickyBar.style.pointerEvents = 'auto';
+        }
+      };
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.target === hero) heroVisible = entry.isIntersecting;
+            if (entry.target === orderForm) formVisible = entry.isIntersecting;
+          });
+          applyStickyVisibility();
+        },
+        { threshold: 0, rootMargin: '0px 0px -40px 0px' }
+      );
+
+      if (hero) observer.observe(hero);
+      else heroVisible = false;
+      observer.observe(orderForm);
+      applyStickyVisibility();
+
+      document.querySelectorAll('[data-select-variant]').forEach((card) => {
+        card.addEventListener('click', () => {
+          const variantId = card.getAttribute('data-select-variant');
+          if (!variantId) return;
+          const radio = document.querySelector(
+            `input[name="variant"][value="${CSS.escape(variantId)}"]`
+          );
+          if (radio instanceof HTMLInputElement && !radio.checked) {
+            radio.checked = true;
+            radio.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+        });
+      });
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initStickyBarObserver);
+    } else {
+      initStickyBarObserver();
+    }
+  </script>
+</BaseLayout>

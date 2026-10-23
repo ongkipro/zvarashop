@@ -37,7 +37,7 @@ export const CMS_VERSION: CmsVersionInfo = {
   // mobile order button, deploy builds before upload (BUILD-LOG 2026-10-11).
   releaseTag: "2026.10-plugins",
   coreEngine: "Astro 7 SSR + Cloudflare Workers",
-  // zvarashop: product 0000-0066 + install catalogue 0067-0078 (renumbered per ADR-024).
-  schemaVersion: 79,
-  lastUpdated: "2026-10-21",
+  // zvarashop: product 0000-0066 + install catalogue 0067-0079 (renumbered per ADR-024).
+  schemaVersion: 80,
+  lastUpdated: "2026-10-23",
 };

@@ -1,0 +1,24 @@
+/* celana-knit-jumbo: route-scoped styles for the Celana Knit Jumbo native landing page. */
+
+html {
+  scroll-behavior: smooth;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.highlight-warm {
+  background-image: linear-gradient(0deg, #fde68a 0.35em, #fde68a00 0.35em);
+  background-position: 0 92%;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+}
+
+@media screen and (width <= 640px) {
+  body {
+    -webkit-text-size-adjust: 100%;
+  }
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
