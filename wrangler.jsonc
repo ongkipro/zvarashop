@@ -26,6 +26,13 @@
     "nodejs_compat"
   ],
 
+  // Run the Worker beside its D1, not beside the visitor: a page makes several
+  // sequential D1 reads, and part of Indonesian traffic (and all of PageSpeed)
+  // is served from US colos (ADR-030).
+  "placement": {
+    "mode": "smart"
+  },
+
   // Runtime credentials cannot safely degrade to placeholders. Declaring the
   // required names lets Wrangler load only these secrets from process.env in
   // local development and validate that every deployed Worker defines them.
