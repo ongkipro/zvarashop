@@ -10,6 +10,10 @@ export interface PublicTenantConfig {
   siteUrl: string;
   description: string;
   logo: string;
+  /** Optional header mark beside the wordmark; empty keeps the letter monogram. */
+  brandMark: string;
+  /** PUBLIC_SITE_NOINDEX: the whole store stays out of search (see siteNoindex). */
+  noindex: boolean;
   tagline: string;
   themeColor: string;
   locale: string;
@@ -76,6 +80,20 @@ function text(value: unknown): string {
  * "blank", which is what lets an install that predates migration 0036 keep
  * rendering from its environment unchanged.
  */
+/**
+ * Opt-in for a store whose domain must not compete in search, e.g. an ads and
+ * COD funnel on a subdomain beside the brand's main shop selling the same
+ * products. Only `true` or `1` turns it on; a typo leaves the store indexed.
+ */
+export function siteNoindex(env?: Parameters<typeof getEnvValue>[1]): boolean {
+  return /^(1|true)$/i.test(getEnvValue("PUBLIC_SITE_NOINDEX", env));
+}
+
+/** A root-relative or https image path; anything else is dropped, not rendered. */
+function imagePath(value: string): string {
+  return /^(\/(?!\/)|https:\/\/)/.test(value) ? value : "";
+}
+
 function pick(dbValue: unknown, envKey: string, fallback: string): string {
   return text(dbValue) || getEnvValue(envKey) || fallback;
 }
@@ -161,6 +179,8 @@ export function resolveTenantConfig(
       pick(row?.description, "PUBLIC_SITE_DESCRIPTION", defaults.description) ||
       `Belanja online di ${name}.`,
     logo: pick(row?.logo, "PUBLIC_SITE_LOGO", defaults.logo),
+    brandMark: imagePath(getEnvValue("PUBLIC_SITE_BRAND_MARK")),
+    noindex: siteNoindex(),
     tagline,
     themeColor: themeColor(
       pick(row?.theme_color, "PUBLIC_SITE_THEME_COLOR", defaults.themeColor),
@@ -243,3 +263,8 @@ export async function loadStoreIdentity(
  */
 export const envTenantConfig: Readonly<PublicTenantConfig> =
   resolveTenantConfig(null);
+
+/** `Title - Store`, unless the title already names the store (legal pages do). */
+export function withStoreName(title: string, storeName: string): string {
+  return storeName && title.toLowerCase().includes(storeName.toLowerCase()) ? title : `${title} - ${storeName}`;
+}

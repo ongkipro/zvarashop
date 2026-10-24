@@ -24,6 +24,8 @@ export type WranglerTarget = {
   d1Databases?: { binding?: unknown; database_name?: unknown; database_id?: unknown }[];
   kvNamespaces?: { binding?: unknown; id?: unknown }[];
   r2Buckets?: { binding?: unknown; bucket_name?: unknown }[];
+  /** `placement` — absent means the Worker runs beside the visitor, not its D1 (ADR-030). */
+  placement?: unknown;
 };
 
 export type PreflightResult =
@@ -101,6 +103,7 @@ export function parseWranglerConfig(source: string): WranglerTarget {
     r2Buckets: Array.isArray(parsed.r2_buckets)
       ? (parsed.r2_buckets as WranglerTarget["r2Buckets"])
       : [],
+    placement: parsed.placement,
   };
 }
 
@@ -225,4 +228,36 @@ export function findUnbundledMigrations(applied: string[], bundled: string[]): s
 export function findUnregisteredNativeLandings(live: string[], registered: string[]): string[] {
   const listed = new Set(registered);
   return live.filter((slug) => !listed.has(slug));
+}
+
+/*
+ * The fifth check, a warning rather than a refusal: files the product owns that
+ * this install has edited since the product version it last merged. Each one
+ * conflicts on the next `git merge product/main` wherever both sides moved, and
+ * a fix made there reaches no other store. revenleather, 2026-10-23: 27 edited
+ * files under src/ and the product's STATUS.md, found only by reading diffs.
+ * Install-owned paths, as INSTALLATION.md and .gitattributes list them, are
+ * not drift.
+ */
+const INSTALL_OWNED = [
+  /^wrangler\.jsonc$/,
+  /^RELEASE\.md$/,
+  /^public\//,
+  /^\.github\/workflows\//,
+  /^\.dev\.vars/,
+  /^\.env/,
+  // Native landing pages are store content by design (docs/LANDING-PAGES.md),
+  // along with what is generated from them.
+  /^src\/styles\/landing-pages\//,
+  /^src\/data\/native-landing-pages\.ts$/,
+  /^src\/styles\/landing-safelist\.html$/,
+  /^docs\/(ROUTE-MAP\.md|route-map\.xml)$/,
+];
+
+/** `nativeSlugs`: the install's registered native pages, whose route files are its own. */
+export function findProductOwnedEdits(changed: string[], nativeSlugs: string[] = []): string[] {
+  const nativeRoutes = new Set(nativeSlugs.map((slug) => `src/pages/${slug}.astro`));
+  return changed.filter(
+    (path) => path && !nativeRoutes.has(path) && !INSTALL_OWNED.some((owned) => owned.test(path)),
+  );
 }

@@ -1,9 +1,113 @@
 # STATUS — AdsBookCMS
 
-> Verified against disk: 2026-10-21 (1.7.3 on zvarashop; 1.7.2 on beranda-tani, numaskin-adbook, taniniaga, agritani-shop, zanobyshop)
+> Verified against disk: 2026-10-23 (1.7.8 on revenleather; 1.7.4 on zvarashop; 1.7.2 on beranda-tani, numaskin-adbook, taniniaga, agritani-shop, zanobyshop)
 
-## 2026-10-21 — 1.7.3: uploads cached at the edge; zvarashop back on the product line
+## 2026-10-24 — 1.7.13: manual transfer confirmation sends the Purchase
 
+- Audit of revenleather D1, last 30 days: every `INV-` COD order (136/136) has
+  a `sent` CAPI Purchase, fbc on 59 of the last 60. The 41 without one are
+  `ABN-` abandoned leads, correctly. All 12 `manual_transfer` orders sat
+  `pending` with no Purchase: the dashboard had no way to mark them paid.
+- **1.7.13** adds "Transfer Diterima" to the order detail page for an unpaid
+  manual transfer; the PATCH that marks it paid enqueues the server CAPI
+  Purchase (TRACKING_SPECS §13). COD stays on `/thanks` by the owner's choice.
+
+## 2026-10-24 — 1.7.12: sitemap and titles; 1.7.11 live on revenleather and beranda-tani
+
+- 1.7.11 deployed: revenleather `49445725`, beranda-tani (petanisejahtera.com)
+  `fe3f3f50`, both with `placement: smart`. The order path was walked to the
+  submit button on both (hybrid form on Reven, middle form on Petani). No
+  order was placed.
+- **1.7.12** `canonicalSlug` on a native landing register entry keeps a second
+  ad slug out of the sitemap: petanisejahtera.com listed
+  `/aussie-formulabaru-evrpro`, whose canonical is `/aussie-formulabaru`.
+  `withStoreName` stops legal page titles reading "… Petani Sejahtera - Petani
+  Sejahtera".
+- Lab caveat: local Lighthouse TBT is unreliable while other work loads the
+  machine (load 13 measured); TTFB is network-bound and stays comparable. The
+  keyless PageSpeed API quota is shared and was exhausted on both days.
+
+## 2026-10-23 — 1.7.11: product pages and far colos (ADR-030)
+
+- A PageSpeed pass over page.revenleather.com (Lighthouse mobile, every
+  template) put product pages at 3.7-6 s to the first byte while the rest sat
+  near 0.5 s. Cause, measured: Cloudflare served part of the Indonesian traffic
+  (and all of PageSpeed) from SEA/SJC; `wrangler tail` showed 80-220 ms CPU in
+  a 3.7-6 s wall, and a product page made nine sequential D1 reads to the APAC
+  primary, the catalogue twice.
+- **1.7.11** the catalogue is read once per request with its two queries in
+  parallel, and the product page reads its landing claim beside the order
+  count: nine sequential round trips become six (counted on `dev:local`). The
+  template sets `"placement": { "mode": "smart" }`; the deploy preflight warns
+  an install whose `wrangler.jsonc` has none. Also restores the type narrowing
+  1.7.9 lost in `shipping-quote.ts`: `npm run check` had been red since 1.7.9
+  while `npm test` stayed green, so both gates must run, never one.
+- Not taken: delaying the Google and Meta tags (most of the 450-860 ms TBT on
+  every page), because the ad signal is the product. SEO 69 on the revenleather
+  run is its own `PUBLIC_SITE_NOINDEX`, by design.
+
+## 2026-10-22/23 — 1.7.5–1.7.9: store mark and noindex opt-ins, IP preview, checkout resilience; revenleather drift
+
+- **1.7.5** `PUBLIC_SITE_BRAND_MARK` shows a store's own mark beside the
+  wordmark (root-relative or `https:` only; inverted on the light tone, sized
+  by attribute because `h-7` resolves through an undefined `--spacing` in
+  inlined CSS). **1.7.6** the home h1 and brand title read
+  `tenant.defaultTitle`, so an empty tagline no longer leaves "Store — ".
+  **1.7.7** `PUBLIC_SITE_NOINDEX=true` sends `X-Robots-Tag: noindex, nofollow`
+  on every response (edge-cache hits and pages outside BaseLayout too) and
+  BaseLayout's robots meta agrees. **1.7.8** bare IPv4/IPv6 hosts are never
+  host-redirected, so a LAN or Tailscale preview opens.
+- **1.7.9** A failed exact-district estimate no longer ends a COD checkout: it
+  falls through to the existing city-average `ICO` fallback (prepaid still
+  fails, it has no fallback); one test covers both. Manual transfer options
+  carry fee text and the holder (`a.n. …`), and a single bank or VA renders as
+  its own row instead of a one-item accordion. `GeoIpResolvedForm` passes the
+  visitor province to the full form as it already did to the middle form.
+  Rendered on `npm run dev:local` at 390 and 1440 px with no console errors; a
+  checkout through the single bank row stored `manual_transfer` with that
+  account.
+- **1.7.10 — gates learned from revenleather.** `npm run deploy` now warns
+  (does not refuse) with the product-owned files an install has edited since
+  its last product merge, and `fleet:status` gains an `edits` column from the
+  same `findProductOwnedEdits`. Install-owned paths and native landing pages
+  (registered route files, their styles, the register and generated
+  route-map/safelist) are not counted. First reading, 2026-10-23: revenleather
+  49, zvarashop 27 (12 of them its own catalogue migrations `0067`-`0078`,
+  which will collide by number with the product's next migration), taniniaga
+  4 (research notes under `docs/spec`). The setup checklist owes "Aktifkan
+  minimal satu kurir" when no courier rule is enabled: with every courier off
+  the buyer saw only "Ongkir belum berhasil dihitung", which is what led a
+  revenleather session (on a local D1 without courier rules) to make the quote
+  allow every courier instead. Rendered on `dev:local` at 390 and 1440 px.
+- **revenleather (`page.revenleather.com`) on 1.7.8, noindexed** because the
+  brand's Shopify shop owns search for the same catalog. Its own commits on
+  2026-10-23 edit 27 product-owned files under `src/` (checkout, header, footer,
+  inner pages, thanks page) and this file's fleet header. Three of those
+  ideas are in 1.7.9. Not taken, on purpose: allowing every courier when
+  `courier_rules` is empty (the server accepts orders through the same rule
+  check, and deny-by-default is the product contract), a store's bank account
+  hardcoded as a client fallback, and slug lists or palettes compiled into
+  shared components. The palette edits are the recurring gap (zanobyshop's
+  `apply-store-palette.py` is the same need): installs fork components because
+  the product has no per-store colour tokens. Its next product merge will
+  conflict wherever both sides moved.
+
+## 2026-10-21 — 1.7.3–1.7.4: uploads and province-scoped product pages cached at the edge; zvarashop back on the product line
+
+- **1.7.4 (ADR-029 amendment).** The only visitor-dependent value in the SSR
+  HTML of `/produk/<slug>` and single-segment landing pages (`/<slug>`) is the
+  normalized two-letter Indonesian province code (`resolveProvinceCode` in
+  `src/lib/geo.ts`), which picks the `middle` or `full` checkout form and
+  prefills the province name in `GeoIpResolvedForm`. `edgeCachePath` now admits
+  `/produk/<slug>`, and `edgeCacheRequest` appends `__prov=<CODE>` (resolved
+  from `request.cf` or its fallback headers, never from the URL query string)
+  for every path other than `/` and `/produk`. When `/produk/<slug>` rewrites
+  to a claimed native landing page, the inner rewrite still carries
+  `x-adsbook-product-page` and skips the cache, while the outer `/produk/<slug>`
+  request caches the rendered 200 HTML under the product's province key. In
+  `src/middleware.ts`, canonical host redirects and `readEdgeCache` now run
+  above `ensureSchemaReady(identityDb)`, so an edge-cache `HIT` never pays a
+  D1 `d1_migrations` read on a cold isolate.
 - **1.7.3 (ADR-029 amendment).** `/assets/uploads/…` comes from R2 through the
   Worker, which the CDN does not cache: zvara.shop's home hero took 1.1-1.4 s
   to the first byte on every request. A served upload is now kept a day in the
@@ -13,7 +117,7 @@
   0.15 s); a missing key still answers 404 and is not stored. One middleware
   test covers miss, hit without D1 or route, the day-long edge lifetime and the
   uncached 404.
-- **zvarashop 1.5.11 → 1.7.2 → 1.7.3.** Its own catalogue migrations held
+- **zvarashop 1.5.11 → 1.7.2 → 1.7.3 → 1.7.4.** Its own catalogue migrations held
   `0062`-`0073`, colliding with the product's `0062`-`0066`; a plain merge would
   have failed `validateMigrationChain` and answered 503 on every database route.
   Per ADR-024 the catalogue moved unchanged to `0067`-`0078` (schemaVersion 79)
@@ -24,22 +128,25 @@
   of production D1: schema identical to a fresh product chain (77 tables), 72
   pages matching live on title, H1, prices, image count and variant ids.
   Backup `~/backups/zvarashop/zvarashop-d1-2026-10-21-pre-1.7.2.sql`.
-  Deployed `4532afc2` (1.7.2), then `4070cd45` (1.7.3); `/produk` answered 503
-  for about 13 s between the ledger batch and the new Worker. After: D1 79/79,
-  69 native pages, 73 routes 200 and 69 redirects 301 as before.
+  Deployed `4532afc2` (1.7.2), `4070cd45` (1.7.3), then `0c428689` (1.7.4);
+  `/produk` answered 503 for about 13 s between the ledger batch and the new
+  Worker. After: D1 79/79, 69 native pages, 73 routes 200 and 69 redirects 301
+  as before.
 - **zvarashop tests.** Three product fixtures (`rts-scoring`, `plugins/registry`,
   `plugins/kelola/sync`) replay the whole chain into an empty store; on this
   install they stop before `0067`, whose catalogue rows need store 1. The cut
   must move whenever the product's chain passes it again.
-- **zvara.shop page speed (local Lighthouse 13.5, mobile, simulated).** CLS
-  0.000 everywhere. Home 66 → 74-80 (LCP 3.3-4.7 s → 2.8-4.3 s; the hero now
-  arrives at 0.36 s and the rest is render delay behind the main thread).
-  Product landing pages 78-87, unchanged within run-to-run noise: Total
-  Blocking Time 410-580 ms is almost all Meta (`signals/config` 0.9 s main
-  thread, `fbevents.js` 0.5 s) and `gtag/js` (0.65 s). The `signals/config`
-  load follows Automatic Advanced Matching / automatic events in Events Manager,
-  an owner setting. Product pages stay out of the HTML cache (geo-IP form), so
-  their TTFB still swings 0.3-1.1 s.
+- **zvara.shop page speed (local Lighthouse 13.5, mobile, simulated, on 1.7.4).**
+  CLS 0.000 everywhere. Direct HTTP/2 `X-Edge-Cache: HIT` TTFB on `/produk/<slug>`
+  is 0.218-0.274 s (down from 1.0-3.8 s on a cold D1 render). Mobile Lighthouse
+  scores (1.5.11 baseline → 1.7.4 warm edge): `/` 59 → 78 (LCP 4.71 s → 3.77 s,
+  CLS 0.118 → 0.000), `/produk` 71 → 79 (LCP 3.86 s → 3.76 s, CLS 0.036 → 0.000,
+  TTFB 368 ms), `/produk/wamena-oil` 59 → 84 (LCP 5.96 s → 2.44 s, TTFB 100 ms),
+  `/produk/4g-lucky-spray-herbal-pria-dewasa` 74 → 87 (LCP 3.37 s → 2.18 s,
+  TTFB 406 ms), `/produk/dragon-blood-cream` 77 → 83 (LCP 3.10 s → 2.54 s),
+  `/produk/foam-pembersih-toilet-500ml` 71 → 80 (LCP 3.71 s → 2.07 s). The
+  remaining Total Blocking Time (300-714 ms) is third-party ad tags (`fbevents.js`,
+  `signals/config`, `gtag/js`).
 
 ## 2026-10-20 — 1.7.0-1.7.2: page speed; edge cache and font CLS
 

@@ -7175,3 +7175,94 @@ the saved pair wins and the secret is never returned to the browser).
 - Migrations `0062_order_source_page`, `0063_kelola_order_sync`,
   `0064_kelola_dashboard_config`, `0065_kelola_lead_sync`. The file names match
   the install's, so it merges this release without a migration conflict.
+
+### Entry 180: Product pages that waited on the Pacific
+
+- Lighthouse mobile across every page.revenleather.com template: home 76,
+  `/produk` 86, legal pages 81-86, product pages 47-68. Accessibility 96-100.
+  Best practices 77 everywhere (ad tags' third-party cookies). SEO 69 is the
+  store's own noindex. The product pages lost on TTFB (3.9-7.9 s) and Speed
+  Index (8-14 s).
+- Curl with `cf-ray` tied it to the colo: uncached product pages took
+  3.2-4.8 s from SEA and SJC and 0.36-1.4 s from SIN. Request headers made no
+  difference; an earlier "query string is fast" reading was coincidence.
+  `wrangler tail`: 80-220 ms CPU per request. D1 itself answered the heaviest
+  catalogue query in 2.4 ms (79 rows, 180 KB).
+- A temporary counting proxy on `OMS_DB` (not committed) counted nine
+  sequential reads on `/produk/<slug>`, the catalogue batch and content read
+  twice. After 1.7.11: six. Home 6, `/produk` 4, `/tentang` 2, unchanged.
+- 1.7.11: per-request catalogue memo plus a parallel content read
+  (`catalog.test.ts`, mutation-checked: removing the memo fails it), the
+  landing claim read beside the order count, Smart Placement in the template, a
+  preflight warning for an install without `placement`, and ADR-030 with the
+  measuring procedure. Gates: `npm run check` 0 errors, `npm test` 875/875,
+  `npm run build` green.
+- `npm run check` had been red since 1.7.9 (lost narrowing in
+  `shipping-quote.ts`) while `npm test` was green. Fixed here.
+
+### Entry 181: Order path walked, sitemap duplicate, titles (1.7.12)
+
+- After the 1.7.11 deploys, a Playwright walk (390x844, mobile) on two Reven
+  product pages and four Petani pages filled the form to the submit button:
+  district picked, SiCepat rate quoted, Transfer and COD offered on Reven;
+  middle form totals per variant on Petani. Submit enabled, no page errors,
+  no failed first-party requests. No order was created.
+- SEO audit of all 25 petanisejahtera.com sitemap URLs: 200, self canonical,
+  one h1, og:image and valid JSON-LD everywhere, except
+  `/aussie-formulabaru-evrpro` (canonical to `/aussie-formulabaru`, still in
+  the sitemap) and three legal titles that named the store twice. Both fixed in
+  1.7.12, with tests in `native-landing-pages.test.ts` and `tenant.test.ts`.
+
+### Entry 182: Measured after 1.7.11-1.7.12 on both stores
+
+Lighthouse mobile, local, machine load 8-13 from unrelated work, so TBT is
+noisy; TTFB, LCP and Speed Index are the comparable figures.
+
+| Page | Before (perf / TTFB / LCP / SI) | After |
+|---|---|---|
+| Reven `/produk/asoka-wallet` | 47-61 / 4.3-7.9 s / 3.8-5.0 s / 8.6-14.6 s | 67 / 0.27 s / 2.4 s / 2.5 s |
+| Reven `/produk/dewa-exclusive-handbag` | 63 / 3.9 s / 4.7 s / 8.0 s | 78 / 0.34 s / 2.4 s / 2.4 s |
+| Reven `/produk/mahesa-multibag` | 68 / 3.9 s / 3.6 s / 7.9 s | 79 / 0.44 s / 2.5 s / 2.6 s |
+| Petani `/produk/aussie` | 82 / 0.97 s / 2.8 s / 3.1 s (A11y 96) | 77 / 0.71 s / 2.7 s / 2.3 s (A11y 100) |
+| Petani `/aussie-formulabaru` | 84 / 0.60 s / 2.7 s / 1.9 s (A11y 96) | 89 / 0.52 s / 2.3 s / 1.9 s (A11y 100) |
+
+- Install-side fixes on beranda-tani in the same pass: strike prices and review
+  meta at slate-500 (2.6:1 to 4.8:1), the wordmark link named by its visible
+  text, sized images on `/saratoga-padi`, WhatsApp chat timestamps at
+  `#54656f` (4.2:1 to 5.5:1). Deployed `8e41fa52`.
+- Still open, by choice: Google and Meta tags remain most of TBT (ADR-030);
+  Best Practices 77 is their third-party cookies; Reven SEO 69 is its noindex.
+
+### Entry 183: Manual transfer confirmation and its Purchase (1.7.13)
+
+- Reported: "Purchase from /thanks often does not reach Meta Ads". Measured on
+  revenleather D1 instead of assumed: 136/136 COD `INV-` orders in 30 days have
+  a `sent` Purchase in `capi_event_outbox`, with fbp, IP and user agent on all
+  and fbc on 59/60. The server leg is complete, so a shortfall in Ads Manager is
+  attribution or dataset, not delivery. The 41 orders without a Purchase are
+  `ABN-` abandoned leads.
+- The real gap: `manual_transfer` (12 orders, all `pending`, zero Purchases).
+  The reconciliation queue lists only AutoLaris QRIS/VA, and no admin control
+  sent `payment_status`, so a transfer confirmed over WhatsApp could neither be
+  marked paid nor dispatched, and never became a Purchase.
+- Added the "Transfer Diterima" button (non-destructive confirm dialog, new
+  `tone` option on `useConfirm`) and `manualTransferBecamePaid()` gating
+  `enqueuePurchaseForPaidOrder` in `PATCH /api/admin/orders/[id]`. The response
+  message says whether the Purchase was sent. Test in
+  `paid-order-purchase.test.ts`, mutation-checked (dropping the previous-status
+  guard fails it).
+- Browser evidence on `dev:local` (390x844 and 1440x900): button shown only on
+  an unpaid manual transfer, dialog, PATCH 200, badge "Lunas", button gone, no
+  console errors. Meta was unconfigured locally (`skipped`), so the CAPI send
+  itself is covered by the unit tests, not observed against Meta.
+
+### Entry 184: Event Match Quality measured from Meta (docs only)
+
+- Read revenleather's Dataset Quality through the Graph API with the owner's
+  approval, with the token piped from D1 and never printed. Purchase and
+  InitiateCheckout scored 7.8, AddToCart 7.3, ViewContent and PageView 6.1.
+  event_id deduplication was 100% browser and server on every event.
+- Recorded in TRACKING_SPECS §16.2 (diagnosing a Purchase shortfall from D1),
+  §16.3 (the request, the baseline, how to read it), and the owner's decisions:
+  no fabricated match keys, and an optional email field deferred.
+

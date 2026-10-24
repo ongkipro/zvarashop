@@ -8,7 +8,16 @@ export type CmsVersionInfo = {
 };
 
 export const CMS_VERSION: CmsVersionInfo = {
-  version: "1.7.4",
+  version: "1.7.13",
+  // 1.7.13: "Transfer Diterima" on a manual-transfer order marks it paid and sends its Meta Purchase from the server.
+  // 1.7.12: a native landing page can declare canonicalSlug and leaves the sitemap; legal page titles name the store once.
+  // 1.7.11: Smart Placement in the template; the catalogue is read once per request; product pages make six sequential D1 reads, not nine; shipping-quote type narrowing restored.
+  // 1.7.10: setup checklist owes a courier when every courier is off; deploy preflight and fleet:status report product-owned files an install edited.
+  // 1.7.9: COD city-average fallback when the district estimate fails; manual transfer shows the holder; single bank/VA renders as one row.
+  // 1.7.8: bare IP hosts (LAN or Tailscale preview) are never host-redirected, like localhost.
+  // 1.7.7: optional PUBLIC_SITE_NOINDEX keeps a whole store out of search (header and robots meta).
+  // 1.7.6: home h1 and the header brand title no longer end in a dangling separator when the tagline is empty.
+  // 1.7.5: optional PUBLIC_SITE_BRAND_MARK shows the store's own mark in the header; unset keeps the monogram.
   // 1.7.4: product and landing pages are cached per province at the edge; cache hits skip the schema check.
   // 1.7.3: uploaded images (R2) are kept a day in the Workers cache and answered before D1 and R2.
   // 1.7.2: Inter is declared only as optional faces (latin, latin-ext); the package swap faces are gone.

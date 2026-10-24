@@ -6,6 +6,7 @@ import {
   envTenantConfig,
   loadStoreIdentity,
   resolveTenantConfig,
+  siteNoindex,
   type StoreIdentityRow,
   LOCALE_PATTERN,
   THEME_COLOR_PATTERN,
@@ -181,4 +182,52 @@ test("saving the store profile persists all three previously uneditable fields",
   // A blank field clears the column back to NULL — "not configured here" —
   // rather than storing an empty string the resolver would treat as a value.
   assert.match(statement, /clean\(body\.admin_name, 120\) \|\| null/);
+});
+
+test("the header brand mark is opt-in and accepts only a site or https image path", () => {
+  const previous = process.env.PUBLIC_SITE_BRAND_MARK;
+  try {
+    delete process.env.PUBLIC_SITE_BRAND_MARK;
+    assert.equal(resolveTenantConfig(null).brandMark, "");
+
+    for (const accepted of ["/images/mark.svg", "https://cdn.example/mark.svg"]) {
+      process.env.PUBLIC_SITE_BRAND_MARK = accepted;
+      assert.equal(resolveTenantConfig(null).brandMark, accepted);
+    }
+    for (const refused of ["//evil.example/mark.svg", "javascript:alert(1)", "http://cdn.example/m.svg", "mark.svg"]) {
+      process.env.PUBLIC_SITE_BRAND_MARK = refused;
+      assert.equal(resolveTenantConfig(null).brandMark, "", refused);
+    }
+  } finally {
+    if (previous === undefined) delete process.env.PUBLIC_SITE_BRAND_MARK;
+    else process.env.PUBLIC_SITE_BRAND_MARK = previous;
+  }
+});
+
+test("the store-wide noindex is opt-in and only `true` or `1` turns it on", () => {
+  const previous = process.env.PUBLIC_SITE_NOINDEX;
+  try {
+    delete process.env.PUBLIC_SITE_NOINDEX;
+    assert.equal(resolveTenantConfig(null).noindex, false);
+    for (const on of ["true", "TRUE", "1"]) {
+      process.env.PUBLIC_SITE_NOINDEX = on;
+      assert.equal(resolveTenantConfig(null).noindex, true, on);
+    }
+    for (const off of ["false", "0", "yes", "ture"]) {
+      process.env.PUBLIC_SITE_NOINDEX = off;
+      assert.equal(resolveTenantConfig(null).noindex, false, off);
+    }
+    // The middleware reads the Worker's runtime vars, not only the build env.
+    delete process.env.PUBLIC_SITE_NOINDEX;
+    assert.equal(siteNoindex({ PUBLIC_SITE_NOINDEX: "true" }), true);
+  } finally {
+    if (previous === undefined) delete process.env.PUBLIC_SITE_NOINDEX;
+    else process.env.PUBLIC_SITE_NOINDEX = previous;
+  }
+});
+
+test("a page title names the store once, never twice", async () => {
+  const { withStoreName } = await import("./tenant.ts");
+  assert.equal(withStoreName("Kebijakan Privasi Petani Sejahtera", "Petani Sejahtera"), "Kebijakan Privasi Petani Sejahtera");
+  assert.equal(withStoreName("Kontak Resmi", "Petani Sejahtera"), "Kontak Resmi - Petani Sejahtera");
 });

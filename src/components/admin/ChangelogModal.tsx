@@ -29,10 +29,139 @@ interface ChangelogRelease {
 // changelog.test.ts fails when version.ts moves without a matching entry here.
 const CHANGELOG_RELEASES: ChangelogRelease[] = [
   {
+    version: "1.7.13",
+    date: "24 Oktober 2026",
+    releaseTag: "2026.10-plugins",
+    isLatest: true,
+    highlight: "Transfer manual bisa dikonfirmasi dari detail order, dan Purchase-nya terkirim ke Meta.",
+    changes: [
+      {
+        title: "Tombol Transfer Diterima",
+        description: "Order transfer bank manual yang belum lunas kini punya tombol Transfer Diterima di kartu Pembayaran. Setelah dikonfirmasi, order berstatus lunas dan bisa dipush ke Mengantar. Sebelumnya order ini tidak bisa ditandai lunas dari dashboard.",
+      },
+      {
+        title: "Purchase Meta untuk pembeli yang transfer lewat WhatsApp",
+        description: "Konfirmasi itu langsung mengirim Purchase ke Meta lewat server (CAPI), memakai identitas iklan yang tersimpan saat checkout. Pembeli tidak perlu kembali ke halaman terima kasih. Nomor invoice yang sama dipakai sebagai event_id, jadi tidak pernah terhitung dua kali. COD tetap mengirim Purchase dari halaman terima kasih.",
+      },
+    ],
+  },
+  {
+    version: "1.7.12",
+    date: "24 Oktober 2026",
+    releaseTag: "2026.10-plugins",
+    isLatest: false,
+    highlight: "Sitemap dan judul halaman lebih bersih untuk Google.",
+    changes: [
+      {
+        title: "Slug iklan kedua tidak lagi masuk sitemap",
+        description: "Landing page native yang memakai konten halaman lain (canonical ke halaman itu) bisa ditandai canonicalSlug di register. Sitemap hanya mencantumkan halaman aslinya, sehingga Google tidak melaporkannya sebagai duplikat.",
+      },
+      {
+        title: "Nama toko tidak tertulis dua kali di judul",
+        description: "Judul Kebijakan Privasi, Syarat & Ketentuan, dan Pengiriman tidak lagi menambahkan nama toko bila judulnya sudah memuat nama itu.",
+      },
+    ],
+  },
+  {
+    version: "1.7.11",
+    date: "23 Oktober 2026",
+    releaseTag: "2026.10-plugins",
+    highlight: "Halaman produk lebih cepat terbuka, termasuk saat dilayani dari server luar negeri.",
+    changes: [
+      {
+        title: "Halaman produk membaca database lebih sedikit",
+        description: "Katalog kini dibaca sekali per kunjungan dan bacaan yang tidak saling bergantung dijalankan bersamaan. Waktu tunggu halaman produk sebelum mulai tampil jadi lebih singkat, terutama bila Cloudflare melayani pengunjung dari server di Amerika.",
+      },
+      {
+        title: "Worker berjalan dekat database (Smart Placement)",
+        description: "Template wrangler.jsonc kini menyalakan Smart Placement. Toko yang sudah terpasang perlu menambahkannya di wrangler.jsonc sendiri; deploy preflight akan mengingatkan bila belum.",
+      },
+    ],
+  },
+  {
+    version: "1.7.10",
+    date: "23 Oktober 2026",
+    releaseTag: "2026.10-plugins",
+    highlight: "Panel Siapkan Toko kini memperingatkan saat tidak ada kurir aktif.",
+    changes: [
+      {
+        title: "Langkah wajib: aktifkan minimal satu kurir",
+        description: "Bila semua kurir dimatikan, checkout tidak bisa menghitung ongkir dan pembeli hanya melihat pesan gagal. Panel Siapkan Toko di dashboard kini menampilkan langkah ini dengan tautan langsung ke halaman Ekspedisi.",
+      },
+    ],
+  },
+  {
+    version: "1.7.9",
+    date: "23 Oktober 2026",
+    releaseTag: "2026.10-plugins",
+    highlight: "Checkout lebih tahan gangguan ongkir dan pilihan transfer lebih jelas.",
+    changes: [
+      {
+        title: "Ongkir COD tetap muncul saat estimasi kecamatan gagal",
+        description: "Bila estimasi ongkir ke kecamatan tujuan gagal, pembeli COD kini mendapat ongkir rata-rata kota yang dikonfirmasi admin, tidak lagi berhenti di pesan gagal. Pembayaran di muka tetap memakai ongkir kurir asli.",
+      },
+      {
+        title: "Rekening transfer tampil lengkap",
+        description: "Pilihan transfer bank kini menampilkan nama pemilik rekening di samping keterangan biaya. Toko dengan satu rekening atau satu bank Virtual Account menampilkannya langsung sebagai satu pilihan, tanpa harus membuka daftar terlebih dulu.",
+      },
+      {
+        title: "Form lengkap mengenali provinsi pengunjung sejak awal",
+        description: "Form lengkap kini menerima provinsi pengunjung seperti form ringkas, sehingga pilihan COD sesuai provinsi tampil tanpa jeda.",
+      },
+    ],
+  },
+  {
+    version: "1.7.8",
+    date: "22 Oktober 2026",
+    releaseTag: "2026.10-plugins",
+    highlight: "Pratinjau toko lewat alamat IP tidak lagi dialihkan ke domain toko.",
+    changes: [
+      {
+        title: "Pratinjau lewat alamat IP",
+        description: "Membuka toko lewat alamat IP, misalnya dari jaringan lokal atau Tailscale saat pengembangan, sebelumnya langsung dialihkan ke domain toko sehingga perubahan tidak bisa dilihat. Kini alamat IP diperlakukan sama seperti localhost. Pengunjung yang datang lewat domain tidak terpengaruh.",
+      },
+    ],
+  },
+  {
+    version: "1.7.7",
+    date: "22 Oktober 2026",
+    releaseTag: "2026.10-plugins",
+    highlight: "Toko bisa disembunyikan dari mesin pencari dengan satu pengaturan.",
+    changes: [
+      {
+        title: "Opsi noindex untuk seluruh toko",
+        description: "Pengaturan PUBLIC_SITE_NOINDEX=true membuat semua halaman toko tidak diindeks mesin pencari. Cocok untuk domain funnel iklan atau COD yang menjual produk yang sama dengan toko utama merek, supaya keduanya tidak bersaing di hasil pencarian. Iklan berbayar tetap berjalan. Tanpa pengaturan ini toko tetap diindeks seperti biasa.",
+      },
+    ],
+  },
+  {
+    version: "1.7.6",
+    date: "22 Oktober 2026",
+    releaseTag: "2026.10-plugins",
+    highlight: "Judul utama beranda tidak lagi diakhiri tanda pisah saat tagline kosong.",
+    changes: [
+      {
+        title: "Judul beranda dan nama toko di header lebih rapi",
+        description: "Toko tanpa tagline sebelumnya menampilkan judul utama beranda (dibaca mesin pencari dan pembaca layar) sebagai \"Nama Toko — \" dengan tanda pisah menggantung, begitu juga keterangan saat kursor diarahkan ke nama toko di header. Kini keduanya hanya berisi nama toko, atau nama toko dan tagline bila tagline diisi.",
+      },
+    ],
+  },
+  {
+    version: "1.7.5",
+    date: "22 Oktober 2026",
+    releaseTag: "2026.10-plugins",
+    highlight: "Header toko kini bisa menampilkan logo merek sendiri di samping nama toko.",
+    changes: [
+      {
+        title: "Logo merek di header (opsional)",
+        description: "Isi PUBLIC_SITE_BRAND_MARK dengan path gambar (misalnya /images/merek.svg) untuk menampilkan logo toko di samping nama toko pada header. Bila tidak diisi, header tetap memakai monogram huruf seperti sebelumnya, jadi toko lain tidak berubah.",
+      },
+    ],
+  },
+  {
     version: "1.7.4",
     date: "21 Oktober 2026",
     releaseTag: "2026.10-plugins",
-    isLatest: true,
     highlight: "Halaman produk kini disimpan di edge per provinsi dengan TTFB di bawah 0,3 detik.",
     changes: [
       {
