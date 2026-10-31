@@ -7266,3 +7266,20 @@ noisy; TTFB, LCP and Speed Index are the comparable figures.
   §16.3 (the request, the baseline, how to read it), and the owner's decisions:
   no fabricated match keys, and an optional email field deferred.
 
+### zvarashop: catalogue migrations made inert on fresh databases (2026-10-31)
+
+- `0067_sabun_korea.sql` … `0079_celana_knit_jumbo.sql` are this store's
+  catalogue data (products, native landing pages), not schema. Production
+  applied them before AdsBookCMS 1.8.0, and `d1_migrations` holds their names.
+- They failed on a fresh database with a foreign-key error (they reference
+  rows only production has). That broke every product test that applies the
+  full chain once 1.8.0 was merged.
+- Each original is kept byte-for-byte in `scripts/catalog-seeds/` (13/13
+  compared against git). Its migration file keeps its name, which the ledger
+  matches, and now holds `SELECT 1;` with a note. Production never re-runs it.
+  A fresh database gets the catalogue by applying the seed files by hand.
+- This is a deliberate exception to "never edit an applied migration",
+  limited to data migrations whose effect production already holds.
+- Verification: the full chain applies to an empty SQLite database; `npm test`
+  passes 878/878 on 1.7.13 with the change.
+
