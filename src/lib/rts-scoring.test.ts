@@ -272,8 +272,7 @@ test("a refused order older than 30 days is still retried, so a granted whitelis
   const { splitMigrationStatements } = await import("./schema-version.ts");
   const sqlite = new DatabaseSync(":memory:");
   const dir = new URL("../db/migrations/", import.meta.url);
-  // zvarashop: 0067+ is this install's catalogue (rows for store 1), not schema; keep it out of an empty-store fixture.
-  for (const name of readdirSync(dir).filter((file) => file.endsWith(".sql") && file < "0067_").sort()) {
+  for (const name of readdirSync(dir).filter((file) => file.endsWith(".sql")).sort()) {
     for (const statement of splitMigrationStatements(readFileSync(new URL(name, dir), "utf8"))) sqlite.exec(statement);
   }
   sqlite.exec(`INSERT INTO stores (id, name, slug, created_at, mengantar_api_key) VALUES (1, 'Toko', 'toko', '2026-01-01', 'test-key')`);
