@@ -1,0 +1,78 @@
+/**
+ * Static images that have a card-sized twin beside them (`<name>-sm.webp`).
+ *
+ * `cardImageSrc` (lib/image-derivative.ts) swaps an upload for its `-sm`
+ * derivative because `/assets/[...key].ts` falls back to the original when the
+ * derivative is missing. A static file under `public/` has no such fallback:
+ * a missing `-sm` file answers 404 through the Worker, so a path is listed here
+ * only after its twin exists.
+ *
+ * Generated: `npm run card-images` writes the twins and rewrites this list. A
+ * store whose products use uploads only keeps it empty and changes nothing.
+ */
+export const CARD_DERIVATIVES: ReadonlySet<string> = new Set<string>([
+  "/images/landing/4g-lucky/hero-product.webp",
+  "/images/landing/adaptor-mesin-bor/hero-product.webp",
+  "/images/landing/alat-cukur-rambut-elektronik/hero-product.webp",
+  "/images/landing/alat-cukur-travel-pocket/hero-product.webp",
+  "/images/landing/albumichenna-ekstrak-ikan-gabus-30-kapsul/hero-product.webp",
+  "/images/landing/asam-humat-premium/hero-product.webp",
+  "/images/landing/bastrix-pupdeo/hero-product.webp",
+  "/images/landing/bastrix-salep-anti-scabies-jamur/hero-product.webp",
+  "/images/landing/baterai-cadangan-mesin-jet/hero-product.webp",
+  "/images/landing/celana-knit-jumbo/hero-product.webp",
+  "/images/landing/deterjen-pakaian-dalam-300ml/hero-product.webp",
+  "/images/landing/dr-haechung-spray-pembasmi-jamur-250ml/hero-product.webp",
+  "/images/landing/dr-haechung-spray-pengusir-tikus-rumah-250ml/hero-product.webp",
+  "/images/landing/dragon-blood-cream/hero-product.webp",
+  "/images/landing/essen-ikan-120x/hero-product.webp",
+  "/images/landing/fertani-essen-ikan-120x/hero-product.webp",
+  "/images/landing/fertani-herbisida/hero-product.webp",
+  "/images/landing/fertani-penggemuk-ikan/hero-product.webp",
+  "/images/landing/foam-toilet/hero-product.webp",
+  "/images/landing/gel-racun-kecoa/hero-product.webp",
+  "/images/landing/gergaji-mini-serbaguna/hero-product.webp",
+  "/images/landing/ginseng-cordyceps/hero-product.webp",
+  "/images/landing/hair-care-essence/hero-product.webp",
+  "/images/landing/hair-tonic-scentnice/hero-product.webp",
+  "/images/landing/kabel-cas-smartwacth/hero-product.webp",
+  "/images/landing/kabel-data-3-in-1/hero-product.webp",
+  "/images/landing/kabel-data-4-in-1/hero-product.webp",
+  "/images/landing/kapsul-herbal-brotowali/hero-product.webp",
+  "/images/landing/kapsul-herbal-gurah/hero-product.webp",
+  "/images/landing/kapsul-pinang-muda/hero-product.webp",
+  "/images/landing/karclean-pembersih-kerak/hero-product.webp",
+  "/images/landing/kompor-gas-portabel/hero-product.webp",
+  "/images/landing/korektor-postur-punggung/hero-product.webp",
+  "/images/landing/lampu-led-5-titik/hero-product.webp",
+  "/images/landing/lampu-led-lentera/hero-product.webp",
+  "/images/landing/lampu-led-multifungsi/hero-product.webp",
+  "/images/landing/lampu-senter-mini-gantungan/hero-product.webp",
+  "/images/landing/lampu-sepeda-led-360/hero-product.webp",
+  "/images/landing/lao-li-shi-collagen/hero-product.webp",
+  "/images/landing/lem-jaysuing/hero-product.webp",
+  "/images/landing/lipoma-cream-herbal/hero-product.webp",
+  "/images/landing/minyak-kemiri-bakar/hero-product.webp",
+  "/images/landing/minyak-kemiri/hero-product.webp",
+  "/images/landing/nature-gemuk-badan/hero-product.webp",
+  "/images/landing/omega-brain-dha/hero-product.webp",
+  "/images/landing/pembersih-interior-mobil/hero-product.webp",
+  "/images/landing/pembersih-jamur-kaca-450ml/hero-product.webp",
+  "/images/landing/pembersih-kerak-panci/hero-product.webp",
+  "/images/landing/pembersih-kulkas-glowhome/hero-product.webp",
+  "/images/landing/power-bank-mini-analog/hero-product.webp",
+  "/images/landing/pupuk-pelebat-buah/hero-product.webp",
+  "/images/landing/rendaman-kaki-tabib/hero-product.webp",
+  "/images/landing/sabun-korea/hero-product.webp",
+  "/images/landing/sabun-pencerah-korea/hero-product.webp",
+  "/images/landing/semprotan-mata-herbal/hero-product.webp",
+  "/images/landing/senter-led-portable/hero-product.webp",
+  "/images/landing/shoe-parfume-clean/hero-product.webp",
+  "/images/landing/so-easy-pembersih-mesin-cuci/hero-product.webp",
+  "/images/landing/syaraf-kejepit-herbal/hero-product.webp",
+  "/images/landing/tas-selempang-unisex/hero-product.webp",
+  "/images/landing/theravol-natural-oil/hero-product.webp",
+  "/images/landing/tiga-jari-oil/hero-product.webp",
+  "/images/landing/tongsis-led/hero-product.webp",
+  "/images/landing/wamena-oil/hero-product.webp",
+]);

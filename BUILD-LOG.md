@@ -8557,3 +8557,35 @@ No migration, no version bump. 1149 tests pass, `npm run check` 0/0/0.
   are on 12 of 486 Purchase events because the short checkout form asks for a
   province only; the payload matches the order row exactly. Email is 0% because
   the COD form does not collect one.
+- **Verified live on zvara.shop (Worker `11b08a82`):** the first
+  `/api/meta-event` request of a fresh visitor carries `_fbp` before
+  `fbevents.js` is requested. The browser then holds two `_fbp` cookies
+  (host-only from this bootstrap, `.domain` from fbevents) with the same value.
+- Full method and the other measurements are `TRACKING_SPECS.md` §16.1b; the
+  fleet state, including five installs left merged-but-unpushed by an
+  interrupted rollout, is `docs/FLEET.md`.
+
+### Entry 230: lighter catalogue cards and load-more on scroll (zvara.shop Lighthouse)
+
+No migration, no version bump. 1154 tests pass, `npm run check` 0/0/0.
+
+- **Measured on zvara.shop (Lighthouse mobile, home 62):** ten 600x600 landing
+  hero images (~55 KB each) sat in 182 CSS px cards, because `cardImageSrc` only
+  knew the admin-upload `-sm` twin. 29 of its 70 products point at such static
+  files. A static file has no server fallback (a missing twin answers 404
+  through the Worker), so the swap is driven by a generated list:
+  `npm run card-images` writes `<name>-sm.webp` (480 px) and
+  `src/data/card-derivatives.ts`; `cardImageSrc` swaps only listed paths. The
+  list ships empty, so no install changes until it runs the script.
+- **Load more** already existed on the home grid and `/produk` (10 at a time,
+  a button, two separate scripts). `lib/auto-load-more.ts` now clicks that
+  button as it nears the screen, after the first scroll or touch, and
+  re-observes after each click; the button stays for keyboard and no-script
+  use. Tested with a fake observer (`auto-load-more.test.ts`).
+- Server timing was *not* the problem: see `UNIMPLEMENTED_SPECS.md` PERF-1.
+- **Correction, same day:** the first `npm run card-images` wrote the twins but
+  listed none of them (it filtered the list against a directory snapshot taken
+  before the twins existed), so `cardImageSrc` would never have swapped. Fixed to
+  judge on disk, covered end to end by `card-images-script.test.ts`, which runs the
+  script in a temp folder. Quality 74 became 66 after measuring 12 real packshots
+  (52 KB originals, 32 KB at 74, 30 KB at 66, no visible loss at card size).
