@@ -1,141 +1,424 @@
-# BUILD LOG: ZvaraShop
+# BUILD LOG: AdsBookCMS
 
-> Verified against disk: 2026-10-16 @ `fd652b4`
+> Verified against disk: 2026-11-02 @ `43c6cb3` (Entry 244; earlier entries retain their historical evidence)
 
 Author & Curator: **[ongki.pro](https://ongki.pro)**
 
 ---
 
-## 2026-10-21 — Back on the product line: 1.7.2, 1.7.3, then 1.7.4
+## 2026-09-09 — Worktrees consolidated into one local checkout
 
-- **The collision.** This install's catalogue migrations held `0062`-`0073`;
-  the product shipped its own `0062`-`0066` (order source page, Kelola,
-  plugins). Merged as they were, `validateMigrationChain` would refuse two
-  `0062`s and every database route would answer 503. ADR-024 applies: the
-  product owns the numbers, so the twelve catalogue files moved unchanged to
-  `0067`-`0078` (`git mv`, SQL untouched) and `schemaVersion` became 79.
-- **Why the ledger was renamed and not replayed.** The catalogue migrations
-  upsert products and update rows (`0071_remove_cuka_apel` deletes). Running
-  them again would overwrite every edit the operator made since. So production
-  `d1_migrations` was rewritten in one batch, after a backup
-  (`~/backups/zvarashop/zvarashop-d1-2026-10-21-pre-1.7.2.sql`), and the
-  product's five were applied as their net DDL: `0063`-`0065` add the
-  `kelola_*` columns and `0066` drops them, and this database never had them.
+- Three worktrees hung off this repository — `adsbookcms-dev`, `adsbookcms-lp`
+  and `adsbookcms-meta-hardening`, plus one prunable entry under `/tmp`. All
+  three branches were already merged into `main`, so removing the worktrees lost
+  no committed work.
 
-```sql
--- zvarashop ledger repair for product 1.7.2 (ADR-024: the product owns migration numbers).
--- Before: ids 66-77 hold install catalogue migrations 0062-0073.
--- After:  ids 66-70 hold product 0062-0066; ids 71-82 hold the catalogue renumbered to 0067-0078.
--- Schema: the net effect of product 0062-0066 on a store that never had the kelola_* columns
--- (0063-0065 add them, 0066 drops them again; no webhook pair could exist, so no plugins row).
--- Not idempotent: run once, only after confirming the ledger is in the "before" state.
+- **`adsbookcms-meta-hardening` held 50 uncommitted files** from 2026-09-02: 44
+  modified, 6 untracked, 1076 insertions. That was not discarded. It is
+  committed unchanged on `fix/meta-signal-parity` as `625ce46`, merged nowhere,
+  recoverable in full.
 
-ALTER TABLE `orders` ADD `source_page_path` text;
-CREATE TABLE `plugins` (
-  `id` text PRIMARY KEY NOT NULL,
-  `enabled` integer DEFAULT 0 NOT NULL,
-  `schema_version` integer DEFAULT 0 NOT NULL,
-  `settings` text DEFAULT '{}' NOT NULL,
-  `activated_at` text,
-  `updated_at` text NOT NULL
-);
+- Most of it was superseded rather than lost. `meta-order-context.ts` and
+  `0053_checkout_order_deduplication.sql` already exist on `main`;
+  `0054_meta_order_context.sql` is the content `main` carries at `0052`;
+  `0052_product_description.sql` is superseded by `0051_product_catalog_fields.sql`,
+  which already adds `products.description`. Several tracked files were *behind*
+  `main` rather than ahead of it — `thanks.astro` was missing 46 lines this
+  week's work added.
 
-UPDATE d1_migrations SET id = id + 1000 WHERE id BETWEEN 66 AND 77;
-UPDATE d1_migrations
-   SET id = id - 995,
-       name = printf('%04d', CAST(substr(name, 1, 4) AS INTEGER) + 5) || substr(name, 5)
- WHERE id BETWEEN 1066 AND 1077;
-INSERT INTO d1_migrations (id, name, applied_at) VALUES
-  (66, '0062_order_source_page.sql', CURRENT_TIMESTAMP),
-  (67, '0063_kelola_order_sync.sql', CURRENT_TIMESTAMP),
-  (68, '0064_kelola_dashboard_config.sql', CURRENT_TIMESTAMP),
-  (69, '0065_kelola_lead_sync.sql', CURRENT_TIMESTAMP),
-  (70, '0066_plugins.sql', CURRENT_TIMESTAMP);
-```
+- **One thing in it was genuinely unique and worth keeping:**
+  `scripts/check-docs.ts`. This repository had no `docs:check`, while its
+  siblings do, and a week of heavy document editing had no link checking behind
+  it at all. Ported and wired as `npm run docs:check`; it passes across 29
+  Markdown files, so none of that editing broke a local link.
 
-- **Rehearsed before production.** The backup was loaded into a local D1, the
-  batch run, and the merged Worker served from it. Its schema equals a fresh
-  product chain to `0066` (77 tables, every column, index and trigger), and 72
-  pages matched live on title, H1, prices, image count and variant ids. The
-  revert below was run against the same copy and back again. It only makes sense
-  together with a rollback to Worker `3428bdbf` (1.5.11):
-
-```sql
--- Revert of zvarashop-ledger-repair.sql, only together with a rollback to Worker 3428bdbf (1.5.11).
-DELETE FROM d1_migrations WHERE id BETWEEN 66 AND 70;
-UPDATE d1_migrations SET id = id + 1000 WHERE id BETWEEN 71 AND 82;
-UPDATE d1_migrations
-   SET id = id - 1005,
-       name = printf('%04d', CAST(substr(name, 1, 4) AS INTEGER) - 5) || substr(name, 5)
- WHERE id BETWEEN 1071 AND 1082;
-DROP TABLE `plugins`;
-ALTER TABLE `orders` DROP COLUMN `source_page_path`;
-```
-
-- **Deployed.** Ledger batch, then `npm run deploy` (preflight: ledger 79, all
-  in the tree; 69 native pages registered): Worker `4532afc2`. `/produk`
-  answered 503 for about 13 seconds between the two. After: D1 79/79, 69 native
-  rows, 0 plugin rows, orders intact, 73 routes 200 and 69 redirects 301 as
-  before. 1.7.3 (uploads kept a day in the Workers cache) followed as
-  `4070cd45`, and 1.7.4 (province-keyed edge cache for `/produk/<slug>` and
-  `/<slug>` + schema-check bypass on cache hits) followed as `0c428689`.
-  Measured on `zvara.shop` after 1.7.4: HTTP/2 `X-Edge-Cache: HIT` TTFB
-  0.218-0.274 s on `/produk/<slug>`; Lighthouse 13.5 mobile scores 80-87 across
-  product pages (`/produk/wamena-oil` 59 → 84, LCP 5.96 s → 2.44 s, TTFB 100 ms;
-  `/produk/4g-lucky-spray-herbal-pria-dewasa` 74 → 87, LCP 3.37 s → 2.18 s;
-  `/produk/dragon-blood-cream` 77 → 83, LCP 3.10 s → 2.54 s;
-  `/produk/foam-pembersih-toilet-500ml` 71 → 80, LCP 3.71 s → 2.07 s; `/` 59 →
-  78, CLS 0.118 → 0.000; `/produk` 71 → 79, CLS 0.036 → 0.000).
-- **Tests.** Three product fixtures replay the whole chain into an empty store
-  and fail here with `FOREIGN KEY constraint failed`, because `0067` onwards
-  inserts catalogue rows for store 1. They stop before `0067` on this install
-  (`rts-scoring.test.ts`, `plugins/registry.test.ts`,
-  `plugins/kelola/sync.test.ts`). When the product's chain passes `0066`, the
-  catalogue renumbers again and the cut moves with it. 868 pass, 0 fail.
-- **Local Worker note.** `wrangler dev` rewrites the request URL to the routed
-  custom domain over `http:`, so the 1.6.5 http→https redirect answers every
-  local request with a 301 to itself. `--local-upstream 127.0.0.1:8799` keeps
-  the local host.
+- Checking before deleting is the whole point of this entry: three of the four
+  candidates were superseded, one was not, and the difference was only visible
+  by reading them.
 
 ---
 
-## 2026-09-08 — Form logic screening: a honeypot that named itself
+## 2026-09-09 — Studying the provider's documentation end to end
+
+Read `ongkipro/autolaris` in full — README, getting-started, both guides, the
+H2H reference and the OpenAPI snapshot — and checked the implementation against
+it rather than against memory.
+
+**Conformant, and verified rather than assumed:**
+
+- Base URL, `Authorization: Bearer`, and the `{ rc, ket, data }` envelope match.
+- The reference insists on checking HTTP status **and** `rc`. `request()` checks
+  only `response.ok`, but every caller guards `rc` itself —
+  `parseAutoLarisPaymentResponse`, `verifyCredentials` and `inquirePayment` all
+  refuse a non-`00` before touching `data`, which is what §7 requires. The check
+  is per-caller rather than central; that is a shape, not a defect.
+- `transaction_id || trx_id` matches the reference's instruction to prefer
+  `data.transaction_id` for `/submit` and to store whatever identifier the flow
+  issues.
+- `buildAutoLarisCreateOrderPayload` matches `CreateOrderRequest` field for
+  field, all 24 keys, `longitude`/`latitude`/`remark` included and documented.
+- `list_payment` is a GET without a body, as specified.
+
+**One claim was wrong, and it is the kind that survives by sounding settled.**
+`parseAutoLarisExpiry` carried the comment *"Provider timestamps are documented
+as Jakarta local time without an offset."* The provider's reference lists the
+timezone of `expired` under **"Batas kontrak"** — the things the published
+collection does **not** state. `+07:00` remains the reasonable reading and still
+ships; what changed is that it is now named as an assumption, with the
+consequence spelled out: were the provider to send UTC, every instruction would
+be treated as expiring seven hours late and `/payment` would present a dead
+virtual account as live. An unparseable value yields no expiry, which fails in
+the safe direction.
+
+Recorded as a contract limit in `UNIMPLEMENTED_SPECS.md` so it is confirmed
+before go-live rather than discovered after.
+
+---
+
+## 2026-09-09 — The ledger said Create Order was not wired. It is.
+
+- `UNIMPLEMENTED_SPECS.md` carried "It is therefore **not wired**" against
+  AutoLaris Create Order. That is false and has been for a while:
+  `createAutoLarisPayment` calls `POST /api/h2h/submit` as **the** checkout money
+  path — `courir_id: 1`, `origin`/`destination` from the environment, weight
+  summed from `order_items` × quantity, shipper resolved from the warehouse, and
+  the full `order_details` array.
+
+- `create_payment` is called **nowhere** in the tree. The provider guide's
+  double-billing warning — never call Create Payment for a `reff_id` already
+  processed by Create Order — is therefore satisfied by construction rather than
+  by discipline, which is the stronger of the two.
+
+- `buildAutoLarisCreateOrderPayload` was checked field-for-field against the
+  provider's canonical OpenAPI (`ongkipro/autolaris`,
+  `openapi/autolaris-h2h.openapi.json`). All 24 keys match `CreateOrderRequest`,
+  including `longitude`, `latitude` and `remark` — documented in
+  `ShipmentFields` rather than invented, which is what a hand-built payload
+  usually gets wrong.
+
+- **This mattered beyond tidiness.** The stale row was read as current and
+  produced two wrong answers about this integration before the code was opened.
+  A ledger that lies is worse than no ledger, because it is trusted. ADR-010
+  already says disk wins; this is that rule being applied rather than cited.
+
+- What remains genuinely unobserved is a **settled** `/submit` transaction —
+  the same blocker as SCR1, needing a real payment — and confirmation that
+  `courir_id: 1` holds beyond this account, which the provider's guide is
+  explicit is an account convention and not a global contract.
+
+---
+
+## 2026-09-09 — AutoLaris: two words that could have marked an order paid
+
+Checked against the provider's own documentation repository
+(`ongkipro/autolaris`), which is the canonical contract this integration has
+been missing.
+
+- **`SUCCESS` and `BERHASIL` were in the paid allowlist.** The guide names both
+  explicitly: *"`SUCCESS`/`BERHASIL` terlalu generik dan `DELIVERED` adalah
+  status pengiriman; ketiganya tidak boleh ditafsirkan sebagai lunas"*, and adds
+  that only an explicit settlement status confirmed by the provider may mark a
+  transaction and its order paid.
+
+- **§7 of the same guide settles why that matters.** `rc: "00"` means the **API
+  call** succeeded, not the payment. A `00` answered with a generic success word
+  is therefore ambiguous between "advice request succeeded" and "payment
+  settled" — and resolving that ambiguity toward paid marks an order paid that
+  may not be. That is the one direction this path must never fail in, and it was
+  the direction it was pointed.
+
+- Both words are removed. `PAID`, `SETTLED` and `LUNAS` remain: unambiguous
+  settlement vocabulary, nothing generic, nothing from the shipping lifecycle.
+  The provider still publishes no complete mapping, so these three are a
+  conservative reading rather than a confirmed contract — which is why every
+  `rc: "00"` that does not match is now captured as evidence rather than
+  discarded, and why manual reconciliation remains the documented fallback.
+
+- The guide also confirms `courir_id: 1` as the account's agreed non-physical
+  classification, and is explicit that it is **not** a global Postman contract —
+  another account's integrator must confirm it. This install stays on
+  `create_payment` rather than the `/submit` payment-only profile the guide
+  describes for a sibling install; rewiring a live money path on the strength of
+  a document describing someone else's choice would be the wrong reading of it.
+
+- Gates: 684 tests passing, `astro check` clean, build passed.
+
+---
+
+## 2026-09-09 — AutoLaris: the evidence SCR1 waits for was being discarded
+
+Audited on request. The money path itself is sound and deliberately conservative
+— but it had a blind spot at exactly the point the ledger cares about.
+
+- **`inquirePayment` settles only on `rc: "00"` **and** a word from an
+  allowlist** — `SUCCESS`, `PAID`, `SETTLED`, `BERHASIL`, `LUNAS`. That
+  double condition is right: a stray success code must not settle a payment,
+  and the D1 transition behind it is a guarded batch that stays idempotent
+  across concurrent cron runs.
+
+- **But no settled response has ever been observed, so that allowlist is a
+  guess.** If the provider answers `rc: "00"` with anything outside it —
+  `TERBAYAR`, `SUKSES`, `COMPLETED`, an empty string — reconciliation counted
+  the read as `unproven`, identically to a genuine failure, and discarded it.
+  The single observation SCR1 has been waiting for would have arrived and
+  vanished, and the order would silently stay unpaid after a buyer had paid.
+
+- The fix does **not** relax the money path. The paid transition still requires
+  both the code and an allowlisted word. What changed is that a success code
+  with an unknown word is now carried out as `unrecognisedPaidStatuses`, logged
+  as `autolaris-paid-code-unknown-status` with the exact word and the order
+  number, and surfaced in the scheduled health log. A guess still may not move
+  money — but it no longer hides the evidence that would replace it.
+
+- The existing exact-shape assertion caught the contract change, which is what
+  it is for.
+
+- Gates: 684 tests passing, `astro check` clean, build passed, route map
+  regenerated.
+
+---
+
+## 2026-09-09 — AD3 and COD1 closed; one engineering gap left
+
+- **The Google feed no longer claims an MPN it does not have.**
+  `identifier_exists: no` and `g:mpn` contradict each other — the first declares
+  the product carries no manufacturer identifier, the second supplies one — and
+  the `g:mpn` was never truthful regardless: an MPN is assigned by a
+  manufacturer, while `sku` is nullable, merchant-editable and changes whenever
+  an operator edits it. The rationale in the old comment, that the MPN kept
+  Merchant Center from rejecting an item for a missing global identifier, is
+  precisely the job `identifier_exists: no` already does. The MPN was redundant
+  as well as contradictory.
+
+- **AD3's out-of-stock half turned out to be not applicable, not blocked.**
+  `mergeStorefrontCatalog` skips any product failing
+  `getPublicProductValidationError`, which requires at least one valid priced
+  variant — so a product with no sellable variant never reaches the catalog and
+  was never in the feed to disappear from. The row described a case the data
+  model cannot produce.
+
+- **COD1 settled as a price, not a bug.** The local 3% + 11% VAT figure is the
+  store's own COD service price, not an attempt to mirror Mengantar's quoted
+  `codFee`; the consistent one-rupiah spread falls out of rounding each
+  component up. `payment-fee-policy.ts` now says so at the constants, including
+  the consequence that a provider rate change does not move it.
+
+- The engineering-gap table is down to **one row**: SCR1, which needs a real
+  virtual account to be paid once and cannot be closed from a keyboard.
+
+- Gates: 681 tests passing, `astro check` clean, build passed, route map
+  regenerated.
+
+---
+
+## 2026-09-09 — DOC1: `DESIGN-SYSTEM.md` re-extracted from the tree
+
+Restamping it would have carried the errors forward, so it was rebuilt from what
+the code actually says. The drift was wider than the ledger recorded.
+
+- **§1.1** documented `#f8f7f4` as the storefront canvas, 49 uses, cited to
+  `SiteHeader`. It is not in the storefront at all — it survives only in the
+  landing-page stylesheets and `install.astro`. `#C5A880` survives in two CSS
+  header comments; `#8A704F` has zero occurrences. The palette table was rebuilt
+  from measured counts.
+
+- **§4 was the sharpest miss.** It described the checkout's colours as hardcoded
+  boutique hexes. `form-hybrid.css` contains **zero** `#C5A880` or `#F8F7F4`:
+  every state resolves through `var(--sf-*)`. That tokenisation is precisely
+  what makes ADR-019's re-brand surface real rather than aspirational, and the
+  document was still describing the world before it.
+
+- **§1.2, §3, §5 and §8.12** all described the `wide-catalog` template retired
+  under ADR-018, including line-numbered "exceptions" in a deleted file.
+  **§7.3** listed a deleted `ProofsSection.astro`; **§2.1** cited a line number
+  inside it and **§3** sourced its shadow rule from it. **§7.4** described a
+  scroll-snap carousel with a thumbnail rail — the component is 65 lines and
+  scriptless. **§8.2** attributed an emerald palette to `/payment` and
+  `/thanks`, where it now appears zero times.
+
+Every replacement was measured before it was written: the one surprise was that
+`#f8f7f4` is *not* simply gone, as it is on a sibling install, but relocated to
+the landing pages and the installer. Writing "zero occurrences" would have been
+false.
+
+---
+
+## 2026-09-09 — T249 and A-58: the evidence, not the code
+
+- **T249 needed no code change.** The audit found the invoice page already
+  correct, and this entry records how that was established so nobody re-opens
+  it. Key resolution is exhaustive — `order_number`, a case-insensitive
+  `order_number`, `public_status_token`, `CAST(id AS TEXT)` and the integer
+  `id` — and `42`, `INV-10042`, `inv-10042` and the status token all answered
+  `200` live, while an unknown key answered `404`.
+
+- **Zero hook-order violations, checked mechanically rather than by eye.** The
+  two early returns sit at the end of the component and no hook is called after
+  either; the `useMemo` bodies guard `!order` *inside* the hook rather than
+  around it, which is the shape that keeps the call order stable.
+
+- The fallback state is clean: an unknown key renders "Detail Order Tidak
+  Ditemukan" with a route back to the list — no stuck spinner, no blank island.
+  The only console entry is the `404` the page is reporting on.
+
+- **A-58 cleared.** Both surfaces were seen at 390 px and 1440 px, which is what
+  the entry asked for. The schema notice on `/admin/dashboard` reads
+  `skema 56/56` against a real migrated local D1, with the health panel beside
+  it — including the two signals added this week, `Saluran peringatan` and
+  `Antrean Google Ads offline`. The embed dialog renders as
+  `Embed Checkout Form - <product>` with the `ADSBOOKCMS WIDGET SNIPPET` label
+  and does not overflow the viewport at 390 px.
+
+- Worth stating plainly: two of these three tasks were already satisfied by the
+  code. What they lacked was somebody opening the page. That is the debt
+  `AGENTS.md` §1 exists to prevent, and it is now paid rather than restated.
+
+---
+
+## 2026-09-09 — T248: a committed order could lose its own confirmation
+
+- `sessionStorage.setItem("thanks_state", …)` sat **outside** the try/catch, and
+  after the order was already committed to D1. Safari's private mode has
+  historically thrown on any write, and a browser set to block site data does
+  the same. That throw stranded the buyer on the submitting spinner with a real
+  order behind them — and because the server Purchase is only ever triggered
+  from `/thanks`, neither the Pixel leg nor the Conversions API leg fired
+  either. Guarded in both checkout forms.
+
+- Both forms now carry the locator in the URL **fragment**, so `/thanks` can
+  recover an order the way `/payment` already could. The fragment is never sent
+  to a server or a referrer, which is why it was chosen for the payment
+  instructions in the first place; `/thanks` needed the same carrier for the
+  same reason, and it matters more there, because that page is the only trigger
+  for the server Purchase.
+
+- **The task's own acceptance text asked for `/payment?order=...`, and that half
+  was deliberately not built.** `payment.astro` 303-redirects away every query
+  parameter but `preview`, and `checkout-navigation.ts` clears `search` on both
+  completion paths, because no order identifier belongs in a URL a server or a
+  referrer can read. Implementing it literally would have undone a deliberate
+  decision in two places. The clause is superseded, and the task records why.
+
+- **Opening the page found what the tests could not.** Recovered from the
+  fragment alone, the summary rendered `Rp0` beside a real order, because the
+  fragment carries a locator and not the money. Showing a wrong number is worse
+  than showing none, and `/api/order-status` already returned the right figures;
+  the page now fills only what the local state could not, leaving the normal
+  path untouched.
+
+- The rest of the audit was sound: `orderSubmitSchema` guards the boundary,
+  `persistOrder` writes through one `db.batch`, price is server-authoritative,
+  and every fetch path terminates in a user-visible message.
+
+- Gates: 679 tests passing, `astro check` clean, build passed, route map
+  regenerated. Browser evidence in Chromium with `sessionStorage` cleared:
+  `/thanks#o=42&t=…` recovered the order, removed the fragment from the address
+  bar, rendered `Rp95.000` / `Rp89.000`, zero horizontal overflow, clean
+  console.
+
+---
+
+## 2026-09-09 — The Google Ads outbox gets a health signal (A-227)
+
+- It shipped without one, and `UNIMPLEMENTED_SPECS.md` already recorded the
+  cost: a head-of-line block in reconciliation stopped discovery entirely and
+  nothing reported it. A queue with no signal is not a quiet queue.
+
+- `readGoogleAdsOutboxDepth` and `classifyGoogleAdsOutbox` mirror the Meta pair
+  deliberately, including the `stalled-with-terminal-failures` reason. The two
+  queues fail the same way and an operator should not have to learn a second
+  vocabulary for the second one — so the panel's metric line and age label now
+  cover both rather than special-casing the first.
+
+- An unreadable table reports `unknown`, never a depth of zero. The distinction
+  matters: zero owed and cannot tell are opposite answers.
+
+- **Ledger reconciled with disk**, as ADR-010 requires. **S1** closed —
+  `theme_color`, `locale` and `admin_name` are editable and validated against
+  the patterns `resolveTenantConfig` itself resolves with. **NOT1** closed —
+  migration `0054` carries the per-operator notification floor. **AD3** reduced
+  to two open questions: the out-of-stock clause, and whether `g:mpn` from the
+  merchant-editable `sku` should keep sitting beside `identifier_exists: no`,
+  which Google reads as contradicting itself. That pairing has a written
+  rationale in the code, so it is recorded for a decision rather than changed.
+
+- Gates: 674 tests passing, `astro check` clean, build passed, route map
+  regenerated.
+
+---
+
+## 2026-09-08 — `theme_color`, `locale` and `admin_name` get an editor
+
+- All three have been stored per install and rendered ever since —
+  `<meta name="theme-color">`, `<html lang>`, JSON-LD `inLanguage`, the admin
+  `<title>` and sidebar — with no way for an operator to set any of them.
+
+- The editor and the resolver now share one definition of valid.
+  `THEME_COLOR_PATTERN` and `LOCALE_PATTERN` are exported from `tenant.ts` and
+  used by both, so a malformed value is refused at the form with a specific
+  message instead of being accepted and silently replaced by the default. An
+  operator who saves `#fff` and is shown `#111111` has been told nothing about
+  why.
+
+- A blank field clears the column back to `NULL` — "not configured here", the
+  same meaning it carries on a fresh install — rather than storing an empty
+  string the resolver would treat as a value.
+
+- Gates: 671 tests passing, `astro check` clean, build passed, route map
+  regenerated.
+
+---
+
+## 2026-09-08 — The panel now reports what it could not say
+
+Two blind spots that let a Meta outage on a sibling install run for two days.
+
+- **The queue's own signal reported half of what was wrong.**
+  `classifyCapiOutbox` returned on `failed > 0` before evaluating `stalled`, so
+  a queue that was both read as terminal failures alone. Those are different
+  problems: terminal rows are already lost, stalled rows are still recoverable
+  and nothing is moving them. Both are now reported, through a
+  `stalled-with-terminal-failures` reason.
+
+- **Nothing could tell the operator at all.** The scheduled Worker evaluates
+  every signal hourly and sends firing and recovery events to
+  `OPS_ALERT_WEBHOOK_URL`; when that is unset the evaluation still runs and goes
+  nowhere, leaving the dashboard as the only channel — so somebody has to think
+  to look. The dashboard now carries an `alerting` signal reporting its own
+  reachability. Deliberately `unknown` rather than `degraded`: a store may
+  choose to run without webhooks, and this module's own rule is that colouring a
+  deliberate choice red produces an alarm nobody trusts. The copy carries the
+  weight instead, and the age row is suppressed for it, because
+  "Terakhir sukses —" beside a configuration reads as a missing measurement
+  rather than an absent one.
+
+- An alerting system nobody wired is worse than none: it creates confidence that
+  something is watching. Setting the variable is a one-line operator action and
+  remains a production step.
+
+---
+
+## 2026-09-08 — A honeypot that named itself
 
 - The three public checkout endpoints — `submit-order`, `submit-middle-order`,
   `record-abandoned-order` — answered a filled decoy with
   `code: "HONEYPOT_TRIGGERED"`. That tells an anonymous caller exactly which
   control it tripped, so a bot filling every field learns to leave that one
-  empty and never trips it again. A honeypot that names itself is not a
-  honeypot. All three now answer exactly like a generic invalid payload
-  (`VALIDATION_ERROR`), and log `checkout-honeypot-triggered` server-side, where
-  the hit stays countable by the operator and unreadable by the attacker.
+  empty and never trips it again. All three now answer exactly like a generic
+  invalid payload and log `checkout-honeypot-triggered` server-side, where the
+  hit stays countable by the operator and unreadable by the attacker.
 
 - **`/api/v1/checkout` deliberately keeps the explicit code.** Its caller is
   authenticated by API key and origin allowlist — a partner debugging their own
   integration, not a bot probing — and `HONEYPOT_TRIGGERED` is a published
-  contract in `STOREFRONT_INTEGRATION.md`'s guard-stack list. Changing it there
-  would break a partner's error handling to defend against a caller who has
-  already authenticated.
+  contract in `STOREFRONT_INTEGRATION.md`. Changing it there would break a
+  partner's error handling to defend against a caller who has already
+  authenticated.
 
-- A false start worth recording: the first search for the decoy looked for an
-  input named `website` or `honeypot`, found none, and nearly became a finding
-  that the honeypot was never rendered. It is rendered — as
-  `contact_url_confirm`, with `tabindex="-1"` and `autocomplete="off"`, mapped
-  to `website` by the form script. The decoy's whole point is not to be named
-  after itself.
-
-- The rest of the form screening came back clean. All three public endpoints
-  carry both a rate limit and the honeypot. Price is server-authoritative:
-  `submit-order` re-quotes shipping through `resolveEligibleShippingRates` and
-  rejects a changed rate with `SHIPPING_QUOTE_CHANGED`, and `unit_price` comes
-  from the D1 variant rather than the browser. `quantity` is bounded 1-100 by
-  the schema. One low-severity note left alone: `city` is read straight from the
-  body with a 120-character slice rather than through `orderSubmitSchema` — it
-  is display data and is escaped at render, but it is the one checkout field
-  that bypasses the schema.
-
-- Gates: 671 tests (670 passed, 1 intentional skip), 431 files checked with zero
-  diagnostics, build passed.
+- The rest of the form screening was clean: every public endpoint carries both a
+  rate limit and the honeypot, price is server-authoritative because
+  `submit-order` re-quotes shipping and reads `unit_price` from the D1 variant,
+  and `quantity` is bounded by the schema.
 
 ---
 
@@ -144,365 +427,64 @@ ALTER TABLE `orders` DROP COLUMN `source_page_path`;
 - Google Merchant Center caps `title` at 150 characters and `description` at
   5000; Meta's catalog caps them at 200 and 9999. Exceeding a cap does not
   truncate the field — it **disapproves the item**, silently, one product at a
-  time, and nothing in this system would have shown it.
+  time, and nothing here would have shown it.
 
-- `product-mutation.ts` accepts a title of up to 160 characters. A title of
-  151-160 therefore saved cleanly, rendered correctly on the storefront, and
-  vanished from Google's approved set. Ten characters wide, and invisible from
-  this side.
+- `product-mutation.ts` accepts a title of up to 160 characters, so a title of
+  151-160 saved cleanly, rendered correctly on the storefront, and vanished from
+  Google's approved set. Ten characters wide and invisible from this side. The
+  clamp is in the feed rather than at the admin boundary on purpose: the
+  merchant's own record is not Google's to constrain, and a platform's limit
+  belongs where that platform reads. A shortened title is listed; an over-length
+  one is not listed at all.
 
-- The clamp is in the feed rather than at the admin boundary, deliberately: the
-  merchant's own record is not Google's to constrain, and shortening it there
-  would lose data the storefront legitimately shows. A platform's limit belongs
-  where that platform reads. Truncation is strictly better than the
-  alternative — a shortened title is listed, an over-length one is not listed at
-  all.
+- **Left alone, and flagged instead of changed:** the Google flavor emits
+  `<g:identifier_exists>no</g:identifier_exists>` *and* `<g:mpn>` from the
+  merchant-editable `variant.sku`. Google reads those two as contradicting each
+  other — `identifier_exists: no` declares the product has no manufacturer
+  identifier, while `g:mpn` supplies one — and a merchant SKU is not a
+  manufacturer part number in any case. The existing comment argues the MPN is
+  "the best available", so this is a deliberate feed-strategy decision with a
+  written rationale rather than an oversight, and overriding it is the owner's
+  call, not this change's.
 
-- `clampFeedText` trims on a word boundary when one is close. Its first version
-  had a bug of its own, caught by its own test: `lastIndexOf` answers `-1` when
-  there is no space, and `-1` clears any negative threshold, so every unbroken
-  value silently lost its final character.
-
-- Google Ads was audited in the same pass and came back clean across all three
-  repositories: the browser conversion sends `transaction_id` = order number and
-  the offline upload sends the same value as `orderId`, so Google deduplicates
-  them; and all three call `gtag('set', 'user_data', …)` separately ahead of the
-  conversion, which is the documented enhanced-conversions shape rather than the
-  nested form Google ignores.
-
-- Gates: 668 tests (667 passed, 1 intentional skip), 431 files checked with zero
-  diagnostics, build passed.
+- Gates: 660 tests passing, `astro check` clean, build passed, route map
+  regenerated.
 
 ---
 
-## 2026-09-08 — Kecamatan and weight screening
+## 2026-09-08 — `country` never reached the Conversions API leg
 
-Screened on request. Most of it came back clean, which is worth recording so the
-next reader does not re-open it.
+- `country` was validated by `meta-event-contract.ts`, hashed by `meta-capi.ts`,
+  sent by the `/thanks` browser leg and forwarded by the headless tracking
+  route — and dropped by `/api/meta-event`, which built `userData` without it.
+  That route carries every first-party PageView, ViewContent and `/thanks`
+  Purchase, so the Pixel leg of an order described the buyer with `country` and
+  the Conversions API leg of the same order did not. Meta scores match quality
+  on the keys it is handed, so it scored the shorter set.
 
-**Weight.** The quote reads `product_variants.weight_grams / 1000 * quantity`
-with a one-gram floor; dispatch recomputes the same figure from the same column
-through `MAX(0.001, …)`. The two agree, so a quoted rate and a declared parcel
-cannot diverge. `product-mutation.ts` already refuses a weight of zero or less
-at the save boundary. Dispatch takes one `order_items` row (`LIMIT 1`), and that
-is correct rather than a latent multi-item bug: all five insert paths write
-exactly one row per order, so a second row cannot exist. Not generalised — the
-data model does not have the case (YAGNI).
+- Found by cross-checking a defect first proven on the `zvarashop` install,
+  where the same shape existed. The reason it survived so long in both is that
+  the test asserted the *tracker posts* the key, never that the *route forwards*
+  it — a comment in `MetaThanksTracker.astro` even claims the CAPI leg "has
+  always sent ct/st/zp/country". It had not.
 
-**Two candidate defects investigated and cleared.** `recordAbandonedOrder`
-writes `unit_price = totalAmount`, which looked like the invoice reaching
-`product_value` and inflating the Meta Purchase value. It is not: on that path
-`totalAmount` is the variant price alone, since a lead has no shipping or COD
-fee yet. The real checkout writes `unit_price = variant.price` and keeps
-shipping and fees in `total_amount`. The goods-not-invoice invariant holds on
-every path.
+- `resolveMetaCountry` supplies it: `id` for a resolved order, which is truthful
+  because every order carries an Indonesian province, is quoted in IDR and ships
+  domestically; the caller's validated claim otherwise; and Cloudflare's
+  `cf-ipcountry` for the buyer's own request as the last source. `XX` and `T1`
+  are Cloudflare's own not-a-country values and yield no key at all, because a
+  hash of a non-country matches nobody — worse than an absent key. The headless
+  route passes no edge country: its caller is another server whose location is
+  not the buyer's.
 
-**Kecamatan.** Free text in `orderSubmitSchema`, which looked like it could
-produce an order no courier could ever accept. It cannot: `submit-order` calls
-`resolveEligibleShippingRates` first, which throws `DESTINATION_NOT_RESOLVED`
-on an empty `destination_id` and fails the whole submit with 422. The headless
-route enforces the same. `district` is a record; `destination_area_id` is the
-operative field and it is required.
+- The new test asserts the stored route source, not the tracker, since asserting
+  the sender is exactly what let this through.
 
-The middle form is the deliberate exception: it persists `city: ""`,
-`district: ""`, `shippingCost: 0` and no destination or courier, because an
-operator completes the address by phone afterwards. `/api/admin/orders/[id]`
-accepts `destination_area_id`, so the flow closes.
-
-**One fix.** That order's dispatch failed with "Kredensial Mengantar, pickup
-gudang, tujuan, atau kurir belum lengkap" — four causes with different owners in
-one sentence, sending the operator to check settings, the warehouse and the
-order at once. It now names what is actually missing, and the normal case for a
-middle-form order reads "kecamatan tujuan, kurir belum diisi".
+- Gates: 658 tests passing, 0 type errors, `astro check` clean, build passed,
+  route map regenerated (the drift check caught the new lib dependency, as
+  designed).
 
 ---
-
-## 2026-09-08 — Why the outage took two days to notice
-
-- The Meta pipeline recovered completely: **4550 rows, all `sent`**, zero
-  failed, zero pending, and all 130 rows inside the incident window delivered.
-  Nothing aged out of Meta's seven-day window.
-
-- The remaining question was why a two-day outage needed a human to stumble on
-  it. `wrangler secret list` answered it: **`OPS_ALERT_WEBHOOK_URL` has never
-  been set on this install.** The scheduled Worker evaluated `capi-outbox` as
-  degraded within the hour of 12:14 on 3 September and every hour after, and
-  each of those evaluations went nowhere. The dashboard was the only channel.
-
-- An alerting system nobody wired is worse than none: it creates confidence
-  that something is watching. The dashboard now carries an `alerting` signal
-  reporting its own reachability. Deliberately `unknown` rather than
-  `degraded` — a store may choose to run without webhooks, and this module's
-  own rule is that colouring a deliberate choice red produces an alarm nobody
-  trusts. The copy carries the weight instead. Its age row is suppressed,
-  because "Terakhir sukses —" beside a configuration reads as a missing
-  measurement rather than an absent one.
-
-- **S1's browser evidence is finally in**, closing the one change from this
-  effort that shipped without it. The blocker had been a local runtime with no
-  session-signing secret; `getEnvValue` falls through to `process.env`, so a
-  throwaway value passed on the dev server's command line was enough — no
-  secret file read or written. The form renders its three fields; `#fff` is
-  refused by the input's `pattern` before any request and again by the API with
-  a specific message rather than being silently replaced by the resolver's
-  default; and `#0A7C3F` / `en-US` / `Verifikasi Admin` reached
-  `<meta name="theme-color">`, `<html lang>`, JSON-LD `inLanguage` and the admin
-  `<title>` on the next request with no rebuild.
-
-- Gates: 664 tests (663 passed, 1 intentional skip), 431 files checked with zero
-  diagnostics, build passed, 29 documents validated.
-
----
-
-## 2026-09-04 — Root cause: a Business ID in the Pixel ID field
-
-- The outage was never a token, a permission, or a stalled drain. `GET` on the
-  stored ID returned an object named "Winning Mall"; every AdsPixel field came
-  back `100` ("nonexisting field") while every Business field came back `200`
-  ("requires business_management"). Code 100 means the field does not exist on
-  this node type; code 200 means it does and you may not read it. The ID was a
-  **Business Manager ID**. A Business has no `/events` edge, which is why Meta's
-  message ended in "or does not support this operation" and why reads succeeded
-  throughout while writes never could.
-
-- **The browser Pixel had been dead the whole time and left no trace.**
-  `facebook.com/tr` validates no ID: every beacon since 3 September went to a
-  Business ID and was silently discarded. The CAPI outbox counted its losses;
-  the browser leg had nothing to count them with. The real loss is larger than
-  any number the dashboard showed.
-
-- Two of this session's own diagnoses were wrong and are recorded as such. The
-  drain was never stalled — it was running fine. And the token's scope was never
-  the problem: a system-user token carrying only `read_ads_dataset_quality`
-  writes to the Conversions API perfectly well, which a probe established after
-  the ID was corrected. Both were plausible, both were asserted before being
-  tested, and testing is what produced the real answer.
-
-- **The defect that allowed it is now closed.** `^\d{5,25}$` cannot tell a pixel
-  from a business, so `verifyMetaPixelIdentity` asks Meta on save for a field
-  that exists only on an AdsPixel. An object that resolves and lacks it is
-  refused by name — "ID 1566746954921686 ada di Meta dengan nama 'Winning Mall',
-  tetapi bukan Pixel/Dataset". Everything inconclusive saves with a warning
-  instead: a permission gap must not be mistaken for a wrong ID, and a
-  verification that cannot reach Meta must never block an operator from fixing a
-  credential. The admin screen shows that warning rather than overwriting it
-  with a fixed success string, which is how this stayed invisible for two days.
-
-- After the operator saved dataset `511101804635811`, a ViewContent driven
-  through the real production path returned `delivered: true`. Pending fell 23 to
-  3 on its own and the last success is now newer than the last failure. 150
-  terminal rows remain, all inside the recovery window.
-
-- Gates: 661 tests (660 passed, 1 intentional skip), 431 files checked with zero
-  diagnostics, build passed, 29 documents validated.
-
----
-
-## 2026-09-04 — Meta CAPI incident response: drain claim and recovery scope
-
-- A production alert reported 114 terminal CAPI rows and a two-day-old backlog.
-  Reading production D1 (metadata only, with approval) refuted the obvious
-  diagnosis: the drain was running fine. Two distinct populations, one of them
-  still growing.
-
-- **No Purchase was lost.** 34 delivered, zero undelivered. The 140 affected
-  rows are entirely top-of-funnel.
-
-- **The incident is destination-side and no deploy fixes it.** From
-  `2026-09-03T12:14:21Z` every event returns `Unsupported post request. Object
-  with ID '1566746954921686' does not exist, cannot be loaded due to missing
-  permissions`. The last success was `11:22:09Z` the same morning — a 52-minute
-  cutover with no code change between them. The pixel is unreachable to the
-  token in use, which is a Meta configuration or permission matter.
-
-- **The health panel was hiding half the problem.** `classifyCapiOutbox`
-  returned on `failed > 0` before evaluating `stalled`, so a queue that was both
-  read as terminal failures alone. Those are different problems: terminal rows
-  are already lost, stalled rows are still recoverable and nothing is moving
-  them. Both are now reported, through a new `stalled-with-terminal-failures`
-  reason.
-
-- **Concurrent drains were transmitting the same row twice.** Rows carried
-  `attempts` of 9 against a `max_attempts` of 5, which no sequential path can
-  produce: every `/api/meta-event` request fires a drain in `waitUntil`, and two
-  overlapping drains selected the same due rows. Meta deduplicates on
-  `event_id`, so nothing double-counted — what was lost was quota, and the
-  attempt budget stopped meaning anything, since a row could be terminated in
-  half the retries it was granted. `drainCapiOutbox` now claims its batch with
-  one `UPDATE … RETURNING` that leases the rows five minutes forward; SQLite
-  serializes writers, so a concurrent drain takes a disjoint set. A Worker
-  killed mid-drain returns its rows when the lease expires rather than
-  stranding them.
-
-- **The recovery built the day before was too narrow to recover this.** It
-  selected `attempts < max_attempts`, on the sound reasoning that a dead token
-  is the only terminal state that does not exhaust the budget. Exact, and
-  useless here: the 107 pixel-error rows exhausted their budget honestly and
-  were every bit as recoverable. The rule is no longer a guess about why a row
-  failed — the caller proves the destination live with a probe and refuses to
-  requeue at all if Meta rejects it, and every failed row then gets one more
-  attempt. Two exclusions remain absolute: an unparseable payload, and anything
-  older than seven days, because retries preserve the original `event_time` and
-  Meta rejects a stale event — without that bound a recovery would send rows
-  Meta refuses and re-terminate them.
-
-- Gates: 655 tests (654 passed, 1 intentional skip), 431 files checked with zero
-  diagnostics, build passed, 29 documents validated, fresh local D1 applied all
-  55 migrations. The concurrency and lease tests were mutation-verified against
-  the previous select-then-send drain.
-
----
-
-## 2026-09-04 — Open-gap audit: Meta match parity and pixel ordering
-
-- Two Meta defects, both invisible because the surface that would have shown
-  them kept working.
-
-- **`country` was validated, hashed, sent by the browser leg — and dropped by
-  the server leg.** `/api/meta-event` built `user_data` without it while
-  `meta-event-contract.ts` parsed it, `meta-capi.ts` hashed it, the `/thanks`
-  tracker posted it and the headless route forwarded it. That route carries
-  every first-party PageView, ViewContent and `/thanks` Purchase, so the two
-  legs of one order described the buyer with different key sets and Meta scored
-  match quality on the shorter one. A comment in `MetaThanksTracker.astro`
-  asserted the opposite — "the CAPI leg has always sent ct/st/zp/country" — and
-  a test asserted that the tracker *posts* the key, never that the route
-  forwards it. `resolveMetaCountry` now resolves it from the order, the
-  caller's claim, or Cloudflare's `cf-ipcountry`, and yields nothing for `XX`
-  and `T1` because a hash of a non-country matches nobody.
-
-- **A browser `ViewContent` could be discarded before it was ever sent.**
-  `fbq`'s stub queues by arrival order and `fbevents.js` replays that queue in
-  the same order; `__PS_META_INIT__` returns before the init it schedules is
-  issued, because it waits on the external-ID digest. `MetaViewContentTracker`
-  fires during body parse, and `build.inlineStylesheets: 'always'` leaves no
-  render-blocking stylesheet between it and the head bootstrap. Replaying both
-  shipped inline scripts in one tick produced
-  `track:ViewContent -> init -> track:PageView`.
-
-  What that costs was measured rather than assumed. Against the live
-  `fbevents.js`, in an isolated frame, with a clean stub and no difference but
-  call order: `track` then `init` produced **zero** beacons to
-  `facebook.com/tr`; `init` then `track` produced one. No error, no warning.
-  The local dev page happened to win the race, so this was intermittent and
-  timing-dependent rather than uniformly broken — and the CAPI twin kept
-  arriving either way, which is why no dashboard showed a gap. Every tracker
-  now goes through `window.__PS_META_TRACK__`, which holds the call until the
-  init has actually been issued.
-
-- **S1 closed.** `theme_color`, `locale` and `admin_name` have been stored per
-  install since migration `0036` and rendered ever since — `<meta
-  name="theme-color">`, `<html lang>`, JSON-LD `inLanguage`, the admin title
-  and sidebar — with no way to set them. The store settings screen now edits
-  all three, and `tenant.ts` exports the patterns it resolves with so the form
-  refuses a value the resolver would silently replace.
-
-- **NOT1 closed.** Migration `0054` stamps a per-operator notification floor at
-  creation. `admin_credentials.updated_at` was the tempting no-new-column
-  alternative and is wrong: it doubles as the session revision, so rotating a
-  password would move the floor. Existing operators are backfilled to `0`
-  rather than to the current maximum, because they may hold genuinely unread
-  notifications. `purgeExpiredNotifications` prunes at 90 days beside the other
-  scheduled retention jobs.
-
-- **AD3 reduced.** Its SKU-as-MPN clause was already stale on disk. The Google
-  feed now declares `identifier_exists: no`, which is the truthful statement
-  for a schema with no GTIN or MPN column — removing `g:mpn` without it had
-  left branded items reading to Google as missing data. The out-of-stock clause
-  stays open and is now recorded as blocked by the data model: price lives only
-  on `product_variants`.
-
-- `/api/meta-event` had extension-less local imports, which is why the route
-  had no test at all — Vite resolves either form, `node --experimental-strip-types`
-  only the qualified one. Qualifying them is what made
-  `meta-event-country.test.ts` possible.
-
-- **COD1 settled as a price, not a bug.** The local 3% + 11% VAT COD fee is
-  ZvaraShop's own service price, not an attempt to mirror Mengantar's quoted
-  `codFee`; the consistent one-rupiah spread falls out of rounding each
-  component up. `payment-fee-policy.ts` now says so at the constants, including
-  the consequence that a provider rate change does not move it.
-
-- **A dead Meta token no longer costs an install its outage permanently.**
-  Error 190 is terminal by design — retrying a dead token only burns quota —
-  but that also means every event arriving during the outage is lost the moment
-  the operator fixes the credential; one live install carried 33 such rows. An
-  operator-triggered control on `/admin/ads/meta` proves the token live, then
-  requeues those rows with their original `event_id` and `eventTime` so Meta
-  still deduplicates. They are identified structurally, not by matching Meta's
-  error prose: `decideRetry` terminates for exactly two reasons and the other
-  increments `attempts`, so `failed AND attempts < max_attempts` is precisely
-  the token case — and unlike a new error-code column it classifies rows
-  recorded before the feature existed. A test pins that property, because a
-  third terminal reason added without incrementing `attempts` would silently
-  make itself recoverable.
-
-- **PageView stopped claiming things.** Nothing ever set `contentType`, so
-  `customData.contentType || 'product'` stamped a content type on every event
-  the store emitted, with no `content_ids` to describe — a malformed parameter
-  in Events Manager on every page view. The CAPI PageView also carried a value
-  of 1 IDR that its own browser twin never sends. Both are gone.
-
-- **DOC1: `DESIGN-SYSTEM.md` re-extracted rather than restamped.** The drift was
-  wider than the ledger recorded. §1.1 documented `#F8F7F4` as the storefront
-  canvas — zero occurrences under `src/` — and a champagne-gold accent that
-  survives only inside two CSS header comments. §1.2 and §8.12 described the
-  `wide-catalog` template that migration `0044` retired on 2026-08-23. §7.4
-  described a scroll-snap carousel with a thumbnail rail; the file is 65 lines,
-  scriptless, and contains none of those classes. §7.3 listed a deleted
-  `ProofsSection.astro` that §2.1 also cited a line number inside. `AGENTS.md`
-  §7 was still naming `wide-catalog` as a current built-in. One new
-  inconsistency is recorded rather than resolved: `design-tokens.md` and
-  `form-hybrid.css` declare different accents and different token counts, and
-  choosing between them is a design decision.
-
-- Gates: 650 tests (649 passed, 1 intentional skip, up from 630/629), 431 files
-  checked with zero diagnostics, build passed, 29 documents validated, and a
-  fresh local D1 applied all 55 migrations. The rendered admin store-settings
-  form was **not** opened: the local runtime has no session-signing secret and
-  this audit did not create one.
-
----
-
-## 2026-09-01 — WhatsApp confirmation stays in the current tab
-
-- Removed `_blank` only from the buyer-facing `/thanks` WhatsApp action. The
-  official `https://wa.me` URL and CMS-owned message remain unchanged, giving
-  mobile OS universal-link handling an app-handoff opportunity and retaining a
-  same-context web fallback when the app cannot take it.
-- Evidence: 629 tests (628 passed, one intentional skip), 412 checked files
-  with zero diagnostics, successful build, 29-document validation, and local
-  Chrome at 390 px showing one page target before and after the click while the
-  current page navigated to WhatsApp.
-- Commit `e7c9ee7` was pushed to `install/zvarashop`. The first upload exposed
-  a stale canonical `dist/` despite the source gate being green; uncached live
-  HTML caught `_blank` still present. Rebuilding from the canonical commit and
-  redeploying produced Worker version `813c2ac3-a761-45a9-8d00-211aa4733f00`.
-  Uncached live home and `/thanks` return `200`, and the rendered WhatsApp
-  action has `rel="nofollow"` with no `target`.
-
-
-## 2026-09-01 — Canonical checkout replay and Purchase protection
-
-- Added forward migration `0053_checkout_order_deduplication.sql`: one active,
-  server-derived checkout fingerprint has one D1 owner during a two-hour replay
-  window. A terminal or expired owner releases the identity for a genuine later
-  reorder.
-- Normal, middle/hybrid, and Headless checkout return the canonical order across
-  changing submit tokens. Only the creator records the notification and receiver
-  score; online payment reuses its existing unique order transaction.
-- COD remains `Purchase`. Thanks-page Pixel, GTM, and CAPI continue to share the
-  canonical order number as event/transaction identity and use D1 Product IDs,
-  order value, currency, and retained advanced-matching context.
-- Evidence before release: sequential and concurrent replay coverage, 628 tests (627 passed,
-  one intentional skip), 412 files with zero diagnostics, successful build,
-  29-document link validation, all 54 migrations on a fresh local D1, and a
-  390 × 844 `/thanks` inspection proving one Pixel/GTM Purchase plus reload
-  suppression. Commit `373e90b` was pushed to `install/zvarashop` and deployed
-  as Worker version `dc7a16d6-60ee-4676-adb1-024ecb6861b7`. Live home,
-  sitemap, Google feed, and Meta feed returned `200`; protected health returned
-  `401`. No provider test event, dummy order, or explicit remote D1 command ran.
-
 
 ## Provenance — read before citing any entry
 
@@ -518,49 +500,6 @@ Treat this file as history, not as a specification. Current system state is owne
 ---
 
 ## Chronological Progress Log
-
-### 2026-09-29 — Own mark, dead code out
-
-- **Brand.** Favicons, the admin tab icon and a "Zvara Shop" logo (black tile,
-  white Z, matching the black-and-white storefront) replace the product's
-  neutral emblem; `PUBLIC_SITE_LOGO` points at it and the theme colour follows
-  the page's white top bar. The store's D1 logo and description were empty and
-  are set to the same.
-- **Retired page.** `/pembersih-saluran-tersumbat` was deactivated in the
-  register when `/gia-anti-sumbat` replaced it for the same product, yet still
-  served its old 600-line page; it is now a 301 there, query string kept. Its
-  images stay.
-- **Dead code.** Two landing stylesheets nothing imported
-  (`pembersih-saluran-tersumbat.css`, `tas-selempang-wanita-modern.css`), and
-  five local worktrees whose branches `install/zvarashop` already contained.
-
-### 2026-09-29 — Back on the product line (AdsBookCMS `cf665db`)
-
-ZvaraShop had run its own fork since `93c110d`, 273 product commits behind.
-Every behaviour it had authored since — honeypot, feed clamps, dispatch
-naming, alerting, Pixel ID verification, outbox leases, CAPI country, purchase
-dedupe, `withSession` — was checked present in the product before its copy was
-retired, so every product-owned path now equals `product/main`. Kept as this
-store's: `wrangler.jsonc`, `RELEASE.md`, this log, CI, the thirteen native
-landing routes with their CSS and images, and the register (now in the
-product's shape, with the three redirects in `installRouteSlugs`).
-
-- **Migration numbers (ADR-024, again).** This store had written
-  `0055_fix_dt_kapsul_variant`, `0056_gia_serbuk_anti_tersumbat` and
-  `0057_gia_landing_page` — data only, already applied — on numbers the product
-  now uses. Their files leave the chain and their three ledger rows are
-  deleted in one statement right after deploy; the Worker then applies the
-  product's `0055`–`0059`.
-- **Rehearsed on a copy of production.** The live D1 export, imported locally:
-  the new bundle on the unrepaired ledger answered `503` on every page; after
-  the repair the ledger re-derived to 60 canonical rows and every landing page,
-  `/produk`, `/hello`, sitemap and feed answered `200`, with 233 orders, 45
-  products and 92 variants unchanged.
-- **Landing pages** moved to the real 24-hour order-count toast (the product
-  removed the invented-buyer props), and the three legacy redirects now keep
-  the query string, so UTM and `fbclid` survive them.
-- Orphans removed: `MetaViewContentTracker`, `autolaris-balance` and two tests
-  of behaviour the product's own suite now covers.
 
 ### Entry 01: Core Architecture & Setup
 
@@ -5151,291 +5090,6 @@ again returned `200`.
   against a seeded store whose only variant carries `stock = 0`: the product
   page renders and offers it.
 
-## 2026-08-28 — Meta browser Purchase was matched on one key, and could not reach the pixel in time
-
-- **Symptom.** The Meta Pixel `Purchase` was effectively absent from Events
-  Manager while the server leg was complete. On the zvarashop install, D1
-  showed 8 `sent` CAPI Purchases covering every qualifying order — the four
-  without one are INV-10001/10002 (pre-tracking), INV-10008 (QRIS `failed`) and
-  INV-10017 (QRIS `pending`), all correctly excluded.
-- **Root cause.** `fbevents.js` honours `fbq('init', pixelId, advancedMatching)`
-  once per pixel id and silently ignores every later call. Three files called it
-  behind `MetaPixelBase`'s bootstrap — `MetaThanksTracker.astro`,
-  `form-hybrid.ts`, `form-middle.ts` — so every advanced-matching object they
-  hashed was discarded. Read off the live library on zvara.shop:
-  `pixelsByID['2160620184547975'].userData` held `{ external_id }` and nothing
-  else, on a Purchase whose CAPI leg carried eight keys for the same person.
-- **Second cause.** `fbevents.js` is deferred to first interaction or 2500 ms,
-  measured at 2522–3204 ms across runs. `/thanks` exists to hand the buyer to
-  WhatsApp, so the Purchase sat in the `fbq` stub queue with the buyer already
-  leaving. The Google leg has had `__PS_LOAD_GOOGLE_TAG__` for exactly this
-  since its own deferral shipped; the Meta leg had no equivalent.
-- **Third cause.** `once()` wrote its `localStorage` claim at the moment the
-  tracker *decided* to fire, before either leg went out and outside a
-  `try`/`catch`. An interrupted page — or a browser that refuses the write —
-  kept the claim and lost the conversion on both legs, permanently.
-- **Changed.** `MetaPixelBase.astro` now owns the single `fbq('init')`, installs
-  `__PS_META_INIT__`, `__PS_LOAD_META_PIXEL__` and `__META_PIXEL_ID__`
-  synchronously (no `await` in front of them, so no page tracker can race the
-  hook), and waits for a page's hashes when that page declares
-  `__PS_META_AWAIT_MATCHING__`, with a 1500 ms backstop. `/thanks` declares it
-  in the head slot `BaseLayout` renders ahead of the pixel.
-  `MetaThanksTracker.astro` builds its advanced matching from sessionStorage at
-  page load — it never needed the order-status round trip — hands it to
-  `__PS_META_INIT__`, pulls the library forward, drops the invalid
-  `client_user_agent` Pixel key, and claims its guards only after both legs are
-  dispatched, wrapped. Both checkout forms stop re-initing; late identity goes
-  to the CAPI leg alone, which already carried it.
-  `buildMetaAdvancedMatching` deleted — it had no caller left, and it was the
-  shared source of the `client_user_agent` mistake. The `/admin/ads/google`
-  snippet was still teaching operators the nested `user_data` payload the code
-  was fixed away from in August, with a lowercase `country`; corrected to
-  `gtag('set', 'user_data', …)` and `'ID'`.
-- **Not changed.** `country` stays the lowercase ISO 3166-1 alpha-2 `id` on both
-  Meta legs and uppercase `ID` for Google, re-verified against Meta's customer
-  information parameters documentation on 2026-08-28. A full country name would
-  hash to a value matching nobody.
-- **Evidence.** `npm test` 594/594 (was 592), `npm run check` 400 files clean,
-  Cloudflare build complete. Four mutations — dropping the matching handover,
-  removing the load escape hatch, restoring the pre-dispatch guard write, and
-  making the base ignore the handshake — each fail exactly one of the new tests.
-  The tests execute the real inline scripts of *both* components together
-  against an `fbq` stub that reproduces fbevents' one-init rule, because the
-  defect lived only in the seam between two individually correct files.
-  Real-browser A/B: the same two components served to Chrome against the real
-  `fbevents.js`, before and after —
-  `userData` `["external_id"]` → `["country","ct","external_id","fn","ln","ph","st","zp"]`,
-  every one of them present in `censoredUserDataFormat` (i.e. recognised as a
-  match key), and the library request moving from 2522 ms to 45 ms. The harness
-  answered `/api/order-status` with an empty `order_number`, so no Purchase was
-  written to a live ad account.
-- **End-to-end on the real route.** A seeded local install (store, product
-  `78981`, order `INV-90001`) served `/thanks` to Chrome. The page rendered its
-  own order; the pixel's single `init` carried all eight match keys; the browser
-  leg sent `Purchase` with `content_ids ["78981"]`, `value 89000` and
-  `eventID "INV-90001"`; the CAPI leg posted the identical `event_id` with the
-  same value, `country id`, city, province and postal code. `value` is the goods
-  only — the order's `total_amount` is 97647, and the 8647 of shipping is
-  correctly excluded.
-- **Also corrected.** `TRACKING_SPECS.md` §5 described a variant-level catalog
-  identity, `p{product_id}-v{variant_id}` with an `item_group_id`. Nothing has
-  ever published or sent such a string: `catalogProductId()` emits the bare
-  five-plus-digit D1 Product ID, one catalog item per product, and
-  `catalog-identity.test.ts` asserts it. Per AGENTS.md §1 the tree wins; §5 now
-  describes what ships.
-- **Reporting break, forward-only.** Meta does not retro-match. Historical
-  browser Purchases stay low-quality; treat the deploy date as a break in EMQ,
-  not an improvement in performance.
-
-## 2026-08-28 — a verified deploy was reverted 36 minutes later, and nothing said so
-
-- **What happened.** The Meta tracking fix above was deployed at 14:37 WIB
-  (version `7ca4d770`) and verified live. At 15:13 a second deploy
-  (`cc42257f`) replaced it with a tree that did not contain the commit, from a
-  clone that had not pulled. Production went back to matching the browser
-  `Purchase` on `external_id` alone. Both deploys reported success, the commit
-  never left `origin/install/zvarashop`, and no check anywhere failed.
-- **Why it was invisible.** `wrangler deploy` uploads the **working tree**, not
-  the branch, and nothing in its output says so. A clone that is behind deploys
-  a revert while looking exactly like a normal release. For the tracking layer
-  the damage is silent by construction: the pixel keeps firing, no error is
-  raised, only match quality drops.
-- **Established, not assumed.** The three landing-page commits entered this
-  clone by `pull --ff-only`, never by `commit` — reflog. Only one clone on this
-  machine names the worker `zvarashop`. Of the three local sessions, one is this
-  one and the other two are `~/Projects/adsbookcms` (whose `wrangler.jsonc`
-  resolves to the `adsbookcms-your-store` placeholder, so it cannot reach this
-  install) and an unrelated project. The deploys carry the account's own
-  identity from `Source: Unknown (deployment)`, i.e. a CLI on another machine.
-- **Changed.** `src/lib/deploy-preflight.ts` decides; `scripts/preflight-deploy.ts`
-  collects the git and wrangler facts; `predeploy`/`precf:deploy` wire it to
-  `npm run deploy` and `npm run cf:deploy`. It refuses a tree that is behind its
-  upstream, a tree with uncommitted tracked changes, a detached or untracked
-  HEAD, and the `adsbookcms-your-store` placeholder. `ALLOW_STALE_DEPLOY=1`
-  overrides the first three and prints in full what it overrode; the placeholder
-  is not overridable. `RELEASE.md` §1 now names `npm run deploy` as the deploy
-  command and states that every clone must `git pull --ff-only` first.
-- **Known limit, stated rather than papered over.** wrangler has no pre-deploy
-  hook, so a bare `npx wrangler deploy` still bypasses this. The guard raises
-  the floor for the documented path; it does not make the mistake impossible.
-- **Evidence.** 603 tests (was 595), `npm run check` clean, build complete. The
-  guard was exercised against a real dirty tree (it refused, naming
-  `package.json`) and against a branch deliberately one commit behind its
-  upstream (it refused, naming the commit count and `git pull --ff-only`).
-  Production redeployed from `aba1909` as version `3320ead9` and verified: the
-  live `/thanks` init carries all eight match keys, fbevents is requested at
-  244 ms, and all three landing pages from the other clone are intact — the
-  redeploy was the union of both machines' work, not a counter-clobber.
-
-## 2026-08-28 — checking the implementation against Meta's own reference
-
-Prompted by "is this precise against the Meta docs?" — a fair challenge, since
-most of the day's evidence was empirical rather than documentary.
-
-- **Confirmed by the reference, not by observation.** The valid manual
-  advanced-matching keys are `em fn ln ph external_id ge db ct st zp country`;
-  the confirmation page sends eight of the eleven, which is every key this
-  checkout knows. `client_user_agent` is not on the list, so its removal is
-  documented rather than merely observed. Deduplication needs `eventID` ===
-  `event_id` **and** the pixel's `event` === the API's `event_name`, inside a
-  48-hour window — both legs send `Purchase` with the `INV-` order number, so
-  the pair holds. `ct`/`st`/`zp`/`country` normalisation matches what
-  `normalizeMetaText` already does, including the non-US `st` rule.
-- **The dangerous assumption, now closed.** The whole fix hands the Pixel
-  SHA-256 values. If the Pixel hashed them again, all eight keys would match
-  nobody — a worse outcome than the bug being fixed, and completely silent.
-  Meta's reference states it accepts pre-hashed values, and the live library
-  agrees: every one of the seven hashed keys is stored byte-identical to the
-  hash the tracker computed, 64 characters, with a 64-character
-  `censoredUserDataFormat` mask — not the 2-to-14 character masks the plaintext
-  would have produced. No double hashing.
-- **What the docs do not answer.** They say nothing about a second
-  `fbq('init')`. That behaviour stays established against the live library
-  (§4a); for this question there is no documentary evidence to be had.
-- **Found by the same check.** Reading Meta's key list surfaced `em`, which
-  nothing had audited: `orders.customer_email` was read straight into the CAPI
-  leg's `em`, and for an online payment that column holds the
-  `<phone digits>@<store host>` address `buyerEmail()` mints for the provider.
-  Two orders in this install already carry one. Nobody owns that address, and
-  Meta scores match quality on keys it is given, so it was a fabricated
-  identity waiting for the first paid QRIS order — no Purchase has carried one
-  yet only because both such orders are `failed` and `pending`.
-  `isSyntheticBuyerEmail` now drops it at the CAPI boundary, one guard on the
-  resolved value so the headless route's `payload.email` is covered too. A real
-  address survives, including one whose local part is digits but is not this
-  buyer's number.
-- **Evidence.** 605 tests (was 603), `npm run check` clean, build complete.
-  Bypassing the guard fails the route test; the browser-side claim was measured
-  against the live `fbevents.js`, not asserted.
-
-## 2026-08-28 — 1.4.1, and a version registry that had stopped being one
-
-- **Bumped.** `src/lib/version.ts` and `package.json` to `1.4.1`, release tag
-  `2026.08-meta-purchase-matching`. `schemaVersion` stays `51`: this release adds
-  no migration.
-- **What the number means.** `1.4.1` is *this install*, not a product release —
-  AdsBookCMS `1.4.0` plus zvarashop's own tracking and release work from today.
-  The admin sidebar renders this value, so leaving it at `1.4.0` would have told
-  the operator they were running stock while four commits that are not in stock
-  were live. The next `chore: adopt AdsBookCMS …` overwrites these fields with
-  the product's, which is correct and expected.
-- **Corrected.** `RELEASE.md` §4 had read `1.3.1` / `2026.08-google-offline` /
-  `49` while the tree held `1.4.0` / `2026.08-stock-unlimited` / `51`, and its
-  migration sentence said `0000`–`0048` against 51 files on disk — a whole
-  product release stale. A version registry that is itself out of date is the one
-  document nobody can use to check whether anything else is. Its "bumping a
-  release" step 4 also still said merging ships nothing, which is true in the
-  product repository and false here.
-- **Refreshed.** `STATUS.md`'s version row and its executed baseline, which still
-  cited 2026-08-27's 592 tests over 399 files.
-- **Evidence.** 605 tests (604 pass, 1 skipped), `npm run check` 420 files clean.
-  `schema-version.test.ts` compares `CMS_VERSION.schemaVersion` against the
-  migration files on disk, so the unchanged `51` is asserted rather than assumed.
-# 2026-09-01 — ZvaraShop standalone authority and ad-signal hardening
-
-- Re-founded repository authority around ZvaraShop: package, CI wording,
-  configuration, first-run/login identity, release/install docs, ADR-024, and
-  the retired sync script now describe one standalone project. Compatibility
-  identifiers that protect live cookies, API keys, and migration history were
-  intentionally retained.
-- Made Meta Purchase ingestion server-authoritative for public and Headless
-  callers, added D1-backed public rate limiting, preserved paid click identity
-  across UTM-only visits, and hardened CAPI retries against stalled attempt
-  budgets while preserving original event time.
-- Prevented Google offline head-of-line blocking, exposed Google queue health
-  and alerts, and bounded terminal Meta/Google outbox retention to 30 days.
-- Added migration `0051_product_catalog_fields.sql` for merchant-owned product
-  brand and catalog description. Both feeds skip legacy invalid IDs, prefer the
-  real product brand, and no longer label merchant SKU as manufacturer MPN or
-  contradict it with `identifier_exists=no`.
-- Corrected Ads configuration UI claims and source attribution, added honest
-  pending/error states, and implemented keyboard/ARIA tab behavior. The product
-  editor now exposes bounded brand and catalog-description fields.
-- Connected the `/thanks` WhatsApp confirmation button to the CMS-owned
-  `redirect` CRM template instead of a hardcoded message. The default now
-  includes the order number and total so an operator can identify the order
-  immediately; the configured support number remains the destination.
-- Evidence after the last source edit: 619 tests (618 pass, 1 skip), 410 checked
-  files with zero diagnostics, successful build, 29-document link validation,
-  and all 52 migrations applied from a fresh local D1. Chromium at 390 × 844
-  rendered the ZvaraShop first-run page and a COD confirmation state; the
-  WhatsApp button used the CMS template and stored support number with zero
-  horizontal overflow. Deployment preflight correctly refused the untracked
-  dirty feature branch. Authenticated Ads/Product pages were
-  not opened because no password or session was read or created. No production,
-  remote D1, provider call, secret read, deploy, commit, or push occurred.
-
-## 2026-09-01 — Meta CAPI customer-information coverage repair
-
-- Confirmed `fbc` capture from `fbclid`, first-party cookie persistence, raw
-  CAPI transmission, and Purchase deduplication. Fixed cross-network merging so
-  a later Google click no longer erases Meta `_fbc`/`_fbp`, and the inverse.
-- Established a valid first-party `_fbp` synchronously before immediate CAPI
-  PageView/ViewContent trackers run, closing the deferred-Pixel race behind the
-  observed low Browser ID coverage.
-- Added migration `0052_meta_order_context.sql`. All three checkout routes now
-  retain validated external ID, `_fbp`, `_fbc`, original client IP, and user
-  agent. A Purchase emitted after later payment confirmation reuses that
-  checkout context instead of losing browser identifiers or using operator
-  request metadata.
-- Kept signal quality truthful: phone and real email are normalized/hashed by
-  the sender when known; synthetic payment email is rejected; no Facebook Login
-  ID or organic `fbc` is fabricated.
-- Evidence after the last source edit: 624 tests (623 pass, 1 intentional skip),
-  412 checked files with zero diagnostics, successful build, 29-document link
-  validation, and all 53 migrations applied to a fresh isolated local D1. No
-  production, remote D1, Meta provider, secret, deploy, commit, or push action
-  occurred.
-
-## 2026-09-01 — Server-authoritative Purchase catalog identity
-
-- Closed the remaining browser-authority gap in Purchase: both public and
-  headless CAPI now derive `content_ids` from persisted order items through the
-  immutable D1 Product ID relationship, never from submitted JSON.
-- `/api/order-status` returns the token-authorized order `content_ids`; the
-  thanks tracker replaces its initial browser state before firing Pixel or CAPI.
-  Missing or invalid order product identity fails closed instead of fabricating
-  a catalog match.
-- Added a regression check proving a forged submitted Product ID loses to the
-  order's D1 IDs, alongside the existing event-id, value, customer matching,
-  outbox, and feed-alignment tests.
-- Evidence: 625 tests (624 pass, 1 intentional skip), 430 checked files with
-  zero diagnostics, successful build, and 29-document link validation.
-
-## 2026-09-02 — Meta CAPI token recovery accepted in production
-
-- Re-verified the live storefront after the operator saved the Pixel ID and
-  access token again through the CMS. Organic PageView and product ViewContent
-  events reached Meta on their first outbox attempt; the latter carried one
-  canonical catalog Product ID and value.
-- Confirmed the live PageView and ViewContent parameter presence includes
-  external ID, `_fbp`, client IP, and user agent. The organic smoke visit had no
-  `_fbc`, as required when no valid Meta click exists.
-- Queried only delivery state and parameter-presence metadata. No provider
-  credential value, event payload value, or customer data was read.
-- Retained 33 historical terminal failures caused by the former invalid token:
-  17 PageView and 16 ViewContent, with zero Purchase failures. Requeue was not
-  performed because it is a separate production D1 mutation and provider
-  resend that requires explicit approval.
-
-## 2026-09-02 — AutoLaris digital-order checkout and Advice reconciliation
-
-- Replaced the active standalone `/create_payment` call with one Create Order
-  `/submit` request. `courir_id: 1` records a digital/subscription/non-physical
-  purchase for this account; provider-required address and parcel fields do not
-  create shipping work in ZvaraShop.
-- Kept fulfilment isolated: no AutoLaris AWB, pickup, booking, or dispatch is
-  accepted, and physical shipment remains an explicit Mengantar operator action.
-- Added bounded hourly `/advice` reconciliation by provider transaction ID.
-  `02/PENDING`, `DELIVERED`, and unknown statuses leave money state untouched;
-  an explicit settlement uses guarded idempotent D1 updates, notification, and
-  the existing order-number-deduplicated server Purchase path.
-- Updated environment typing and install configuration for the numeric metadata
-  required by `/submit`. No secret, provider call, remote D1 mutation, commit,
-  push, or deployment occurred during implementation.
-- Verification after the final source edit: 630 tests (629 passed, 1 intentional
-  skip), 412 checked files with zero diagnostics, successful Cloudflare build,
-  and 29 Markdown files with all local links resolved.
 ### Entry 89: Ad signal review — Google offline conversions had silently stopped
 
 - **Asked for.** A review and validation pass across Meta Pixel tracking,
@@ -7266,26 +6920,6 @@ noisy; TTFB, LCP and Speed Index are the comparable figures.
   §16.3 (the request, the baseline, how to read it), and the owner's decisions:
   no fabricated match keys, and an optional email field deferred.
 
-### zvarashop: catalogue migrations made inert on fresh databases (2026-10-31)
-
-- `0067_sabun_korea.sql` … `0079_celana_knit_jumbo.sql` are this store's
-  catalogue data (products, native landing pages), not schema. Production
-  applied them before AdsBookCMS 1.8.0, and `d1_migrations` holds their names.
-- They failed on a fresh database with a foreign-key error (they reference
-  rows only production has). That broke every product test that applies the
-  full chain once 1.8.0 was merged.
-- Each original is kept byte-for-byte in `scripts/catalog-seeds/` (13/13
-  compared against git). Its migration file keeps its name, which the ledger
-  matches, and now holds `SELECT 1;` with a note. Production never re-runs it.
-  A fresh database gets the catalogue by applying the seed files by hand.
-- This is a deliberate exception to "never edit an applied migration",
-  limited to data migrations whose effect production already holds.
-- Verification: the full chain applies to an empty SQLite database; `npm test`
-  passes 878/878 on 1.7.13 with the change.
-
-
-## Product entries merged with AdsBookCMS 1.8.0
-
 ### Entry 185: Kelola plugin backfills orders older than the retry window
 
 - An order taken before the Kelola plugin was switched on, or one that kept
@@ -8677,9 +8311,9 @@ code on their own 1.8.5 headers; they take the number with their next merge.
 
 ### Entry 236: 1.8.6 rolled out to the fleet
 
-No product code changed. Every install with a local clone now runs 1.8.6
-(`npm run fleet:status` and live `/hello` agree); skincarebpom has no clone and
-stays on 1.5.11. Registry and per-install notes: `docs/FLEET.md`.
+No product code changed. Eleven of the twelve installs now run 1.8.6
+(`npm run fleet:status` and live `/hello` agree); skincarebpom was left out by instruction (clone
+on 1.8.5 with 371 uncommitted files, last deployed 2026-10-18). Registry and per-install notes: `docs/FLEET.md`.
 
 - Shipped 2026-11-02: zvarashop, numaskin-adbook, klikinaja (schema 62 to 80,
   additive migrations only), revenleather, beranda-tani (schema 67 to 80). The
@@ -8700,3 +8334,118 @@ stays on 1.5.11. Registry and per-install notes: `docs/FLEET.md`.
   on the installs shipped today, an engraving order end to end.
 - Process note: a sub-agent mistyped `git config core.filemode core.autocrlf`
   in beranda-tani and restored it at once; repository state was unchanged.
+
+### Entry 237: 1.8.7 and 1.8.8, SEO pass
+
+No migration. 1163 and 1165 tests pass, `npm run check` 0/0/0.
+
+- **1.8.7** `src/lib/home-seo.ts`: `homeTitle()` never repeats the store name and
+  cuts at a word to 60 characters; `homeDescription()` extends a description
+  under 70 characters with the store's own categories (deduplicated, at most
+  five) and trims one over 160. Wired into `src/pages/index.astro`. Found by a
+  fleet audit: zvara's title was "Zvara Shop — Zvara Shop, toko online ..." at
+  131 characters and four stores had descriptions of 28-47.
+- **1.8.8** `src/lib/native-landing-product.ts`: a request whose path is an
+  active native register slug gets a `Product` block from `BaseLayout`,
+  built from the catalogue product named by `productSlug`. A page that passes
+  its own `product` keeps it. Native pages are hand-written route files per
+  install (zvara has about 55), so doing it in the layout was one change
+  instead of an edit per page. The blocks the pages wrote themselves must go:
+  permatamall's three `nutrilove-*` pages had one each and would have shown
+  two; removed there. Spec: `docs/NATIVE_LANDING_PAGE_SPEC.md`.
+- Both versions went to all eleven installs the same day; per-install result,
+  Worker ids and the JSON-LD proof are in `docs/FLEET.md`.
+- Lighthouse and robots findings (not changed, with reasons) are in STATUS.md.
+- Lesson: `git commit --amend` is refused by the hook and a version bump needs
+  `npm run route-map` run after it, because the map carries the version; the
+  test caught it, the order is what to remember.
+
+### Entry 238: visual check after the 1.8.8 rollout
+
+No product code changed. Playwright over all eleven stores at 390 and 1280 px
+(home, `/produk`, the first product page, `/payment?preview=1`; tracking
+requests blocked), then the screenshots opened: no horizontal overflow, no broken
+image, no page error, no blank page on any of the 88 renders. cekat.shop and
+klikinaja.shop show "Katalog sedang disiapkan" and have no product page, as
+expected. `/payment` is the product's neutral black-and-white layout on every
+store except revenleather (leather theme, 2026-11-02); it does not use a store's
+brand colour (numaskin is teal), an open design choice, not a defect.
+
+Found and fixed in revenleather only: the `Cormorant Garamond` font files named in
+`thanks.astro` (regular and italic) returned 404 from `fonts.gstatic.com`, so the
+headline had been falling back to Georgia; `/payment` had copied one of them. Both
+pages now use the current `v21` files (revenleather `main`, Worker `40652b92`),
+`document.fonts` reports `loaded` on `/payment`. `/thanks` itself needs a real order
+to render and was checked by fetching the two URLs (200), not by a page view.
+Lesson: a font URL pasted into a page is never tested by the build; the browser's
+`requestfailed` event is what shows it.
+
+Not done and not possible from here: Purchase on a fresh order (a production
+write), Event Match Quality and Search Console (accounts), the `fbp` re-measure
+(due about 2026-11-11, UNIMPLEMENTED_SPECS TRK-1).
+
+### Entry 239: released as 1.8.9, payment accent tokens
+
+No migration. 1167 tests, `npm run check` 0/0/0. `src/pages/payment.astro` imports the
+re-brand token layer and marks its root `data-hybrid-form-root`; primary buttons, copy
+confirmation and status markers take `var(--sf-accent)` / `--sf-accent-strong` instead of
+`#121212`/`#333333`. Only numaskin (`#002b49`) and beranda-tani (`#1b5e20`) override the
+tokens, so the rest look unchanged. `payment-accent.test.ts` guards it at source. TRK-1 is
+closed on the nine-install `fbp` measurement; EMQ-1 records the Events Manager read Paduka
+deferred.
+
+### Entry 240: 1.8.9 rolled out to the fleet
+
+Eleven of twelve installs (skincarebpom excluded by instruction) run 1.8.9; `fleet:status`
+clean, synced, 0 behind. Per-install Worker ids and the conflict notes are in the agents'
+reports, summarised in `docs/FLEET.md` ("Rollout of 1.8.9"). Evidence for the visible
+change: with a VA state placed in `sessionStorage`, "Salin Nomor VA" computes
+`rgb(0,43,73)` on numaskin, `rgb(27,94,32)` on beranda-tani and `rgb(18,18,18)` on
+zvara, and the three renders were opened and compared. revenleather keeps its own
+themed page, so two of the product's payment-accent tests are skipped there. Not verified:
+a payment with a real provider payload.
+
+### Entry 241: released as 1.9.0, CTA blue by default
+
+No migration, 1167 tests, check 0/0/0. `form-hybrid.css` token defaults: accent `#2563eb`,
+strong `#1d4ed8`, soft `#eff6ff`, ring `rgba(37,99,235,.28)`. Seven hard-coded ink buttons
+(sticky "Pesan sekarang" in `produk/[slug].astro`, three in `thanks.astro`, `404`,
+`testimoni`, `landing-page/index`) now use `var(--sf-accent, #2563EB)`/`--sf-accent-strong`
+with a blue fallback because those pages sit outside the form root that defines the tokens.
+Proof: the local build rendered through Playwright (390 px) shows the buttons, the selected
+variant card, the order summary and the payment CTA in `rgb(37,99,235)`, no page error.
+Admin screens and install-owned native landing pages are untouched. Decision and rejected
+alternatives: ADR-019 amendment 2026-11-02. Not rolled out: Paduka decides when.
+
+### Entry 242: 1.9.1, the default CTA is orange, not blue
+
+Entry 241's blue (1.9.0) was replaced before any store received it: Paduka asked for orange
+or red. Measured against white text: `#c2410c` 5.18:1 (chosen, hover `#9a3412` 7.31:1),
+`#dc2626` 4.83:1 but the checkout error colour is `#d92d20`, `#f97316` 2.8:1 and `#ea580c`
+3.6:1 (below AA). Same tokens and the same seven call-site fallbacks as 1.9.0, new values;
+ADR-019's amendment rewritten to the final choice, with the rejected options. The discount
+pill stays `#334FB4`. 1167 tests, check 0/0/0.
+
+### Entry 243: 1.9.2, form states under the orange accent
+
+Found on the live zvara canary (1.9.1): with the filled-field tint following `--sf-accent-soft`
+the name and phone fields turned peach beside their green tick, and the focused field's orange
+frame looked like the red error frame. `form-hybrid.css`: filled and valid fields take
+`--sf-surface-alt` (neutral), and a new `--sf-focus-frame: #1a1a1a` is the frame while typing,
+with `--sf-accent-ring` kept as the ring. The selected variant card, bullets, summary tint and
+the buttons keep the accent. 1167 tests. The zvara native landing page's own hero button
+(`bg-stone-950`, amber text) is that page's design and stays.
+
+### Entry 244: 1.9.2 rolled out to the fleet
+
+Eleven of twelve installs (skincarebpom excluded by instruction) run 1.9.2, canary zvara
+first. Live submit colours measured after the rollout are in `docs/FLEET.md`. What the
+rollout found: (1) revenleather's accent override sat inside the product's `form-hybrid.css`
+and was silently overwritten by the merge; restored in the install. (2) numaskin and
+beranda-tani scoped their accent to the form root, so standalone buttons would have gone
+orange; each gained a `:root` token block in its own stylesheet. (3) The first 1.9.1 canary
+showed peach filled fields and an orange focus frame that read like the red error frame;
+fixed as 1.9.2. UNIMPLEMENTED_SPECS REV-1 records the cleanup that stops the product file
+being edited per install. Process note: `pkill -f` and `pgrep -f` with a pattern matching the
+shell's own command line killed the calling shell twice (once in this session, once in an
+agent); stop servers by PID.
